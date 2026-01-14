@@ -75,6 +75,11 @@ impl eframe::App for CadApp {
             self.view_model.viewport.reset();
         }
 
+        // Delete selected entity with Delete key
+        if ctx.input(|i| i.key_pressed(egui::Key::Delete)) {
+            self.view_model.delete_selected();
+        }
+
         // Inspector Panel Logic
         let show_inspector = self.view_model.config.gui_config.show_inspector_always
             || self.view_model.selected_entity_idx.is_some();

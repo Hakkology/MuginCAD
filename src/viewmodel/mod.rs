@@ -18,6 +18,7 @@ pub struct CadViewModel {
     pub viewport: Viewport,
     pub config: AppConfig,
     pub show_settings_window: bool,
+    pub pending_delete_confirmation: bool,
 }
 
 impl CadViewModel {
@@ -34,6 +35,7 @@ impl CadViewModel {
             viewport: Viewport::new(),
             config: AppConfig::default(),
             show_settings_window: false,
+            pending_delete_confirmation: false,
         }
     }
 
@@ -116,6 +118,26 @@ impl CadViewModel {
 
         // Handle special commands
         let clean = input_text.trim().to_lowercase();
+
+        if self.pending_delete_confirmation {
+            match clean.as_str() {
+                "y" | "yes" => {
+                    self.delete_selected();
+                    self.pending_delete_confirmation = false;
+                }
+                "n" | "no" => {
+                    self.executor.status_message = "Delete cancelled".to_string();
+                    self.command_history.push("Cancelled.".to_string());
+                    self.pending_delete_confirmation = false;
+                }
+                _ => {
+                    self.executor.status_message = "Delete cancelled (invalid input)".to_string();
+                    self.pending_delete_confirmation = false;
+                }
+            }
+            return;
+        }
+
         match clean.as_str() {
             "u" | "undo" => {
                 self.undo();
@@ -139,6 +161,18 @@ impl CadViewModel {
                 self.command_history.clear();
                 self.selected_entity_idx = None;
                 self.executor.cancel();
+                return;
+            }
+            "d" | "delete" => {
+                if self.selected_entity_idx.is_some() {
+                    self.pending_delete_confirmation = true;
+                    self.executor.status_message =
+                        "Are you sure you want to delete? (Y/N)".to_string();
+                    self.command_history
+                        .push("Are you sure you want to delete? (Y/N)".to_string());
+                } else {
+                    self.executor.status_message = "Nothing selected to delete".to_string();
+                }
                 return;
             }
             _ => {}
@@ -181,6 +215,10 @@ impl CadViewModel {
     /// Cancel current command (right-click or Escape)
     pub fn cancel_command(&mut self) {
         self.executor.cancel();
+        if self.pending_delete_confirmation {
+            self.pending_delete_confirmation = false;
+            self.executor.status_message = "Cancelled".to_string();
+        }
     }
 
     /// Create a new empty project
@@ -240,6 +278,23 @@ impl CadViewModel {
                     self.executor.cancel();
                 }
             }
+        }
+    }
+
+    /// Delete selected entity
+    pub fn delete_selected(&mut self) {
+        if let Some(idx) = self.selected_entity_idx {
+            self.save_undo_state();
+
+            if idx < self.model.entities.len() {
+                self.model.entities.remove(idx);
+
+                self.selected_entity_idx = None;
+                self.executor.status_message = "Deleted selection".to_string();
+                self.command_history.push("Deleted selection".to_string());
+            }
+        } else {
+            self.executor.status_message = "Nothing selected to delete".to_string();
         }
     }
 }
