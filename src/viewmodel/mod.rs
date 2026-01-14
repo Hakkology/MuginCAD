@@ -1,7 +1,9 @@
 use crate::commands::InputModifiers;
 use crate::commands::executor::CommandExecutor;
 use crate::model::snap::{SnapPoint, SnapSystem};
+use crate::model::undo::UndoManager;
 use crate::model::{CadModel, Vector2};
+use crate::view::viewport::Viewport;
 
 pub struct CadViewModel {
     pub model: CadModel,
@@ -11,6 +13,8 @@ pub struct CadViewModel {
     pub selected_entity_idx: Option<usize>,
     pub snap_system: SnapSystem,
     pub current_snap: Option<SnapPoint>,
+    pub undo_manager: UndoManager,
+    pub viewport: Viewport,
 }
 
 impl CadViewModel {
@@ -21,8 +25,10 @@ impl CadViewModel {
             command_history: Vec::new(),
             executor: CommandExecutor::new(),
             selected_entity_idx: None,
-            snap_system: SnapSystem::new(15.0), // 15 pixel tolerance
+            snap_system: SnapSystem::new(15.0),
             current_snap: None,
+            undo_manager: UndoManager::new(50), // 50 undo levels
+            viewport: Viewport::new(),
         }
     }
 
@@ -54,13 +60,45 @@ impl CadViewModel {
         }
     }
 
+    /// Save current state for undo
+    pub fn save_undo_state(&mut self) {
+        self.undo_manager.save_state(&self.model.entities);
+    }
+
+    /// Perform undo
+    pub fn undo(&mut self) -> bool {
+        if let Some(previous_state) = self.undo_manager.undo(&self.model.entities) {
+            self.model.entities = previous_state;
+            self.selected_entity_idx = None;
+            self.command_history.push("Undo".to_string());
+            self.executor.status_message = "Undo".to_string();
+            true
+        } else {
+            self.executor.status_message = "Nothing to undo".to_string();
+            false
+        }
+    }
+
+    /// Perform redo
+    pub fn redo(&mut self) -> bool {
+        if let Some(redo_state) = self.undo_manager.redo(&self.model.entities) {
+            self.model.entities = redo_state;
+            self.selected_entity_idx = None;
+            self.command_history.push("Redo".to_string());
+            self.executor.status_message = "Redo".to_string();
+            true
+        } else {
+            self.executor.status_message = "Nothing to redo".to_string();
+            false
+        }
+    }
+
     /// Process command input from terminal
     pub fn process_command(&mut self) {
         let input_text = self.command_input.trim().to_string();
         self.command_input.clear();
 
         if input_text.is_empty() {
-            // Empty input cancels current command
             if self.executor.is_active() {
                 self.executor.cancel();
             }
@@ -72,6 +110,14 @@ impl CadViewModel {
         // Handle special commands
         let clean = input_text.trim().to_lowercase();
         match clean.as_str() {
+            "u" | "undo" => {
+                self.undo();
+                return;
+            }
+            "redo" => {
+                self.redo();
+                return;
+            }
             "fill" | "shade" => {
                 let mode = self.executor.toggle_filled();
                 let mode_str = if mode { "ON" } else { "OFF" };
@@ -81,6 +127,7 @@ impl CadViewModel {
                 return;
             }
             "clear" => {
+                self.save_undo_state();
                 self.model.entities.clear();
                 self.command_history.clear();
                 self.selected_entity_idx = None;
@@ -90,6 +137,9 @@ impl CadViewModel {
             _ => {}
         }
 
+        // Save state before command execution
+        self.save_undo_state();
+
         // Process with command executor
         self.executor
             .process_input(&input_text, &mut self.model, self.selected_entity_idx);
@@ -97,10 +147,12 @@ impl CadViewModel {
 
     /// Handle a click on the canvas
     pub fn handle_click(&mut self, pos: Vector2) {
-        // Use snapped position if available
         let effective_pos = self.get_effective_position(pos);
 
         if self.executor.is_active() {
+            // Save state before modifying
+            self.save_undo_state();
+
             self.executor
                 .push_point(effective_pos, &mut self.model, self.selected_entity_idx);
             self.command_history.push(format!(
@@ -108,7 +160,7 @@ impl CadViewModel {
                 effective_pos.x, effective_pos.y
             ));
         } else {
-            // Selection mode
+            // Selection mode - no undo needed
             self.selected_entity_idx = self.model.pick_entity(pos, 5.0);
             if let Some(idx) = self.selected_entity_idx {
                 let entity = &self.model.entities[idx];

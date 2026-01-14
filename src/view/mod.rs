@@ -1,6 +1,7 @@
 pub mod canvas;
 pub mod inspector;
 pub mod terminal;
+pub mod viewport;
 
 use crate::viewmodel::CadViewModel;
 use eframe::egui;
@@ -27,6 +28,11 @@ impl eframe::App for CadApp {
         // Global shortcuts
         if ctx.input(|i| i.key_pressed(egui::Key::Escape)) {
             self.view_model.cancel_command();
+        }
+
+        // Reset viewport with End key
+        if ctx.input(|i| i.key_pressed(egui::Key::End)) {
+            self.view_model.viewport.reset();
         }
 
         // Layout

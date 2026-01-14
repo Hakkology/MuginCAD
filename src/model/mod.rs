@@ -2,6 +2,7 @@ pub mod circle;
 pub mod line;
 pub mod rectangle;
 pub mod snap;
+pub mod undo;
 pub mod vector;
 
 use serde::{Deserialize, Serialize};

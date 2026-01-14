@@ -25,6 +25,44 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
     ui.separator();
     ui.add_space(10.0);
 
+    // History Tools
+    ui.group(|ui| {
+        ui.label(egui::RichText::new("History").strong());
+        ui.add_space(5.0);
+        ui.horizontal(|ui| {
+            let can_undo = vm.undo_manager.can_undo();
+            let can_redo = vm.undo_manager.can_redo();
+
+            ui.add_enabled_ui(can_undo, |ui| {
+                if ui
+                    .button("↩ Undo (U)")
+                    .on_hover_text("Undo last action")
+                    .clicked()
+                {
+                    vm.undo();
+                }
+            });
+
+            ui.add_enabled_ui(can_redo, |ui| {
+                if ui
+                    .button("↪ Redo")
+                    .on_hover_text("Redo last undone action")
+                    .clicked()
+                {
+                    vm.redo();
+                }
+            });
+
+            ui.label(
+                egui::RichText::new(format!("({} steps)", vm.undo_manager.undo_count()))
+                    .small()
+                    .weak(),
+            );
+        });
+    });
+
+    ui.add_space(10.0);
+
     // Utility Toolbar
     ui.group(|ui| {
         ui.label(egui::RichText::new("Transform Tools").strong());
