@@ -1,66 +1,36 @@
+pub mod circle;
+pub mod line;
+pub mod rectangle;
 pub mod vector;
+
 use serde::{Deserialize, Serialize};
+
+pub use circle::Circle;
+pub use line::Line;
+pub use rectangle::Rectangle;
 pub use vector::Vector2;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Entity {
-    Line {
-        start: Vector2,
-        end: Vector2,
-    },
-    Circle {
-        center: Vector2,
-        radius: f32,
-        filled: bool,
-    },
-    Rectangle {
-        min: Vector2,
-        max: Vector2,
-        filled: bool,
-    },
+    Line(Line),
+    Circle(Circle),
+    Rectangle(Rectangle),
 }
 
 impl Entity {
     pub fn hit_test(&self, pos: Vector2, tolerance: f32) -> bool {
         match self {
-            Entity::Line { start, end } => pos.dist_to_line(*start, *end) < tolerance,
-            Entity::Circle {
-                center,
-                radius,
-                filled,
-            } => {
-                let d = pos.dist(*center);
-                if *filled {
-                    d <= *radius + tolerance
-                } else {
-                    (d - radius).abs() < tolerance
-                }
-            }
-            Entity::Rectangle { min, max, filled } => {
-                let inside = pos.x >= min.x - tolerance
-                    && pos.x <= max.x + tolerance
-                    && pos.y >= min.y - tolerance
-                    && pos.y <= max.y + tolerance;
-
-                if *filled {
-                    inside
-                } else {
-                    // Check if near edges
-                    let near_x =
-                        (pos.x - min.x).abs() < tolerance || (pos.x - max.x).abs() < tolerance;
-                    let near_y =
-                        (pos.y - min.y).abs() < tolerance || (pos.y - max.y).abs() < tolerance;
-                    inside && (near_x || near_y)
-                }
-            }
+            Entity::Line(line) => line.hit_test(pos, tolerance),
+            Entity::Circle(circle) => circle.hit_test(pos, tolerance),
+            Entity::Rectangle(rect) => rect.hit_test(pos, tolerance),
         }
     }
 
     pub fn type_name(&self) -> &'static str {
         match self {
-            Entity::Line { .. } => "Line",
-            Entity::Circle { .. } => "Circle",
-            Entity::Rectangle { .. } => "Rectangle",
+            Entity::Line(_) => "Line",
+            Entity::Circle(_) => "Circle",
+            Entity::Rectangle(_) => "Rectangle",
         }
     }
 }
@@ -81,7 +51,6 @@ impl CadModel {
     }
 
     pub fn pick_entity(&self, pos: Vector2, tolerance: f32) -> Option<usize> {
-        // Reverse order to pick the top-most (last drawn) entity
         self.entities
             .iter()
             .enumerate()
