@@ -6,6 +6,7 @@ use crate::commands::r#move::MoveCommand;
 use crate::commands::rectangle::RectangleCommand;
 use crate::commands::rotate::RotateCommand;
 use crate::commands::scale::ScaleCommand;
+use crate::commands::trim::TrimCommand;
 use crate::commands::{Command, CommandContext, InputModifiers, InputResult, PointResult};
 use crate::model::{CadModel, Vector2};
 use std::collections::{HashMap, HashSet};
@@ -54,6 +55,10 @@ impl CommandRegistry {
         registry.register("axis", || Box::new(AxisCommand::new()));
         registry.register("aks", || Box::new(AxisCommand::new()));
         registry.register("a", || Box::new(AxisCommand::new()));
+
+        // Register edit commands
+        registry.register("trim", || Box::new(TrimCommand::new()));
+        registry.register("t", || Box::new(TrimCommand::new()));
 
         registry
     }

@@ -7,6 +7,7 @@ pub mod r#move;
 pub mod rectangle;
 pub mod rotate;
 pub mod scale;
+pub mod trim;
 
 use crate::model::{CadModel, Vector2};
 use std::collections::HashSet;

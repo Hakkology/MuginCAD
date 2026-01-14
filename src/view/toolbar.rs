@@ -109,6 +109,15 @@ pub fn render_toolbar(ctx: &egui::Context, vm: &mut CadViewModel) {
                     vm.executor
                         .start_command("axis", &mut vm.model, &vm.selected_indices);
                 }
+
+                if ui
+                    .add(egui::Button::new("T").min_size(btn_size))
+                    .on_hover_text("Trim (T)")
+                    .clicked()
+                {
+                    vm.executor
+                        .start_command("trim", &mut vm.model, &vm.selected_indices);
+                }
             });
         });
 }
