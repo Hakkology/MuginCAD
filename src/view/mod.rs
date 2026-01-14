@@ -2,6 +2,8 @@ pub mod canvas;
 pub mod inspector;
 pub mod settings;
 pub mod terminal;
+pub mod toolbar;
+pub mod topmenu;
 pub mod viewport;
 
 use crate::viewmodel::CadViewModel;
@@ -34,38 +36,10 @@ impl eframe::App for CadApp {
         }
 
         // Top Menu
-        egui::TopBottomPanel::top("top_menu").show(ctx, |ui| {
-            // Add some padding
-            ui.style_mut().spacing.item_spacing = egui::vec2(10.0, 5.0);
-
-            egui::menu::bar(ui, |ui| {
-                ui.menu_button("Project", |ui| {
-                    ui.set_min_width(120.0);
-                    if ui.button("New").clicked() {
-                        self.view_model.new_project();
-                        ui.close_menu();
-                    }
-                    if ui.button("Save").clicked() {
-                        self.view_model.save_project();
-                        ui.close_menu();
-                    }
-                    if ui.button("Load").clicked() {
-                        self.view_model.load_project();
-                        ui.close_menu();
-                    }
-                });
-
-                ui.menu_button("Tools", |ui| {
-                    ui.set_min_width(120.0);
-                    if ui.button("Settings").clicked() {
-                        self.view_model.show_settings_window = true;
-                        ui.close_menu();
-                    }
-                });
-            });
-        });
+        topmenu::render_top_menu(ctx, &mut self.view_model);
 
         // Global shortcuts
+
         if ctx.input(|i| i.key_pressed(egui::Key::Escape)) {
             self.view_model.cancel_command();
         }
@@ -104,7 +78,11 @@ impl eframe::App for CadApp {
             }
         }
 
+        // Left Toolbar Panel
+        toolbar::render_toolbar(ctx, &mut self.view_model);
+
         // Inspector Panel Logic
+
         let show_inspector = self.view_model.config.gui_config.show_inspector_always
             || !self.view_model.selected_indices.is_empty();
 
