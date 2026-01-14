@@ -1,3 +1,4 @@
+use crate::commands::arc::ArcCommand;
 use crate::commands::axis::AxisCommand;
 use crate::commands::circle::CircleCommand;
 use crate::commands::copy::CopyCommand;
@@ -34,6 +35,8 @@ impl CommandRegistry {
 
         registry.register("rect", || Box::new(RectangleCommand::new()));
         registry.register("rectangle", || Box::new(RectangleCommand::new()));
+
+        registry.register("arc", || Box::new(ArcCommand::new()));
 
         // Register manipulation commands
         registry.register("move", || Box::new(MoveCommand::new()));

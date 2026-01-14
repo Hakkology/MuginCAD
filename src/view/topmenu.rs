@@ -45,6 +45,11 @@ pub fn render_top_menu(ctx: &egui::Context, vm: &mut CadViewModel) {
                         .start_command("rect", &mut vm.model, &vm.selected_indices);
                     ui.close_menu();
                 }
+                if ui.button("Arc").clicked() {
+                    vm.executor
+                        .start_command("arc", &mut vm.model, &vm.selected_indices);
+                    ui.close_menu();
+                }
 
                 ui.add_space(8.0);
 

@@ -195,6 +195,35 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                     });
                     ui.checkbox(&mut rect.filled, "Filled");
                 }
+                Entity::Arc(arc) => {
+                    ui.group(|ui| {
+                        ui.label("Center");
+                        ui.horizontal(|ui| {
+                            ui.label("X:");
+                            ui.add(egui::DragValue::new(&mut arc.center.x).speed(0.1));
+                            ui.label("Y:");
+                            ui.add(egui::DragValue::new(&mut arc.center.y).speed(0.1));
+                        });
+                    });
+                    ui.add_space(5.0);
+                    ui.horizontal(|ui| {
+                        ui.label("Radius:");
+                        ui.add(
+                            egui::DragValue::new(&mut arc.radius)
+                                .speed(0.1)
+                                .range(0.0..=f32::INFINITY),
+                        );
+                    });
+                    ui.horizontal(|ui| {
+                        ui.label("Start Angle:");
+                        ui.add(egui::DragValue::new(&mut arc.start_angle).speed(0.01));
+                    });
+                    ui.horizontal(|ui| {
+                        ui.label("End Angle:");
+                        ui.add(egui::DragValue::new(&mut arc.end_angle).speed(0.01));
+                    });
+                    ui.checkbox(&mut arc.filled, "Filled");
+                }
             }
 
             ui.add_space(20.0);

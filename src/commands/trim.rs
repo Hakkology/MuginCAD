@@ -92,6 +92,12 @@ impl Command for TrimCommand {
                             }
                         }
                     }
+                    Entity::Arc(arc) => {
+                        // Treat arc as circle for intersection (simplified)
+                        let pts =
+                            line_circle_intersection(line.start, line.end, arc.center, arc.radius);
+                        intersections.extend(pts);
+                    }
                 }
             }
 

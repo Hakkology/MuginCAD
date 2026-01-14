@@ -211,6 +211,13 @@ impl SnapSystem {
                 );
                 points.push(SnapPoint::new(center, SnapPointType::Center));
             }
+            Entity::Arc(arc) => {
+                // Center
+                points.push(SnapPoint::new(arc.center, SnapPointType::Center));
+                // Start and end points
+                points.push(SnapPoint::new(arc.start_point(), SnapPointType::Endpoint));
+                points.push(SnapPoint::new(arc.end_point(), SnapPointType::Endpoint));
+            }
         }
 
         points

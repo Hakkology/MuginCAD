@@ -1,3 +1,4 @@
+pub mod arc;
 pub mod axis;
 pub mod circle;
 pub mod config;
@@ -10,6 +11,7 @@ pub mod vector;
 
 use serde::{Deserialize, Serialize};
 
+pub use arc::Arc;
 pub use circle::Circle;
 pub use line::Line;
 pub use rectangle::Rectangle;
@@ -20,6 +22,7 @@ pub enum Entity {
     Line(Line),
     Circle(Circle),
     Rectangle(Rectangle),
+    Arc(Arc),
 }
 
 impl Entity {
@@ -28,6 +31,7 @@ impl Entity {
             Entity::Line(line) => line.hit_test(pos, tolerance),
             Entity::Circle(circle) => circle.hit_test(pos, tolerance),
             Entity::Rectangle(rect) => rect.hit_test(pos, tolerance),
+            Entity::Arc(arc) => arc.hit_test(pos, tolerance),
         }
     }
 
@@ -36,6 +40,7 @@ impl Entity {
             Entity::Line(_) => "Line",
             Entity::Circle(_) => "Circle",
             Entity::Rectangle(_) => "Rectangle",
+            Entity::Arc(_) => "Arc",
         }
     }
 
@@ -51,6 +56,7 @@ impl Entity {
                 (rect.min.x + rect.max.x) / 2.0,
                 (rect.min.y + rect.max.y) / 2.0,
             ),
+            Entity::Arc(arc) => arc.center,
         }
     }
 
@@ -67,6 +73,9 @@ impl Entity {
             Entity::Rectangle(rect) => {
                 rect.min = rect.min + delta;
                 rect.max = rect.max + delta;
+            }
+            Entity::Arc(arc) => {
+                arc.center = arc.center + delta;
             }
         }
     }
@@ -109,6 +118,11 @@ impl Entity {
                     p1.y.max(p2.y).max(p3.y).max(p4.y),
                 );
             }
+            Entity::Arc(arc) => {
+                arc.center = rotate_point(arc.center);
+                arc.start_angle += angle;
+                arc.end_angle += angle;
+            }
         }
     }
 
@@ -133,6 +147,10 @@ impl Entity {
             Entity::Rectangle(rect) => {
                 rect.min = scale_point(rect.min);
                 rect.max = scale_point(rect.max);
+            }
+            Entity::Arc(arc) => {
+                arc.center = scale_point(arc.center);
+                arc.radius *= factor;
             }
         }
     }

@@ -97,6 +97,15 @@ pub fn render_toolbar(ctx: &egui::Context, vm: &mut CadViewModel) {
                         .start_command("rect", &mut vm.model, &vm.selected_indices);
                 }
 
+                if ui
+                    .add(egui::Button::new("(").min_size(btn_size))
+                    .on_hover_text("Arc")
+                    .clicked()
+                {
+                    vm.executor
+                        .start_command("arc", &mut vm.model, &vm.selected_indices);
+                }
+
                 ui.separator();
                 ui.add_space(4.0);
 

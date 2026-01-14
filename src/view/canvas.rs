@@ -291,6 +291,44 @@ pub fn render_canvas(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                 }
                 painter.rect_stroke(rect_screen, 0.0, egui::Stroke::new(stroke_width, color));
             }
+            Entity::Arc(arc) => {
+                // Draw arc as series of line segments
+                let segments = 32;
+                let mut angle_range = arc.end_angle - arc.start_angle;
+                if angle_range < 0.0 {
+                    angle_range += std::f32::consts::PI * 2.0;
+                }
+                let angle_step = angle_range / segments as f32;
+
+                let mut points: Vec<egui::Pos2> = Vec::with_capacity(segments + 1);
+                for i in 0..=segments {
+                    let angle = arc.start_angle + angle_step * i as f32;
+                    let pt = Vector2::new(
+                        arc.center.x + arc.radius * angle.cos(),
+                        arc.center.y + arc.radius * angle.sin(),
+                    );
+                    points.push(to_screen(pt));
+                }
+
+                if arc.filled {
+                    // Draw filled arc as a pie slice
+                    let mut fill_points = vec![to_screen(arc.center)];
+                    fill_points.extend(points.iter().cloned());
+                    painter.add(egui::Shape::convex_polygon(
+                        fill_points,
+                        color.linear_multiply(0.3),
+                        egui::Stroke::NONE,
+                    ));
+                }
+
+                // Draw arc outline
+                for i in 0..points.len() - 1 {
+                    painter.line_segment(
+                        [points[i], points[i + 1]],
+                        egui::Stroke::new(stroke_width, color),
+                    );
+                }
+            }
         }
     }
 

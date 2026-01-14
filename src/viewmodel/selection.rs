@@ -79,6 +79,9 @@ impl CadViewModel {
                         Vector2::new(c.center.x - c.radius, c.center.y - c.radius)
                     }
                     crate::model::Entity::Rectangle(r) => r.min,
+                    crate::model::Entity::Arc(a) => {
+                        Vector2::new(a.center.x - a.radius, a.center.y - a.radius)
+                    }
                 };
                 let e_max = match entity {
                     crate::model::Entity::Line(l) => {
@@ -88,6 +91,9 @@ impl CadViewModel {
                         Vector2::new(c.center.x + c.radius, c.center.y + c.radius)
                     }
                     crate::model::Entity::Rectangle(r) => r.max,
+                    crate::model::Entity::Arc(a) => {
+                        Vector2::new(a.center.x + a.radius, a.center.y + a.radius)
+                    }
                 };
 
                 // Check if entity is fully inside selection rect
