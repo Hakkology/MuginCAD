@@ -74,12 +74,32 @@ pub fn render_canvas(ui: &mut egui::Ui, vm: &mut CadViewModel) {
         }
     }
 
-    // Handle clicks (only when not panning)
+    // Handle input (clicks and drags) when not panning
     if !is_panning {
+        // Handle drag events
+        if response.drag_started() {
+            if let Some(mouse_pos) = response.interact_pointer_pos() {
+                let cad_pos = to_cad(mouse_pos);
+                vm.handle_drag_start(cad_pos, modifiers);
+            }
+        }
+
+        if response.dragged() {
+            if let Some(mouse_pos) = response.interact_pointer_pos() {
+                let cad_pos = to_cad(mouse_pos);
+                vm.handle_drag_update(cad_pos);
+            }
+        }
+
+        if response.drag_stopped() {
+            vm.handle_drag_end(modifiers);
+        }
+
+        // Handle clicks
         if response.clicked() {
             if let Some(mouse_pos) = response.interact_pointer_pos() {
                 let cad_pos = to_cad(mouse_pos);
-                vm.handle_click(cad_pos);
+                vm.handle_click(cad_pos, modifiers);
             }
         } else if response.secondary_clicked() {
             vm.cancel_command();
@@ -205,9 +225,28 @@ pub fn render_canvas(ui: &mut egui::Ui, vm: &mut CadViewModel) {
         }
     }
 
+    // Draw drag selection box
+    if let (Some(start), Some(current)) = (vm.selection_rect_start, vm.selection_rect_current) {
+        let min_x = start.x.min(current.x);
+        let max_x = start.x.max(current.x);
+        let min_y = start.y.min(current.y);
+        let max_y = start.y.max(current.y);
+
+        let rect_screen = egui::Rect::from_min_max(
+            to_screen(Vector2::new(min_x, max_y)),
+            to_screen(Vector2::new(max_x, min_y)),
+        );
+
+        let color = egui::Color32::from_rgba_unmultiplied(100, 100, 255, 30);
+        let stroke = egui::Stroke::new(1.0, egui::Color32::from_rgb(100, 100, 255));
+
+        painter.rect_filled(rect_screen, 0.0, color);
+        painter.rect_stroke(rect_screen, 0.0, stroke);
+    }
+
     // Draw entities
     for (i, entity) in vm.model.entities.iter().enumerate() {
-        let is_selected = Some(i) == vm.selected_entity_idx;
+        let is_selected = vm.selected_indices.contains(&i);
         let is_hovered = Some(i) == hovered_entity_idx;
 
         let color = if is_selected {

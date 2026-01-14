@@ -7,7 +7,7 @@ use crate::commands::rotate::RotateCommand;
 use crate::commands::scale::ScaleCommand;
 use crate::commands::{Command, CommandContext, InputModifiers, InputResult, PointResult};
 use crate::model::{CadModel, Vector2};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 /// Factory function type for creating commands
 type CommandFactory = fn() -> Box<dyn Command>;
@@ -90,13 +90,13 @@ impl CommandExecutor {
         &mut self,
         name: &str,
         model: &mut CadModel,
-        selected_idx: Option<usize>,
+        selected_indices: &HashSet<usize>,
     ) -> bool {
         if let Some(mut cmd) = self.registry.create(name) {
             // Check if command can execute in current context
             let ctx = CommandContext {
                 model,
-                selected_entity_idx: selected_idx,
+                selected_indices,
                 filled_mode: self.filled_mode,
                 modifiers: self.modifiers,
             };
@@ -129,11 +129,16 @@ impl CommandExecutor {
     }
 
     /// Process a click/point input
-    pub fn push_point(&mut self, pos: Vector2, model: &mut CadModel, selected_idx: Option<usize>) {
+    pub fn push_point(
+        &mut self,
+        pos: Vector2,
+        model: &mut CadModel,
+        selected_indices: &HashSet<usize>,
+    ) {
         if let Some(cmd) = &mut self.active_command {
             let mut ctx = CommandContext {
                 model,
-                selected_entity_idx: selected_idx,
+                selected_indices,
                 filled_mode: self.filled_mode,
                 modifiers: self.modifiers,
             };
@@ -158,11 +163,11 @@ impl CommandExecutor {
         &mut self,
         input: &str,
         model: &mut CadModel,
-        selected_idx: Option<usize>,
+        selected_indices: &HashSet<usize>,
     ) {
         // First, check if it's a new command
         let clean = input.trim().to_lowercase();
-        if self.start_command(&clean, model, selected_idx) {
+        if self.start_command(&clean, model, selected_indices) {
             return;
         }
 
@@ -176,7 +181,7 @@ impl CommandExecutor {
         if let Some(cmd) = &mut self.active_command {
             let mut ctx = CommandContext {
                 model,
-                selected_entity_idx: selected_idx,
+                selected_indices,
                 filled_mode: self.filled_mode,
                 modifiers: self.modifiers,
             };

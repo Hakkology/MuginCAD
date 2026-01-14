@@ -5,13 +5,16 @@ use crate::model::snap::{SnapPoint, SnapSystem};
 use crate::model::undo::UndoManager;
 use crate::model::{CadModel, Vector2};
 use crate::view::viewport::Viewport;
+use std::collections::HashSet;
 
 pub struct CadViewModel {
     pub model: CadModel,
     pub command_input: String,
     pub command_history: Vec<String>,
     pub executor: CommandExecutor,
-    pub selected_entity_idx: Option<usize>,
+    pub selected_indices: HashSet<usize>,
+    pub selection_rect_start: Option<Vector2>,
+    pub selection_rect_current: Option<Vector2>,
     pub snap_system: SnapSystem,
     pub current_snap: Option<SnapPoint>,
     pub undo_manager: UndoManager,
@@ -28,7 +31,9 @@ impl CadViewModel {
             command_input: String::new(),
             command_history: Vec::new(),
             executor: CommandExecutor::new(),
-            selected_entity_idx: None,
+            selected_indices: HashSet::new(),
+            selection_rect_start: None,
+            selection_rect_current: None,
             snap_system: SnapSystem::new(),
             current_snap: None,
             undo_manager: UndoManager::new(50), // 50 undo levels
@@ -78,7 +83,7 @@ impl CadViewModel {
     pub fn undo(&mut self) -> bool {
         if let Some(previous_state) = self.undo_manager.undo(&self.model.entities) {
             self.model.entities = previous_state;
-            self.selected_entity_idx = None;
+            self.selected_indices.clear();
             self.command_history.push("Undo".to_string());
             self.executor.status_message = "Undo".to_string();
             true
@@ -92,7 +97,7 @@ impl CadViewModel {
     pub fn redo(&mut self) -> bool {
         if let Some(redo_state) = self.undo_manager.redo(&self.model.entities) {
             self.model.entities = redo_state;
-            self.selected_entity_idx = None;
+            self.selected_indices.clear();
             self.command_history.push("Redo".to_string());
             self.executor.status_message = "Redo".to_string();
             true
@@ -159,12 +164,12 @@ impl CadViewModel {
                 self.save_undo_state();
                 self.model.entities.clear();
                 self.command_history.clear();
-                self.selected_entity_idx = None;
+                self.selected_indices.clear();
                 self.executor.cancel();
                 return;
             }
             "d" | "delete" => {
-                if self.selected_entity_idx.is_some() {
+                if !self.selected_indices.is_empty() {
                     self.pending_delete_confirmation = true;
                     self.executor.status_message =
                         "Are you sure you want to delete? (Y/N)".to_string();
@@ -183,11 +188,11 @@ impl CadViewModel {
 
         // Process with command executor
         self.executor
-            .process_input(&input_text, &mut self.model, self.selected_entity_idx);
+            .process_input(&input_text, &mut self.model, &self.selected_indices);
     }
 
-    /// Handle a click on the canvas
-    pub fn handle_click(&mut self, pos: Vector2) {
+    /// Handle a click on the canvas (mouse down/up without drag)
+    pub fn handle_click(&mut self, pos: Vector2, modifiers: InputModifiers) {
         let effective_pos = self.get_effective_position(pos);
 
         if self.executor.is_active() {
@@ -195,21 +200,108 @@ impl CadViewModel {
             self.save_undo_state();
 
             self.executor
-                .push_point(effective_pos, &mut self.model, self.selected_entity_idx);
+                .push_point(effective_pos, &mut self.model, &self.selected_indices);
             self.command_history.push(format!(
                 "Point: {:.2}, {:.2}",
                 effective_pos.x, effective_pos.y
             ));
         } else {
-            // Selection mode - no undo needed
-            self.selected_entity_idx = self.model.pick_entity(pos, 5.0);
-            if let Some(idx) = self.selected_entity_idx {
-                let entity = &self.model.entities[idx];
-                self.executor.status_message = format!("Selected: {}", entity.type_name());
+            // Selection mode - single click selection
+            let picked_idx = self.model.pick_entity(pos, 5.0 / self.viewport.zoom);
+
+            if let Some(idx) = picked_idx {
+                if modifiers.shift || modifiers.ctrl {
+                    // Toggle selection
+                    if self.selected_indices.contains(&idx) {
+                        self.selected_indices.remove(&idx);
+                    } else {
+                        self.selected_indices.insert(idx);
+                    }
+                } else {
+                    // Single selection
+                    self.selected_indices.clear();
+                    self.selected_indices.insert(idx);
+                }
+                self.executor.status_message =
+                    format!("Selected {} items", self.selected_indices.len());
             } else {
-                self.executor.status_message = "Command:".to_string();
+                if !modifiers.shift && !modifiers.ctrl {
+                    self.selected_indices.clear();
+                    self.executor.status_message = "Selection cleared".to_string();
+                }
             }
         }
+    }
+
+    pub fn handle_drag_start(&mut self, pos: Vector2, modifiers: InputModifiers) {
+        if !self.executor.is_active() {
+            // Only start selection box if we are not clicking on an entity (or if we are on empty space)
+            // But usually drag starts on empty space.
+            // For now, let's always allow drag start if no command active.
+            // If we click on an entity and drag, maybe we should move it? (Future feature)
+            // For now, assume drag is always selection box if not a command.
+
+            if !modifiers.shift && !modifiers.ctrl {
+                self.selected_indices.clear();
+            }
+
+            self.selection_rect_start = Some(pos);
+            self.selection_rect_current = Some(pos);
+            self.executor.status_message = "Drag to select...".to_string();
+        }
+    }
+
+    pub fn handle_drag_update(&mut self, pos: Vector2) {
+        if self.selection_rect_start.is_some() {
+            self.selection_rect_current = Some(pos);
+        }
+    }
+
+    pub fn handle_drag_end(&mut self, _modifiers: InputModifiers) {
+        if let (Some(start), Some(end)) = (self.selection_rect_start, self.selection_rect_current) {
+            // Calculate rect
+            let min = Vector2::new(start.x.min(end.x), start.y.min(end.y));
+            let max = Vector2::new(start.x.max(end.x), start.y.max(end.y));
+
+            // Find entities in rect
+            // Since we don't have a spatial index yet, we iterate all
+            for (i, entity) in self.model.entities.iter().enumerate() {
+                // Check if entity is inside or intersects rect
+                // For simplified logic: check if bounding box of entity intersects selection rect
+                // Or simplified: check if center or key points are inside.
+                // Let's implement full containment for now as per plan.
+
+                let e_min = match entity {
+                    crate::model::Entity::Line(l) => {
+                        Vector2::new(l.start.x.min(l.end.x), l.start.y.min(l.end.y))
+                    }
+                    crate::model::Entity::Circle(c) => {
+                        Vector2::new(c.center.x - c.radius, c.center.y - c.radius)
+                    }
+                    crate::model::Entity::Rectangle(r) => r.min,
+                };
+                let e_max = match entity {
+                    crate::model::Entity::Line(l) => {
+                        Vector2::new(l.start.x.max(l.end.x), l.start.y.max(l.end.y))
+                    }
+                    crate::model::Entity::Circle(c) => {
+                        Vector2::new(c.center.x + c.radius, c.center.y + c.radius)
+                    }
+                    crate::model::Entity::Rectangle(r) => r.max,
+                };
+
+                // Check if entity is fully inside selection rect
+                if e_min.x >= min.x && e_max.x <= max.x && e_min.y >= min.y && e_max.y <= max.y {
+                    self.selected_indices.insert(i);
+                }
+            }
+
+            self.executor.status_message =
+                format!("Selected {} items", self.selected_indices.len());
+        }
+
+        self.selection_rect_start = None;
+        self.selection_rect_current = None;
     }
 
     /// Cancel current command (right-click or Escape)
@@ -219,6 +311,9 @@ impl CadViewModel {
             self.pending_delete_confirmation = false;
             self.executor.status_message = "Cancelled".to_string();
         }
+        // Also clear selection rect if we were dragging
+        self.selection_rect_start = None;
+        self.selection_rect_current = None;
     }
 
     /// Create a new empty project
@@ -227,7 +322,7 @@ impl CadViewModel {
         self.model.axis_manager.axes.clear();
         self.undo_manager = UndoManager::new(50);
         self.command_history.clear();
-        self.selected_entity_idx = None;
+        self.selected_indices.clear();
         self.current_snap = None;
         self.config = AppConfig::default();
         self.executor.cancel();
@@ -273,7 +368,7 @@ impl CadViewModel {
                     // Reset transient state
                     self.undo_manager = UndoManager::new(50);
                     self.command_history.clear();
-                    self.selected_entity_idx = None;
+                    self.selected_indices.clear();
                     self.current_snap = None;
                     self.executor.cancel();
                 }
@@ -283,16 +378,24 @@ impl CadViewModel {
 
     /// Delete selected entity
     pub fn delete_selected(&mut self) {
-        if let Some(idx) = self.selected_entity_idx {
+        if !self.selected_indices.is_empty() {
             self.save_undo_state();
 
-            if idx < self.model.entities.len() {
-                self.model.entities.remove(idx);
+            // Delete indices in descending order to avoid index shifting problems
+            let mut sorted_indices: Vec<usize> = self.selected_indices.iter().cloned().collect();
+            sorted_indices.sort_by(|a, b| b.cmp(a));
 
-                self.selected_entity_idx = None;
-                self.executor.status_message = "Deleted selection".to_string();
-                self.command_history.push("Deleted selection".to_string());
+            for idx in sorted_indices {
+                if idx < self.model.entities.len() {
+                    self.model.entities.remove(idx);
+                }
             }
+
+            let count = self.selected_indices.len();
+            self.selected_indices.clear();
+            self.executor.status_message = format!("Deleted {} items", count);
+            self.command_history
+                .push(format!("Deleted {} items", count));
         } else {
             self.executor.status_message = "Nothing selected to delete".to_string();
         }

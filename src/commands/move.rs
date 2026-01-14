@@ -4,14 +4,14 @@ use crate::model::Vector2;
 #[derive(Debug, Clone)]
 pub struct MoveCommand {
     points: Vec<Vector2>,
-    entity_idx: Option<usize>,
+    entity_indices: Vec<usize>,
 }
 
 impl MoveCommand {
     pub fn new() -> Self {
         Self {
             points: Vec::new(),
-            entity_idx: None,
+            entity_indices: Vec::new(),
         }
     }
 }
@@ -25,12 +25,10 @@ impl Command for MoveCommand {
         CommandCategory::Manipulation
     }
 
-    fn can_execute(&self, ctx: &CommandContext) -> bool {
-        ctx.selected_entity_idx.is_some()
-    }
+    // Rely on default implementation for can_execute
 
     fn cannot_execute_message(&self) -> String {
-        "No entity selected. Select an entity first.".to_string()
+        "No entities selected. Select entities first.".to_string()
     }
 
     fn initial_prompt(&self) -> String {
@@ -38,7 +36,7 @@ impl Command for MoveCommand {
     }
 
     fn on_start(&mut self, ctx: &CommandContext) {
-        self.entity_idx = ctx.selected_entity_idx;
+        self.entity_indices = ctx.selected_indices.iter().cloned().collect();
     }
 
     fn push_point(&mut self, pos: Vector2, ctx: &mut CommandContext) -> PointResult {
@@ -63,7 +61,7 @@ impl Command for MoveCommand {
                 }
             }
 
-            if let Some(idx) = self.entity_idx {
+            for &idx in &self.entity_indices {
                 if let Some(entity) = ctx.model.entities.get_mut(idx) {
                     entity.translate(delta);
                 }

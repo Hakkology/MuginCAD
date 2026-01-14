@@ -5,7 +5,8 @@ use eframe::egui;
 pub fn render_selection_status(ui: &mut egui::Ui, vm: &mut CadViewModel) {
     ui.horizontal(|ui| {
         ui.label(egui::RichText::new("Selection:").strong());
-        if let Some(idx) = vm.selected_entity_idx {
+        if vm.selected_indices.len() == 1 {
+            let idx = *vm.selected_indices.iter().next().unwrap();
             if let Some(entity) = vm.model.entities.get(idx) {
                 ui.label(
                     egui::RichText::new(entity.type_name())
@@ -14,6 +15,12 @@ pub fn render_selection_status(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                 );
                 ui.label(format!("(Index: {})", idx));
             }
+        } else if !vm.selected_indices.is_empty() {
+            ui.label(
+                egui::RichText::new(format!("{} items selected", vm.selected_indices.len()))
+                    .color(egui::Color32::GOLD)
+                    .strong(),
+            );
         } else {
             ui.label(egui::RichText::new("None").weak());
         }
@@ -68,7 +75,7 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
         ui.label(egui::RichText::new("Transform Tools").strong());
         ui.add_space(5.0);
         ui.horizontal(|ui| {
-            let has_selection = vm.selected_entity_idx.is_some();
+            let has_selection = !vm.selected_indices.is_empty();
 
             ui.add_enabled_ui(has_selection, |ui| {
                 if ui
@@ -77,7 +84,7 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                     .clicked()
                 {
                     vm.executor
-                        .process_input("move", &mut vm.model, vm.selected_entity_idx);
+                        .process_input("move", &mut vm.model, &vm.selected_indices);
                 }
             });
 
@@ -88,7 +95,7 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                     .clicked()
                 {
                     vm.executor
-                        .process_input("rotate", &mut vm.model, vm.selected_entity_idx);
+                        .process_input("rotate", &mut vm.model, &vm.selected_indices);
                 }
             });
 
@@ -99,14 +106,14 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                     .clicked()
                 {
                     vm.executor
-                        .process_input("scale", &mut vm.model, vm.selected_entity_idx);
+                        .process_input("scale", &mut vm.model, &vm.selected_indices);
                 }
             });
         });
 
-        if vm.selected_entity_idx.is_none() {
+        if vm.selected_indices.is_empty() {
             ui.label(
-                egui::RichText::new("Select an entity to use transform tools")
+                egui::RichText::new("Select entities to use transform tools")
                     .small()
                     .weak(),
             );
@@ -117,9 +124,8 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
     ui.separator();
     ui.add_space(10.0);
 
-    let mut to_delete = None;
-
-    if let Some(idx) = vm.selected_entity_idx {
+    if vm.selected_indices.len() == 1 {
+        let idx = *vm.selected_indices.iter().next().unwrap();
         if let Some(entity) = vm.model.entities.get_mut(idx) {
             ui.label(egui::RichText::new(entity.type_name()).size(18.0).strong());
             ui.add_space(5.0);
@@ -196,23 +202,33 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                 .button(egui::RichText::new("Delete Entity").color(egui::Color32::RED))
                 .clicked()
             {
-                to_delete = Some(idx);
+                vm.delete_selected();
             }
         }
+    } else if !vm.selected_indices.is_empty() {
+        ui.vertical_centered(|ui| {
+            ui.add_space(20.0);
+            ui.label(
+                egui::RichText::new(format!("{} items selected", vm.selected_indices.len()))
+                    .strong(),
+            );
+            ui.add_space(10.0);
+            if ui
+                .button(egui::RichText::new("Delete Selected Items").color(egui::Color32::RED))
+                .clicked()
+            {
+                vm.delete_selected();
+            }
+        });
     } else {
         ui.vertical_centered(|ui| {
             ui.add_space(50.0);
             ui.label(egui::RichText::new("No entity selected").weak());
             ui.label(
-                egui::RichText::new("Click an object in the viewport to inspect it")
+                egui::RichText::new("Click objects in the viewport to inspect/select them")
                     .small()
                     .weak(),
             );
         });
-    }
-
-    if let Some(idx) = to_delete {
-        vm.model.entities.remove(idx);
-        vm.selected_entity_idx = None;
     }
 }

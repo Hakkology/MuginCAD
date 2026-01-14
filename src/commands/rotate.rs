@@ -5,14 +5,14 @@ use std::f32::consts::PI;
 #[derive(Debug, Clone)]
 pub struct RotateCommand {
     points: Vec<Vector2>,
-    entity_idx: Option<usize>,
+    entity_indices: Vec<usize>,
 }
 
 impl RotateCommand {
     pub fn new() -> Self {
         Self {
             points: Vec::new(),
-            entity_idx: None,
+            entity_indices: Vec::new(),
         }
     }
 }
@@ -26,12 +26,8 @@ impl Command for RotateCommand {
         CommandCategory::Manipulation
     }
 
-    fn can_execute(&self, ctx: &CommandContext) -> bool {
-        ctx.selected_entity_idx.is_some()
-    }
-
     fn cannot_execute_message(&self) -> String {
-        "No entity selected. Select an entity first.".to_string()
+        "No entities selected. Select entities first.".to_string()
     }
 
     fn initial_prompt(&self) -> String {
@@ -39,7 +35,7 @@ impl Command for RotateCommand {
     }
 
     fn on_start(&mut self, ctx: &CommandContext) {
-        self.entity_idx = ctx.selected_entity_idx;
+        self.entity_indices = ctx.selected_indices.iter().cloned().collect();
     }
 
     fn push_point(&mut self, pos: Vector2, ctx: &mut CommandContext) -> PointResult {
@@ -64,7 +60,7 @@ impl Command for RotateCommand {
                 angle = (angle / snap_angle).round() * snap_angle;
             }
 
-            if let Some(idx) = self.entity_idx {
+            for &idx in &self.entity_indices {
                 if let Some(entity) = ctx.model.entities.get_mut(idx) {
                     entity.rotate(pivot, angle);
                 }

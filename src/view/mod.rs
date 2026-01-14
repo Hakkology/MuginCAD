@@ -82,7 +82,7 @@ impl eframe::App for CadApp {
 
         // Inspector Panel Logic
         let show_inspector = self.view_model.config.gui_config.show_inspector_always
-            || self.view_model.selected_entity_idx.is_some();
+            || !self.view_model.selected_indices.is_empty();
 
         if show_inspector {
             egui::SidePanel::right("inspector")

@@ -8,6 +8,7 @@ pub mod rotate;
 pub mod scale;
 
 use crate::model::{CadModel, Vector2};
+use std::collections::HashSet;
 
 /// Keyboard modifiers for input constraints
 #[derive(Debug, Clone, Copy, Default)]
@@ -20,7 +21,7 @@ pub struct InputModifiers {
 /// Context passed to commands for execution
 pub struct CommandContext<'a> {
     pub model: &'a mut CadModel,
-    pub selected_entity_idx: Option<usize>,
+    pub selected_indices: &'a HashSet<usize>,
     pub filled_mode: bool,
     pub modifiers: InputModifiers,
 }
@@ -68,7 +69,7 @@ pub trait Command: std::fmt::Debug {
     fn can_execute(&self, ctx: &CommandContext) -> bool {
         match self.category() {
             CommandCategory::Creation => true,
-            CommandCategory::Manipulation => ctx.selected_entity_idx.is_some(),
+            CommandCategory::Manipulation => !ctx.selected_indices.is_empty(),
             CommandCategory::Utility => true,
         }
     }
@@ -79,7 +80,7 @@ pub trait Command: std::fmt::Debug {
     /// Returns error message when can_execute fails
     fn cannot_execute_message(&self) -> String {
         match self.category() {
-            CommandCategory::Manipulation => "No entity selected.".to_string(),
+            CommandCategory::Manipulation => "No entities selected.".to_string(),
             _ => "Cannot execute command.".to_string(),
         }
     }
