@@ -11,6 +11,7 @@ pub struct CadViewModel {
     pub model: CadModel,
     pub command_input: String,
     pub command_history: Vec<String>,
+    pub history_nav_index: Option<usize>,
     pub executor: CommandExecutor,
     pub selected_indices: HashSet<usize>,
     pub selection_rect_start: Option<Vector2>,
@@ -30,6 +31,7 @@ impl CadViewModel {
             model: CadModel::new(),
             command_input: String::new(),
             command_history: Vec::new(),
+            history_nav_index: None,
             executor: CommandExecutor::new(),
             selected_indices: HashSet::new(),
             selection_rect_start: None,
@@ -118,6 +120,9 @@ impl CadViewModel {
             }
             return;
         }
+
+        // Reset history navigation
+        self.history_nav_index = None;
 
         self.command_history.push(format!("> {}", input_text));
 
@@ -398,6 +403,43 @@ impl CadViewModel {
                 .push(format!("Deleted {} items", count));
         } else {
             self.executor.status_message = "Nothing selected to delete".to_string();
+        }
+    }
+
+    /// Navigate history up (older commands)
+    pub fn history_up(&mut self) {
+        if self.command_history.is_empty() {
+            return;
+        }
+
+        let start_index = self.history_nav_index.unwrap_or(self.command_history.len());
+
+        // Find previous user command (starts with "> ")
+        for i in (0..start_index).rev() {
+            if self.command_history[i].starts_with("> ") {
+                self.history_nav_index = Some(i);
+                // remove "> " prefix
+                self.command_input = self.command_history[i][2..].to_string();
+                return;
+            }
+        }
+    }
+
+    /// Navigate history down (newer commands)
+    pub fn history_down(&mut self) {
+        if let Some(current_index) = self.history_nav_index {
+            // Find next user command
+            for i in (current_index + 1)..self.command_history.len() {
+                if self.command_history[i].starts_with("> ") {
+                    self.history_nav_index = Some(i);
+                    self.command_input = self.command_history[i][2..].to_string();
+                    return;
+                }
+            }
+
+            // If no newer command found, clear input (we are back at "now")
+            self.history_nav_index = None;
+            self.command_input.clear();
         }
     }
 }

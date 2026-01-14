@@ -100,7 +100,7 @@ impl eframe::App for CadApp {
 
         egui::TopBottomPanel::bottom("terminal")
             .resizable(true)
-            .default_height(150.0)
+            .default_height(200.0)
             .frame(
                 egui::Frame::none()
                     .fill(egui::Color32::from_rgb(30, 30, 30))
