@@ -1,5 +1,6 @@
 use crate::commands::InputModifiers;
 use crate::commands::executor::CommandExecutor;
+use crate::model::config::AppConfig;
 use crate::model::snap::{SnapPoint, SnapSystem};
 use crate::model::undo::UndoManager;
 use crate::model::{CadModel, Vector2};
@@ -15,6 +16,8 @@ pub struct CadViewModel {
     pub current_snap: Option<SnapPoint>,
     pub undo_manager: UndoManager,
     pub viewport: Viewport,
+    pub config: AppConfig,
+    pub show_settings_window: bool,
 }
 
 impl CadViewModel {
@@ -25,10 +28,12 @@ impl CadViewModel {
             command_history: Vec::new(),
             executor: CommandExecutor::new(),
             selected_entity_idx: None,
-            snap_system: SnapSystem::new(15.0),
+            snap_system: SnapSystem::new(),
             current_snap: None,
             undo_manager: UndoManager::new(50), // 50 undo levels
             viewport: Viewport::new(),
+            config: AppConfig::default(),
+            show_settings_window: false,
         }
     }
 
@@ -45,7 +50,9 @@ impl CadViewModel {
     /// Update snap point based on mouse position and modifiers
     pub fn update_snap(&mut self, pos: Vector2, modifiers: InputModifiers) {
         if modifiers.ctrl {
-            self.current_snap = self.snap_system.find_nearest(pos, &self.model);
+            self.current_snap = self
+                .snap_system
+                .find_nearest(pos, &self.model, &self.config);
         } else {
             self.current_snap = None;
         }

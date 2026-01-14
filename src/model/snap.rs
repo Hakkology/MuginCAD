@@ -35,26 +35,31 @@ impl SnapPoint {
     }
 }
 
+use crate::model::config::AppConfig;
+
 /// Snap system that finds snap points from entities
-pub struct SnapSystem {
-    /// Tolerance for snap detection
-    pub tolerance: f32,
-}
+pub struct SnapSystem;
 
 impl SnapSystem {
-    pub fn new(tolerance: f32) -> Self {
-        Self { tolerance }
+    pub fn new() -> Self {
+        Self
     }
 
     /// Find the nearest snap point to a position
-    pub fn find_nearest(&self, pos: Vector2, model: &CadModel) -> Option<SnapPoint> {
+    pub fn find_nearest(
+        &self,
+        pos: Vector2,
+        model: &CadModel,
+        config: &AppConfig,
+    ) -> Option<SnapPoint> {
         let mut nearest: Option<(SnapPoint, f32)> = None;
+        let tolerance = config.snap_config.tolerance;
 
-        // Collect all snap points
+        // 1. Entity Snaps
         for entity in &model.entities {
             for snap_point in self.get_entity_snap_points(entity) {
                 let dist = pos.dist(snap_point.position);
-                if dist <= self.tolerance {
+                if dist <= tolerance {
                     if nearest.is_none() || dist < nearest.unwrap().1 {
                         nearest = Some((snap_point, dist));
                     }
@@ -62,17 +67,87 @@ impl SnapSystem {
             }
         }
 
-        // Check intersections
+        // 2. Intersection Snaps
         for (i, entity_a) in model.entities.iter().enumerate() {
             for entity_b in model.entities.iter().skip(i + 1) {
                 for intersection in self.find_intersections(entity_a, entity_b) {
                     let dist = pos.dist(intersection);
-                    if dist <= self.tolerance {
+                    if dist <= tolerance {
                         let snap_point = SnapPoint::new(intersection, SnapPointType::Intersection);
                         if nearest.is_none() || dist < nearest.unwrap().1 {
                             nearest = Some((snap_point, dist));
                         }
                     }
+                }
+            }
+        }
+
+        // 3. Axis Snaps (Akslar)
+        // Check intersections between axes (Axis Intersections)
+        for (i, axis_a) in model.axis_manager.axes.iter().enumerate() {
+            for axis_b in model.axis_manager.axes.iter().skip(i + 1) {
+                // If one is vertical and other horizontal, they intersect
+                if axis_a.orientation != axis_b.orientation {
+                    let intersection = match axis_a.orientation {
+                        crate::model::axis::AxisOrientation::Vertical => {
+                            Vector2::new(axis_a.position, axis_b.position)
+                        }
+                        crate::model::axis::AxisOrientation::Horizontal => {
+                            Vector2::new(axis_b.position, axis_a.position)
+                        }
+                    };
+
+                    let dist = pos.dist(intersection);
+                    if dist <= tolerance {
+                        let snap_point = SnapPoint::new(intersection, SnapPointType::Intersection);
+                        if nearest.is_none() || dist < nearest.unwrap().1 {
+                            nearest = Some((snap_point, dist));
+                        }
+                    }
+                }
+            }
+
+            // Snap to axis line itself (projection)
+            match axis_a.orientation {
+                crate::model::axis::AxisOrientation::Vertical => {
+                    if (pos.x - axis_a.position).abs() <= tolerance {
+                        let snap_point = SnapPoint::new(
+                            Vector2::new(axis_a.position, pos.y),
+                            SnapPointType::AxisLine,
+                        );
+                        let dist = (pos.x - axis_a.position).abs();
+                        if nearest.is_none() || dist < nearest.unwrap().1 {
+                            nearest = Some((snap_point, dist));
+                        }
+                    }
+                }
+                crate::model::axis::AxisOrientation::Horizontal => {
+                    if (pos.y - axis_a.position).abs() <= tolerance {
+                        let snap_point = SnapPoint::new(
+                            Vector2::new(pos.x, axis_a.position),
+                            SnapPointType::AxisLine,
+                        );
+                        let dist = (pos.y - axis_a.position).abs();
+                        if nearest.is_none() || dist < nearest.unwrap().1 {
+                            nearest = Some((snap_point, dist));
+                        }
+                    }
+                }
+            }
+        }
+
+        // 4. Snap to Grid (if enabled)
+        if config.snap_config.snap_to_grid {
+            let grid_size = config.grid_config.grid_size;
+            let grid_x = (pos.x / grid_size).round() * grid_size;
+            let grid_y = (pos.y / grid_size).round() * grid_size;
+            let grid_point = Vector2::new(grid_x, grid_y);
+
+            let dist = pos.dist(grid_point);
+            if dist <= tolerance {
+                let snap_point = SnapPoint::new(grid_point, SnapPointType::Grid);
+                if nearest.is_none() || dist < nearest.unwrap().1 {
+                    nearest = Some((snap_point, dist));
                 }
             }
         }

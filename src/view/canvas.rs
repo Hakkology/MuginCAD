@@ -87,34 +87,40 @@ pub fn render_canvas(ui: &mut egui::Ui, vm: &mut CadViewModel) {
     }
 
     // Draw grid (with viewport offset)
-    let grid_size = 50.0 * viewport_zoom;
-    let grid_stroke = egui::Stroke::new(1.0, egui::Color32::from_rgb(40, 40, 40));
+    if vm.config.grid_config.show_grid {
+        let grid_size = vm.config.grid_config.grid_size * viewport_zoom;
+        let c = vm.config.grid_config.grid_color;
+        let grid_stroke = egui::Stroke::new(1.0, egui::Color32::from_rgb(c[0], c[1], c[2]));
 
-    // Calculate grid origin in screen space
+        // Calculate grid origin in screen space
+        let origin_screen = to_screen(Vector2::new(0.0, 0.0));
+
+        // Draw vertical grid lines
+        let mut x = rect.min.x + (origin_screen.x - rect.min.x).rem_euclid(grid_size);
+        while x < rect.max.x {
+            painter.line_segment(
+                [egui::pos2(x, rect.min.y), egui::pos2(x, rect.max.y)],
+                grid_stroke,
+            );
+            x += grid_size;
+        }
+
+        // Draw horizontal grid lines
+        let mut y = rect.min.y + (origin_screen.y - rect.min.y).rem_euclid(grid_size);
+        while y < rect.max.y {
+            painter.line_segment(
+                [egui::pos2(rect.min.x, y), egui::pos2(rect.max.x, y)],
+                grid_stroke,
+            );
+            y += grid_size;
+        }
+    }
+
     let origin_screen = to_screen(Vector2::new(0.0, 0.0));
 
-    // Draw vertical grid lines
-    let mut x = rect.min.x + (origin_screen.x - rect.min.x).rem_euclid(grid_size);
-    while x < rect.max.x {
-        painter.line_segment(
-            [egui::pos2(x, rect.min.y), egui::pos2(x, rect.max.y)],
-            grid_stroke,
-        );
-        x += grid_size;
-    }
-
-    // Draw horizontal grid lines
-    let mut y = rect.min.y + (origin_screen.y - rect.min.y).rem_euclid(grid_size);
-    while y < rect.max.y {
-        painter.line_segment(
-            [egui::pos2(rect.min.x, y), egui::pos2(rect.max.x, y)],
-            grid_stroke,
-        );
-        y += grid_size;
-    }
-
     // Axes (at origin, with viewport)
-    let axis_stroke = egui::Stroke::new(1.0, egui::Color32::from_rgb(80, 80, 80));
+    let ac = vm.config.grid_config.axis_color;
+    let axis_stroke = egui::Stroke::new(1.0, egui::Color32::from_rgb(ac[0], ac[1], ac[2]));
 
     // X axis (horizontal line through origin)
     if origin_screen.y >= rect.min.y && origin_screen.y <= rect.max.y {
@@ -287,6 +293,8 @@ pub fn render_canvas(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                     SnapPointType::Corner => egui::Color32::LIGHT_GREEN,
                     SnapPointType::Intersection => egui::Color32::RED,
                     SnapPointType::Midpoint => egui::Color32::LIGHT_BLUE,
+                    SnapPointType::AxisLine => egui::Color32::from_rgb(255, 128, 0), // Orange
+                    SnapPointType::Grid => egui::Color32::from_rgb(200, 200, 200),   // Light Gray
                 };
 
                 // Draw snap marker (diamond shape)

@@ -1,5 +1,6 @@
 pub mod axis;
 pub mod circle;
+pub mod config;
 pub mod line;
 pub mod rectangle;
 pub mod snap;

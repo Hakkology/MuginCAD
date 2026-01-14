@@ -42,5 +42,22 @@ pub fn render_terminal(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                 vm.process_command();
             }
         });
+
+        ui.separator();
+
+        // Settings bar
+        ui.horizontal(|ui| {
+            ui.label("Settings:");
+            ui.checkbox(&mut vm.config.snap_config.snap_to_grid, "Snap to Grid");
+
+            if vm.config.snap_config.snap_to_grid {
+                ui.label("Grid Size:");
+                ui.add(
+                    egui::DragValue::new(&mut vm.config.grid_config.grid_size)
+                        .speed(1.0)
+                        .range(1.0..=1000.0),
+                );
+            }
+        });
     });
 }
