@@ -13,6 +13,10 @@ pub enum SnapPointType {
     Intersection,
     /// Midpoint of a line
     Midpoint,
+    /// Point on an axis line
+    AxisLine,
+    /// Grid intersection point
+    Grid,
 }
 
 /// A snap point with its position and type

@@ -1,3 +1,4 @@
+pub mod axis;
 pub mod circle;
 pub mod line;
 pub mod rectangle;
@@ -137,12 +138,14 @@ impl Entity {
 
 pub struct CadModel {
     pub entities: Vec<Entity>,
+    pub axis_manager: axis::AxisManager,
 }
 
 impl CadModel {
     pub fn new() -> Self {
         Self {
             entities: Vec::new(),
+            axis_manager: axis::AxisManager::new(),
         }
     }
 

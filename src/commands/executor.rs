@@ -1,3 +1,4 @@
+use crate::commands::axis::AxisCommand;
 use crate::commands::circle::CircleCommand;
 use crate::commands::line::LineCommand;
 use crate::commands::r#move::MoveCommand;
@@ -41,6 +42,11 @@ impl CommandRegistry {
 
         registry.register("scale", || Box::new(ScaleCommand::new()));
         registry.register("r", || Box::new(ScaleCommand::new()));
+
+        // Register construction commands
+        registry.register("axis", || Box::new(AxisCommand::new()));
+        registry.register("aks", || Box::new(AxisCommand::new()));
+        registry.register("a", || Box::new(AxisCommand::new()));
 
         registry
     }

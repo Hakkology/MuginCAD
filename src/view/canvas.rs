@@ -138,6 +138,56 @@ pub fn render_canvas(ui: &mut egui::Ui, vm: &mut CadViewModel) {
         );
     }
 
+    // Draw construction axes (akslar)
+    let axis_color = egui::Color32::from_rgb(150, 50, 50); // Dark red
+    let axis_line_stroke = egui::Stroke::new(1.5, axis_color);
+    let bubble_radius = 12.0;
+
+    for axis in &vm.model.axis_manager.axes {
+        // Get viewport bounds in CAD coordinates
+        let cad_min = to_cad(egui::pos2(rect.min.x, rect.max.y));
+        let cad_max = to_cad(egui::pos2(rect.max.x, rect.min.y));
+
+        // Get render points
+        let (start, end) = axis.get_render_points(cad_min, cad_max);
+        let start_screen = to_screen(start);
+        let end_screen = to_screen(end);
+
+        // Draw the axis line (dashed effect with segments)
+        painter.line_segment([start_screen, end_screen], axis_line_stroke);
+
+        // Get label position
+        let label_pos = axis.get_label_position(cad_min, cad_max);
+        let label_screen = to_screen(label_pos);
+
+        // Position bubble with offset from edge
+        let bubble_pos = match axis.orientation {
+            crate::model::axis::AxisOrientation::Vertical => {
+                egui::pos2(label_screen.x, rect.min.y + bubble_radius + 5.0)
+            }
+            crate::model::axis::AxisOrientation::Horizontal => {
+                egui::pos2(rect.min.x + bubble_radius + 5.0, label_screen.y)
+            }
+        };
+
+        // Draw bubble (circle with label)
+        painter.circle_filled(bubble_pos, bubble_radius, axis_color);
+        painter.circle_stroke(
+            bubble_pos,
+            bubble_radius,
+            egui::Stroke::new(1.0, egui::Color32::WHITE),
+        );
+
+        // Draw label text
+        painter.text(
+            bubble_pos,
+            egui::Align2::CENTER_CENTER,
+            &axis.label,
+            egui::FontId::proportional(14.0),
+            egui::Color32::WHITE,
+        );
+    }
+
     // Hover detection
     let mut hovered_entity_idx = None;
     if let Some(mouse_pos) = response.hover_pos() {

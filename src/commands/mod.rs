@@ -1,3 +1,4 @@
+pub mod axis;
 pub mod circle;
 pub mod executor;
 pub mod line;
