@@ -28,15 +28,29 @@ impl eframe::App for CadApp {
             self.view_model.command_input.clear();
         }
 
+        egui::SidePanel::right("inspector")
+            .resizable(true)
+            .default_width(250.0)
+            .frame(
+                egui::Frame::none()
+                    .fill(egui::Color32::from_rgb(25, 25, 25))
+                    .inner_margin(10.0),
+            )
+            .show(ctx, |ui| {
+                render_inspector(ui, &mut self.view_model);
+            });
+
         egui::TopBottomPanel::bottom("terminal")
             .resizable(true)
-            .default_height(120.0)
+            .default_height(150.0)
             .frame(
                 egui::Frame::none()
                     .fill(egui::Color32::from_rgb(30, 30, 30))
                     .inner_margin(5.0),
             )
             .show(ctx, |ui| {
+                render_selection_status(ui, &mut self.view_model);
+                ui.separator();
                 render_terminal(ui, &mut self.view_model);
             });
 
@@ -45,6 +59,133 @@ impl eframe::App for CadApp {
             .show(ctx, |ui| {
                 render_canvas(ui, &mut self.view_model);
             });
+    }
+}
+
+fn render_selection_status(ui: &mut egui::Ui, vm: &mut CadViewModel) {
+    ui.horizontal(|ui| {
+        ui.label(egui::RichText::new("Selection:").strong());
+        if let Some(idx) = vm.selected_entity_idx {
+            if let Some(entity) = vm.model.entities.get(idx) {
+                ui.label(
+                    egui::RichText::new(entity.type_name())
+                        .color(egui::Color32::GOLD)
+                        .strong(),
+                );
+                ui.label(format!("(Index: {})", idx));
+            }
+        } else {
+            ui.label(egui::RichText::new("None").weak());
+        }
+    });
+}
+
+fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
+    ui.heading("Inspector");
+    ui.separator();
+    ui.add_space(10.0);
+
+    let mut to_delete = None;
+
+    if let Some(idx) = vm.selected_entity_idx {
+        if let Some(entity) = vm.model.entities.get_mut(idx) {
+            ui.label(egui::RichText::new(entity.type_name()).size(18.0).strong());
+            ui.add_space(5.0);
+
+            match entity {
+                Entity::Line { start, end } => {
+                    ui.group(|ui| {
+                        ui.label("Start Point");
+                        ui.horizontal(|ui| {
+                            ui.label("X:");
+                            ui.add(egui::DragValue::new(&mut start.x).speed(0.1));
+                            ui.label("Y:");
+                            ui.add(egui::DragValue::new(&mut start.y).speed(0.1));
+                        });
+                    });
+                    ui.add_space(5.0);
+                    ui.group(|ui| {
+                        ui.label("End Point");
+                        ui.horizontal(|ui| {
+                            ui.label("X:");
+                            ui.add(egui::DragValue::new(&mut end.x).speed(0.1));
+                            ui.label("Y:");
+                            ui.add(egui::DragValue::new(&mut end.y).speed(0.1));
+                        });
+                    });
+                }
+                Entity::Circle {
+                    center,
+                    radius,
+                    filled,
+                } => {
+                    ui.group(|ui| {
+                        ui.label("Center");
+                        ui.horizontal(|ui| {
+                            ui.label("X:");
+                            ui.add(egui::DragValue::new(&mut center.x).speed(0.1));
+                            ui.label("Y:");
+                            ui.add(egui::DragValue::new(&mut center.y).speed(0.1));
+                        });
+                    });
+                    ui.add_space(5.0);
+                    ui.horizontal(|ui| {
+                        ui.label("Radius:");
+                        ui.add(
+                            egui::DragValue::new(radius)
+                                .speed(0.1)
+                                .range(0.0..=f32::INFINITY),
+                        );
+                    });
+                    ui.checkbox(filled, "Filled");
+                }
+                Entity::Rectangle { min, max, filled } => {
+                    ui.group(|ui| {
+                        ui.label("Min Corner");
+                        ui.horizontal(|ui| {
+                            ui.label("X:");
+                            ui.add(egui::DragValue::new(&mut min.x).speed(0.1));
+                            ui.label("Y:");
+                            ui.add(egui::DragValue::new(&mut min.y).speed(0.1));
+                        });
+                    });
+                    ui.add_space(5.0);
+                    ui.group(|ui| {
+                        ui.label("Max Corner");
+                        ui.horizontal(|ui| {
+                            ui.label("X:");
+                            ui.add(egui::DragValue::new(&mut max.x).speed(0.1));
+                            ui.label("Y:");
+                            ui.add(egui::DragValue::new(&mut max.y).speed(0.1));
+                        });
+                    });
+                    ui.checkbox(filled, "Filled");
+                }
+            }
+
+            ui.add_space(20.0);
+            if ui
+                .button(egui::RichText::new("Delete Entity").color(egui::Color32::RED))
+                .clicked()
+            {
+                to_delete = Some(idx);
+            }
+        }
+    } else {
+        ui.vertical_centered(|ui| {
+            ui.add_space(50.0);
+            ui.label(egui::RichText::new("No entity selected").weak());
+            ui.label(
+                egui::RichText::new("Click an object in the viewport to inspect it")
+                    .small()
+                    .weak(),
+            );
+        });
+    }
+
+    if let Some(idx) = to_delete {
+        vm.model.entities.remove(idx);
+        vm.selected_entity_idx = None;
     }
 }
 
@@ -161,51 +302,28 @@ fn render_canvas(ui: &mut egui::Ui, vm: &mut CadViewModel) {
             mouse_pos.x - rect.center().x,
             -(mouse_pos.y - rect.center().y),
         );
-
-        for (i, entity) in vm.model.entities.iter().enumerate() {
-            match entity {
-                Entity::Line { start, end } => {
-                    if cad_mouse.dist_to_line(*start, *end) < 5.0 {
-                        hovered_entity_idx = Some(i);
-                        break;
-                    }
-                }
-                Entity::Circle { center, radius, .. } => {
-                    if cad_mouse.dist(*center) < *radius + 5.0
-                        && cad_mouse.dist(*center) > *radius - 5.0
-                    {
-                        hovered_entity_idx = Some(i);
-                        break;
-                    }
-                }
-                Entity::Rectangle { min, max, .. } => {
-                    // Simple AABB check for now, could be improved for outline picking
-                    if cad_mouse.x >= min.x
-                        && cad_mouse.x <= max.x
-                        && cad_mouse.y >= min.y
-                        && cad_mouse.y <= max.y
-                    {
-                        hovered_entity_idx = Some(i);
-                        break;
-                    }
-                }
-            }
-        }
+        hovered_entity_idx = vm.model.pick_entity(cad_mouse, 5.0);
     }
 
     for (i, entity) in vm.model.entities.iter().enumerate() {
+        let is_selected = Some(i) == vm.selected_entity_idx;
         let is_hovered = Some(i) == hovered_entity_idx;
-        let color = if is_hovered {
+
+        let color = if is_selected {
+            egui::Color32::GOLD
+        } else if is_hovered {
             egui::Color32::WHITE
         } else {
             egui::Color32::from_rgb(0, 255, 255)
         };
 
+        let stroke_width = if is_selected { 2.5 } else { 1.5 };
+
         match entity {
             Entity::Line { start, end } => {
                 painter.line_segment(
                     [to_screen(*start), to_screen(*end)],
-                    egui::Stroke::new(1.5, color),
+                    egui::Stroke::new(stroke_width, color),
                 );
             }
             Entity::Circle {
@@ -214,11 +332,15 @@ fn render_canvas(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                 filled,
             } => {
                 let center_screen = to_screen(*center);
-                let radius_pixels = *radius; // Assuming 1 unit = 1 pixel for now
+                let radius_pixels = *radius;
                 if *filled {
                     painter.circle_filled(center_screen, radius_pixels, color.linear_multiply(0.3));
                 }
-                painter.circle_stroke(center_screen, radius_pixels, egui::Stroke::new(1.5, color));
+                painter.circle_stroke(
+                    center_screen,
+                    radius_pixels,
+                    egui::Stroke::new(stroke_width, color),
+                );
             }
             Entity::Rectangle { min, max, filled } => {
                 let rect_screen = egui::Rect::from_min_max(
@@ -228,7 +350,7 @@ fn render_canvas(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                 if *filled {
                     painter.rect_filled(rect_screen, 0.0, color.linear_multiply(0.3));
                 }
-                painter.rect_stroke(rect_screen, 0.0, egui::Stroke::new(1.5, color));
+                painter.rect_stroke(rect_screen, 0.0, egui::Stroke::new(stroke_width, color));
             }
         }
     }

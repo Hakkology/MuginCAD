@@ -18,6 +18,7 @@ pub struct CadViewModel {
     pub state: CommandState,
     pub status_message: String,
     pub filled_mode: bool,
+    pub selected_entity_idx: Option<usize>,
 }
 
 impl CadViewModel {
@@ -29,6 +30,7 @@ impl CadViewModel {
             state: CommandState::Idle,
             status_message: "Command:".to_string(),
             filled_mode: false,
+            selected_entity_idx: None,
         }
     }
 
@@ -81,6 +83,7 @@ impl CadViewModel {
                 "clear" => {
                     self.model.entities.clear();
                     self.command_history.clear();
+                    self.selected_entity_idx = None;
                     self.status_message = "Command:".to_string();
                 }
                 _ => {
@@ -164,7 +167,13 @@ impl CadViewModel {
     pub fn handle_click(&mut self, pos: Vector2) {
         match self.state {
             CommandState::Idle => {
-                // Future: selection logic
+                self.selected_entity_idx = self.model.pick_entity(pos, 5.0);
+                if let Some(idx) = self.selected_entity_idx {
+                    let entity = &self.model.entities[idx];
+                    self.status_message = format!("Selected: {}", entity.type_name());
+                } else {
+                    self.status_message = "Command:".to_string();
+                }
             }
             CommandState::WaitingForLineStart => {
                 self.state = CommandState::WaitingForLineEnd { start: pos };
