@@ -1,3 +1,4 @@
+mod commands;
 mod model;
 mod view;
 mod viewmodel;

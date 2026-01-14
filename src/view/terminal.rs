@@ -20,7 +20,7 @@ pub fn render_terminal(ui: &mut egui::Ui, vm: &mut CadViewModel) {
 
         ui.horizontal(|ui| {
             ui.label(
-                egui::RichText::new(&vm.status_message)
+                egui::RichText::new(vm.status_message())
                     .strong()
                     .color(egui::Color32::LIGHT_BLUE),
             );
@@ -32,13 +32,14 @@ pub fn render_terminal(ui: &mut egui::Ui, vm: &mut CadViewModel) {
 
             let response = ui.add(text_edit);
 
-            if vm.command_history.is_empty() {
+            // Always keep focus on terminal
+            if !response.has_focus() {
                 response.request_focus();
             }
 
-            if response.has_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+            // Handle Enter key
+            if ui.input(|i| i.key_pressed(egui::Key::Enter)) {
                 vm.process_command();
-                response.request_focus();
             }
         });
     });

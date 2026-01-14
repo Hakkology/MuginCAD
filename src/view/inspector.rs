@@ -25,6 +25,60 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
     ui.separator();
     ui.add_space(10.0);
 
+    // Utility Toolbar
+    ui.group(|ui| {
+        ui.label(egui::RichText::new("Transform Tools").strong());
+        ui.add_space(5.0);
+        ui.horizontal(|ui| {
+            let has_selection = vm.selected_entity_idx.is_some();
+
+            ui.add_enabled_ui(has_selection, |ui| {
+                if ui
+                    .button("⬌ Move (W)")
+                    .on_hover_text("Move selected entity")
+                    .clicked()
+                {
+                    vm.executor
+                        .process_input("move", &mut vm.model, vm.selected_entity_idx);
+                }
+            });
+
+            ui.add_enabled_ui(has_selection, |ui| {
+                if ui
+                    .button("↻ Rotate (E)")
+                    .on_hover_text("Rotate selected entity")
+                    .clicked()
+                {
+                    vm.executor
+                        .process_input("rotate", &mut vm.model, vm.selected_entity_idx);
+                }
+            });
+
+            ui.add_enabled_ui(has_selection, |ui| {
+                if ui
+                    .button("⤢ Scale (R)")
+                    .on_hover_text("Scale selected entity")
+                    .clicked()
+                {
+                    vm.executor
+                        .process_input("scale", &mut vm.model, vm.selected_entity_idx);
+                }
+            });
+        });
+
+        if vm.selected_entity_idx.is_none() {
+            ui.label(
+                egui::RichText::new("Select an entity to use transform tools")
+                    .small()
+                    .weak(),
+            );
+        }
+    });
+
+    ui.add_space(10.0);
+    ui.separator();
+    ui.add_space(10.0);
+
     let mut to_delete = None;
 
     if let Some(idx) = vm.selected_entity_idx {

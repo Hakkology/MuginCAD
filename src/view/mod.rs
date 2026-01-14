@@ -19,16 +19,14 @@ impl CadApp {
 
 impl eframe::App for CadApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        // Aesthetic setup: Dark theme is already default in egui, but let's ensure it's sleek
+        // Dark theme
         let mut visuals = egui::Visuals::dark();
         visuals.widgets.noninteractive.bg_fill = egui::Color32::from_rgb(20, 20, 20);
         ctx.set_visuals(visuals);
 
         // Global shortcuts
         if ctx.input(|i| i.key_pressed(egui::Key::Escape)) {
-            self.view_model.state = crate::viewmodel::CommandState::Idle;
-            self.view_model.status_message = "Command:".to_string();
-            self.view_model.command_input.clear();
+            self.view_model.cancel_command();
         }
 
         // Layout
