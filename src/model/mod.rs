@@ -2,6 +2,7 @@ pub mod axis;
 pub mod circle;
 pub mod config;
 pub mod line;
+pub mod project;
 pub mod rectangle;
 pub mod snap;
 pub mod undo;

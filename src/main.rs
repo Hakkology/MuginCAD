@@ -10,7 +10,7 @@ fn main() -> eframe::Result<()> {
     let native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1200.0, 800.0])
-            .with_title("RustCad - The Modern Rust CAD"),
+            .with_title("OliveCAD - The Modern Rust CAD"),
         ..Default::default()
     };
 

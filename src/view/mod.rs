@@ -42,15 +42,15 @@ impl eframe::App for CadApp {
                 ui.menu_button("Project", |ui| {
                     ui.set_min_width(120.0);
                     if ui.button("New").clicked() {
-                        // TODO: Implement New Project
+                        self.view_model.new_project();
                         ui.close_menu();
                     }
                     if ui.button("Save").clicked() {
-                        // TODO: Implement Save
+                        self.view_model.save_project();
                         ui.close_menu();
                     }
                     if ui.button("Load").clicked() {
-                        // TODO: Implement Load
+                        self.view_model.load_project();
                         ui.close_menu();
                     }
                 });
