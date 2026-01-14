@@ -390,6 +390,118 @@ pub fn render_canvas(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                             );
                             painter.rect_stroke(rect_screen, 0.0, preview_stroke);
                         }
+                        "MOVE" => {
+                            // Draw a line from base point to destination
+                            let base = points[0];
+                            painter.line_segment(
+                                [to_screen(base), to_screen(current_cad)],
+                                preview_stroke,
+                            );
+                            // Draw small circles at endpoints
+                            painter.circle_stroke(to_screen(base), 4.0, preview_stroke);
+                            painter.circle_filled(
+                                to_screen(current_cad),
+                                3.0,
+                                egui::Color32::WHITE,
+                            );
+                        }
+                        "ROTATE" => {
+                            // Draw a line from pivot to mouse indicating rotation
+                            let pivot = points[0];
+                            let pivot_screen = to_screen(pivot);
+
+                            // Calculate angle and radius
+                            let dx = current_cad.x - pivot.x;
+                            let dy = current_cad.y - pivot.y;
+                            let angle = dy.atan2(dx);
+                            let radius = (dx * dx + dy * dy).sqrt() * viewport_zoom;
+
+                            // Draw arc from 0 to current angle
+                            let arc_radius = radius.min(80.0); // Cap arc size for visibility
+                            let num_segments = 32;
+                            let start_angle = 0.0_f32;
+                            let end_angle = angle;
+
+                            // Generate arc points
+                            let mut arc_points = Vec::new();
+                            for i in 0..=num_segments {
+                                let t = i as f32 / num_segments as f32;
+                                let a = start_angle + (end_angle - start_angle) * t;
+                                let px = pivot_screen.x + arc_radius * a.cos();
+                                let py = pivot_screen.y - arc_radius * a.sin(); // Y is inverted
+                                arc_points.push(egui::pos2(px, py));
+                            }
+
+                            // Draw arc as line segments
+                            for i in 0..arc_points.len().saturating_sub(1) {
+                                painter.line_segment(
+                                    [arc_points[i], arc_points[i + 1]],
+                                    egui::Stroke::new(2.0, egui::Color32::from_rgb(255, 200, 100)),
+                                );
+                            }
+
+                            // Draw radius line from pivot to mouse
+                            painter.line_segment(
+                                [pivot_screen, to_screen(current_cad)],
+                                preview_stroke,
+                            );
+
+                            // Draw reference line (horizontal from pivot)
+                            let ref_end = egui::pos2(pivot_screen.x + arc_radius, pivot_screen.y);
+                            painter.line_segment(
+                                [pivot_screen, ref_end],
+                                egui::Stroke::new(
+                                    1.0,
+                                    egui::Color32::from_rgba_unmultiplied(150, 150, 150, 100),
+                                ),
+                            );
+
+                            // Draw pivot marker
+                            painter.circle_stroke(
+                                pivot_screen,
+                                5.0,
+                                egui::Stroke::new(2.0, egui::Color32::YELLOW),
+                            );
+                        }
+
+                        "SCALE" => {
+                            // Draw a line from base point to mouse indicating scale reference
+                            let base = points[0];
+                            painter.line_segment(
+                                [to_screen(base), to_screen(current_cad)],
+                                preview_stroke,
+                            );
+                            // Draw base marker (filled square)
+                            let base_screen = to_screen(base);
+                            let size = 4.0;
+                            painter.rect_filled(
+                                egui::Rect::from_center_size(
+                                    base_screen,
+                                    egui::vec2(size * 2.0, size * 2.0),
+                                ),
+                                0.0,
+                                egui::Color32::WHITE,
+                            );
+                        }
+                        "COPY" | "CUT" => {
+                            // Draw a dashed line from base point to destination
+                            let base = points[0];
+                            painter.line_segment(
+                                [to_screen(base), to_screen(current_cad)],
+                                egui::Stroke::new(1.5, egui::Color32::from_rgb(100, 200, 255)),
+                            );
+                            // Draw markers
+                            painter.circle_stroke(
+                                to_screen(base),
+                                4.0,
+                                egui::Stroke::new(1.0, egui::Color32::from_rgb(100, 200, 255)),
+                            );
+                            painter.circle_filled(
+                                to_screen(current_cad),
+                                3.0,
+                                egui::Color32::from_rgb(100, 200, 255),
+                            );
+                        }
                         _ => {}
                     }
                 }

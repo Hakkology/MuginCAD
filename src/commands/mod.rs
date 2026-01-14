@@ -1,5 +1,6 @@
 pub mod axis;
 pub mod circle;
+pub mod copy;
 pub mod executor;
 pub mod line;
 pub mod r#move;

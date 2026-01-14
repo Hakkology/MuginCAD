@@ -3,9 +3,16 @@ use crate::commands::executor::CommandExecutor;
 use crate::model::config::AppConfig;
 use crate::model::snap::{SnapPoint, SnapSystem};
 use crate::model::undo::UndoManager;
-use crate::model::{CadModel, Vector2};
+use crate::model::{CadModel, Entity, Vector2};
 use crate::view::viewport::Viewport;
 use std::collections::HashSet;
+
+/// Clipboard for copy/cut/paste operations
+#[derive(Default)]
+pub struct Clipboard {
+    pub entities: Vec<Entity>,
+    pub base_point: Option<Vector2>,
+}
 
 pub struct CadViewModel {
     pub model: CadModel,
@@ -23,6 +30,7 @@ pub struct CadViewModel {
     pub config: AppConfig,
     pub show_settings_window: bool,
     pub pending_delete_confirmation: bool,
+    pub clipboard: Clipboard,
 }
 
 impl CadViewModel {
@@ -43,6 +51,7 @@ impl CadViewModel {
             config: AppConfig::default(),
             show_settings_window: false,
             pending_delete_confirmation: false,
+            clipboard: Clipboard::default(),
         }
     }
 

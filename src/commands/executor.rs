@@ -1,5 +1,6 @@
 use crate::commands::axis::AxisCommand;
 use crate::commands::circle::CircleCommand;
+use crate::commands::copy::CopyCommand;
 use crate::commands::line::LineCommand;
 use crate::commands::r#move::MoveCommand;
 use crate::commands::rectangle::RectangleCommand;
@@ -42,6 +43,12 @@ impl CommandRegistry {
 
         registry.register("scale", || Box::new(ScaleCommand::new()));
         registry.register("r", || Box::new(ScaleCommand::new()));
+
+        // Register copy/cut commands
+        registry.register("copy", || Box::new(CopyCommand::new()));
+        registry.register("co", || Box::new(CopyCommand::new()));
+        registry.register("cut", || Box::new(CopyCommand::new_cut()));
+        registry.register("x", || Box::new(CopyCommand::new_cut()));
 
         // Register construction commands
         registry.register("axis", || Box::new(AxisCommand::new()));
