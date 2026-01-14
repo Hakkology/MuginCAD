@@ -265,6 +265,24 @@ pub fn render_canvas(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                     [to_screen(line.start), to_screen(line.end)],
                     egui::Stroke::new(stroke_width, color),
                 );
+
+                // Draw length label if enabled
+                if line.show_length {
+                    let label_pos = to_screen(line.label_position());
+                    let length_text = format!("{:.2}", line.length());
+                    let label_color = if is_selected {
+                        egui::Color32::GOLD
+                    } else {
+                        egui::Color32::from_rgb(255, 200, 100)
+                    };
+                    painter.text(
+                        label_pos,
+                        egui::Align2::CENTER_CENTER,
+                        &length_text,
+                        egui::FontId::proportional(12.0),
+                        label_color,
+                    );
+                }
             }
             Entity::Circle(circle) => {
                 let screen_radius = circle.radius * viewport_zoom;
@@ -328,6 +346,45 @@ pub fn render_canvas(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                         egui::Stroke::new(stroke_width, color),
                     );
                 }
+            }
+            Entity::Text(text) => {
+                let text_pos = to_screen(text.position);
+                let text_color = egui::Color32::from_rgb(
+                    text.style.color[0],
+                    text.style.color[1],
+                    text.style.color[2],
+                );
+                let final_color = if is_selected {
+                    egui::Color32::GOLD
+                } else {
+                    text_color
+                };
+
+                // Draw measurement lines for distance annotations
+                if text.anchor_points.len() >= 2 {
+                    let start = to_screen(text.anchor_points[0]);
+                    let end = to_screen(text.anchor_points[1]);
+
+                    // Dashed measurement line
+                    painter.line_segment(
+                        [start, end],
+                        egui::Stroke::new(1.0, final_color.linear_multiply(0.5)),
+                    );
+
+                    // Endpoint markers
+                    painter.circle_filled(start, 3.0, final_color);
+                    painter.circle_filled(end, 3.0, final_color);
+                }
+
+                // Draw text
+                let font_size = text.style.font_size * viewport_zoom;
+                painter.text(
+                    text_pos,
+                    egui::Align2::CENTER_CENTER,
+                    &text.text,
+                    egui::FontId::proportional(font_size.max(8.0).min(48.0)),
+                    final_color,
+                );
             }
         }
     }

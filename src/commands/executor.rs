@@ -2,11 +2,13 @@ use crate::commands::arc::ArcCommand;
 use crate::commands::axis::AxisCommand;
 use crate::commands::circle::CircleCommand;
 use crate::commands::copy::CopyCommand;
+use crate::commands::distance::DistanceCommand;
 use crate::commands::line::LineCommand;
 use crate::commands::r#move::MoveCommand;
 use crate::commands::rectangle::RectangleCommand;
 use crate::commands::rotate::RotateCommand;
 use crate::commands::scale::ScaleCommand;
+use crate::commands::text::TextCommand;
 use crate::commands::trim::TrimCommand;
 use crate::commands::{Command, CommandContext, InputModifiers, InputResult, PointResult};
 use crate::model::{CadModel, Vector2};
@@ -62,6 +64,11 @@ impl CommandRegistry {
         // Register edit commands
         registry.register("trim", || Box::new(TrimCommand::new()));
         registry.register("t", || Box::new(TrimCommand::new()));
+
+        // Register annotation commands
+        registry.register("text", || Box::new(TextCommand::new()));
+        registry.register("distance", || Box::new(DistanceCommand::new()));
+        registry.register("dist", || Box::new(DistanceCommand::new()));
 
         registry
     }

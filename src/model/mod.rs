@@ -1,3 +1,4 @@
+pub mod annotation;
 pub mod arc;
 pub mod axis;
 pub mod circle;
@@ -11,6 +12,7 @@ pub mod vector;
 
 use serde::{Deserialize, Serialize};
 
+pub use annotation::TextAnnotation;
 pub use arc::Arc;
 pub use circle::Circle;
 pub use line::Line;
@@ -23,6 +25,7 @@ pub enum Entity {
     Circle(Circle),
     Rectangle(Rectangle),
     Arc(Arc),
+    Text(TextAnnotation),
 }
 
 impl Entity {
@@ -32,6 +35,7 @@ impl Entity {
             Entity::Circle(circle) => circle.hit_test(pos, tolerance),
             Entity::Rectangle(rect) => rect.hit_test(pos, tolerance),
             Entity::Arc(arc) => arc.hit_test(pos, tolerance),
+            Entity::Text(text) => text.hit_test(pos, tolerance),
         }
     }
 
@@ -41,6 +45,7 @@ impl Entity {
             Entity::Circle(_) => "Circle",
             Entity::Rectangle(_) => "Rectangle",
             Entity::Arc(_) => "Arc",
+            Entity::Text(_) => "Text",
         }
     }
 
@@ -57,6 +62,7 @@ impl Entity {
                 (rect.min.y + rect.max.y) / 2.0,
             ),
             Entity::Arc(arc) => arc.center,
+            Entity::Text(text) => text.position,
         }
     }
 
@@ -76,6 +82,12 @@ impl Entity {
             }
             Entity::Arc(arc) => {
                 arc.center = arc.center + delta;
+            }
+            Entity::Text(text) => {
+                text.position = text.position + delta;
+                for pt in &mut text.anchor_points {
+                    *pt = *pt + delta;
+                }
             }
         }
     }
@@ -123,6 +135,12 @@ impl Entity {
                 arc.start_angle += angle;
                 arc.end_angle += angle;
             }
+            Entity::Text(text) => {
+                text.position = rotate_point(text.position);
+                for pt in &mut text.anchor_points {
+                    *pt = rotate_point(*pt);
+                }
+            }
         }
     }
 
@@ -151,6 +169,13 @@ impl Entity {
             Entity::Arc(arc) => {
                 arc.center = scale_point(arc.center);
                 arc.radius *= factor;
+            }
+            Entity::Text(text) => {
+                text.position = scale_point(text.position);
+                for pt in &mut text.anchor_points {
+                    *pt = scale_point(*pt);
+                }
+                text.style.font_size *= factor;
             }
         }
     }

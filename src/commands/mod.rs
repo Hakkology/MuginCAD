@@ -2,12 +2,14 @@ pub mod arc;
 pub mod axis;
 pub mod circle;
 pub mod copy;
+pub mod distance;
 pub mod executor;
 pub mod line;
 pub mod r#move;
 pub mod rectangle;
 pub mod rotate;
 pub mod scale;
+pub mod text;
 pub mod trim;
 
 use crate::model::{CadModel, Vector2};

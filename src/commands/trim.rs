@@ -98,6 +98,9 @@ impl Command for TrimCommand {
                             line_circle_intersection(line.start, line.end, arc.center, arc.radius);
                         intersections.extend(pts);
                     }
+                    Entity::Text(_) => {
+                        // Text annotations don't contribute to intersections
+                    }
                 }
             }
 

@@ -119,6 +119,22 @@ pub fn render_top_menu(ctx: &egui::Context, vm: &mut CadViewModel) {
                         .start_command("trim", &mut vm.model, &vm.selected_indices);
                     ui.close_menu();
                 }
+
+                ui.add_space(8.0);
+
+                // Annotation section
+                ui.label("Annotation");
+                ui.separator();
+                if ui.button("Text").clicked() {
+                    vm.executor
+                        .start_command("text", &mut vm.model, &vm.selected_indices);
+                    ui.close_menu();
+                }
+                if ui.button("Distance").clicked() {
+                    vm.executor
+                        .start_command("distance", &mut vm.model, &vm.selected_indices);
+                    ui.close_menu();
+                }
             });
 
             ui.menu_button("Tools", |ui| {

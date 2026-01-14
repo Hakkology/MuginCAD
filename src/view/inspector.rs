@@ -151,6 +151,29 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                             ui.add(egui::DragValue::new(&mut line.end.y).speed(0.1));
                         });
                     });
+                    ui.add_space(5.0);
+
+                    // Length display
+                    ui.horizontal(|ui| {
+                        ui.label("Length:");
+                        ui.label(format!("{:.2}", line.length()));
+                    });
+
+                    // Show length toggle
+                    ui.checkbox(&mut line.show_length, "Show Length Label");
+
+                    // Label offset (only if show_length is true)
+                    if line.show_length {
+                        ui.group(|ui| {
+                            ui.label("Label Offset");
+                            ui.horizontal(|ui| {
+                                ui.label("X:");
+                                ui.add(egui::DragValue::new(&mut line.label_offset.x).speed(0.5));
+                                ui.label("Y:");
+                                ui.add(egui::DragValue::new(&mut line.label_offset.y).speed(0.5));
+                            });
+                        });
+                    }
                 }
                 Entity::Circle(circle) => {
                     ui.group(|ui| {
@@ -223,6 +246,30 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                         ui.add(egui::DragValue::new(&mut arc.end_angle).speed(0.01));
                     });
                     ui.checkbox(&mut arc.filled, "Filled");
+                }
+                Entity::Text(text) => {
+                    ui.group(|ui| {
+                        ui.label("Position");
+                        ui.horizontal(|ui| {
+                            ui.label("X:");
+                            ui.add(egui::DragValue::new(&mut text.position.x).speed(0.1));
+                            ui.label("Y:");
+                            ui.add(egui::DragValue::new(&mut text.position.y).speed(0.1));
+                        });
+                    });
+                    ui.add_space(5.0);
+                    ui.horizontal(|ui| {
+                        ui.label("Text:");
+                        ui.text_edit_singleline(&mut text.text);
+                    });
+                    ui.horizontal(|ui| {
+                        ui.label("Font Size:");
+                        ui.add(
+                            egui::DragValue::new(&mut text.style.font_size)
+                                .speed(0.5)
+                                .range(6.0..=72.0),
+                        );
+                    });
                 }
             }
 

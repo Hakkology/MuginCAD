@@ -218,6 +218,14 @@ impl SnapSystem {
                 points.push(SnapPoint::new(arc.start_point(), SnapPointType::Endpoint));
                 points.push(SnapPoint::new(arc.end_point(), SnapPointType::Endpoint));
             }
+            Entity::Text(text) => {
+                // Text position
+                points.push(SnapPoint::new(text.position, SnapPointType::Center));
+                // Anchor points for measurements
+                for pt in &text.anchor_points {
+                    points.push(SnapPoint::new(*pt, SnapPointType::Endpoint));
+                }
+            }
         }
 
         points
