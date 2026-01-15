@@ -11,17 +11,19 @@ pub trait Renderable {
     fn render(&self, ctx: &DrawContext, is_selected: bool, is_hovered: bool);
 }
 
+fn get_base_style(is_selected: bool, is_hovered: bool) -> (egui::Color32, f32) {
+    if is_selected {
+        (egui::Color32::GOLD, 2.5)
+    } else if is_hovered {
+        (egui::Color32::WHITE, 1.5)
+    } else {
+        (egui::Color32::from_rgb(0, 255, 255), 1.5)
+    }
+}
+
 impl Renderable for Line {
     fn render(&self, ctx: &DrawContext, is_selected: bool, is_hovered: bool) {
-        let color = if is_selected {
-            egui::Color32::GOLD
-        } else if is_hovered {
-            egui::Color32::WHITE
-        } else {
-            egui::Color32::from_rgb(0, 255, 255)
-        };
-
-        let stroke_width = if is_selected { 2.5 } else { 1.5 };
+        let (color, stroke_width) = get_base_style(is_selected, is_hovered);
 
         ctx.painter.line_segment(
             [ctx.to_screen(self.start), ctx.to_screen(self.end)],
@@ -139,14 +141,7 @@ impl Renderable for Line {
 
 impl Renderable for Circle {
     fn render(&self, ctx: &DrawContext, is_selected: bool, is_hovered: bool) {
-        let color = if is_selected {
-            egui::Color32::GOLD
-        } else if is_hovered {
-            egui::Color32::WHITE
-        } else {
-            egui::Color32::from_rgb(0, 255, 255)
-        };
-        let stroke_width = if is_selected { 2.5 } else { 1.5 };
+        let (color, stroke_width) = get_base_style(is_selected, is_hovered);
 
         let screen_radius = self.radius * ctx.zoom;
         if self.filled {
@@ -166,14 +161,7 @@ impl Renderable for Circle {
 
 impl Renderable for Rectangle {
     fn render(&self, ctx: &DrawContext, is_selected: bool, is_hovered: bool) {
-        let color = if is_selected {
-            egui::Color32::GOLD
-        } else if is_hovered {
-            egui::Color32::WHITE
-        } else {
-            egui::Color32::from_rgb(0, 255, 255)
-        };
-        let stroke_width = if is_selected { 2.5 } else { 1.5 };
+        let (color, stroke_width) = get_base_style(is_selected, is_hovered);
 
         let rect_screen = egui::Rect::from_min_max(
             ctx.to_screen(Vector2::new(self.min.x, self.max.y)),
@@ -190,14 +178,7 @@ impl Renderable for Rectangle {
 
 impl Renderable for Arc {
     fn render(&self, ctx: &DrawContext, is_selected: bool, is_hovered: bool) {
-        let color = if is_selected {
-            egui::Color32::GOLD
-        } else if is_hovered {
-            egui::Color32::WHITE
-        } else {
-            egui::Color32::from_rgb(0, 255, 255)
-        };
-        let stroke_width = if is_selected { 2.5 } else { 1.5 };
+        let (color, stroke_width) = get_base_style(is_selected, is_hovered);
 
         let segments = 32;
         let mut angle_range = self.end_angle - self.start_angle;
