@@ -7,8 +7,8 @@ impl CadViewModel {
         self.command_input.clear();
 
         if input_text.is_empty() {
-            if self.executor.is_active() {
-                self.executor.cancel();
+            if self.active_tab_mut().executor.is_active() {
+                self.active_tab_mut().executor.cancel();
             }
             return;
         }
@@ -21,20 +21,22 @@ impl CadViewModel {
         // Handle special commands
         let clean = input_text.trim().to_lowercase();
 
-        if self.pending_delete_confirmation {
+        if self.active_tab_mut().pending_delete_confirmation {
             match clean.as_str() {
                 "y" | "yes" => {
                     self.delete_selected();
-                    self.pending_delete_confirmation = false;
+                    self.active_tab_mut().pending_delete_confirmation = false;
                 }
                 "n" | "no" => {
-                    self.executor.status_message = "Delete cancelled".to_string();
-                    self.command_history.push("Cancelled.".to_string());
-                    self.pending_delete_confirmation = false;
+                    let (tab, history) = self.active_tab_mut_and_history();
+                    tab.executor.status_message = "Delete cancelled".to_string();
+                    history.push("Cancelled.".to_string());
+                    tab.pending_delete_confirmation = false;
                 }
                 _ => {
-                    self.executor.status_message = "Delete cancelled (invalid input)".to_string();
-                    self.pending_delete_confirmation = false;
+                    let tab = self.active_tab_mut();
+                    tab.executor.status_message = "Delete cancelled (invalid input)".to_string();
+                    tab.pending_delete_confirmation = false;
                 }
             }
             return;
@@ -50,30 +52,31 @@ impl CadViewModel {
                 return;
             }
             "fill" | "shade" => {
-                let mode = self.executor.toggle_filled();
+                let (tab, history) = self.active_tab_mut_and_history();
+                let mode = tab.executor.toggle_filled();
                 let mode_str = if mode { "ON" } else { "OFF" };
-                self.executor.status_message = format!("SHADE mode: {}", mode_str);
-                self.command_history
-                    .push(format!("Shade mode is now {}", mode_str));
+                tab.executor.status_message = format!("SHADE mode: {}", mode_str);
+                history.push(format!("Shade mode is now {}", mode_str));
                 return;
             }
             "clear" => {
                 self.save_undo_state();
-                self.model.entities.clear();
-                self.command_history.clear();
-                self.selection_manager.selected_indices.clear();
-                self.executor.cancel();
+                let (tab, history) = self.active_tab_mut_and_history();
+                tab.model.entities.clear();
+                history.clear();
+                tab.selection_manager.selected_indices.clear();
+                tab.executor.cancel();
                 return;
             }
             "d" | "delete" => {
-                if !self.selection_manager.selected_indices.is_empty() {
-                    self.pending_delete_confirmation = true;
-                    self.executor.status_message =
+                let (tab, history) = self.active_tab_mut_and_history();
+                if !tab.selection_manager.selected_indices.is_empty() {
+                    tab.pending_delete_confirmation = true;
+                    tab.executor.status_message =
                         "Are you sure you want to delete? (Y/N)".to_string();
-                    self.command_history
-                        .push("Are you sure you want to delete? (Y/N)".to_string());
+                    history.push("Are you sure you want to delete? (Y/N)".to_string());
                 } else {
-                    self.executor.status_message = "Nothing selected to delete".to_string();
+                    tab.executor.status_message = "Nothing selected to delete".to_string();
                 }
                 return;
             }
@@ -84,22 +87,24 @@ impl CadViewModel {
         self.save_undo_state();
 
         // Process with command executor
-        self.executor.process_input(
+        let tab = self.active_tab_mut();
+        tab.executor.process_input(
             &input_text,
-            &mut self.model,
-            &self.selection_manager.selected_indices,
+            &mut tab.model,
+            &tab.selection_manager.selected_indices,
         );
     }
 
     /// Cancel current command (right-click or Escape)
     pub fn cancel_command(&mut self) {
-        self.executor.cancel();
-        if self.pending_delete_confirmation {
-            self.pending_delete_confirmation = false;
-            self.executor.status_message = "Cancelled".to_string();
+        let tab = self.active_tab_mut();
+        tab.executor.cancel();
+        if tab.pending_delete_confirmation {
+            tab.pending_delete_confirmation = false;
+            tab.executor.status_message = "Cancelled".to_string();
         }
         // Also clear selection rect if we were dragging
-        self.selection_manager.selection_rect_start = None;
-        self.selection_manager.selection_rect_current = None;
+        tab.selection_manager.selection_rect_start = None;
+        tab.selection_manager.selection_rect_current = None;
     }
 }

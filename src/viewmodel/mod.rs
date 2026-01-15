@@ -5,16 +5,12 @@ mod input;
 mod project;
 mod selection;
 mod snap;
+pub mod tab;
 
-// Re-export specific items if needed, or use them internally
-use self::selection::SelectionManager;
+use self::tab::ProjectTab;
 use crate::commands::InputModifiers;
-use crate::commands::executor::CommandExecutor;
 use crate::model::config::AppConfig;
-use crate::model::snap::{SnapPoint, SnapSystem};
-use crate::model::undo::UndoManager;
-use crate::model::{CadModel, Entity, Vector2};
-use crate::view::viewport::Viewport;
+use crate::model::{Entity, Vector2};
 
 /// Clipboard for copy/cut/paste operations
 #[derive(Default)]
@@ -24,53 +20,81 @@ pub struct Clipboard {
 }
 
 pub struct CadViewModel {
-    pub model: CadModel,
+    pub tabs: Vec<ProjectTab>,
+    pub active_tab_index: usize,
+
+    // Global State
     pub command_input: String,
     pub command_history: Vec<String>,
     pub history_nav_index: Option<usize>,
-    pub executor: CommandExecutor,
-    pub selection_manager: SelectionManager,
-    pub snap_system: SnapSystem,
-    pub current_snap: Option<SnapPoint>,
-    pub undo_manager: UndoManager,
-    pub viewport: Viewport,
     pub config: AppConfig,
     pub show_settings_window: bool,
-    pub pending_delete_confirmation: bool,
     pub clipboard: Clipboard,
-    pub dragging_label_index: Option<usize>,
-    pub drag_last_pos: Option<Vector2>,
 }
 
 impl CadViewModel {
     pub fn new() -> Self {
+        let default_tab = ProjectTab::new("Untitled".to_string());
+
         Self {
-            model: CadModel::new(),
+            tabs: vec![default_tab],
+            active_tab_index: 0,
             command_input: String::new(),
             command_history: Vec::new(),
             history_nav_index: None,
-            executor: CommandExecutor::new(),
-            selection_manager: SelectionManager::new(),
-            snap_system: SnapSystem::new(),
-            current_snap: None,
-            undo_manager: UndoManager::new(50), // 50 undo levels
-            viewport: Viewport::new(),
             config: AppConfig::default(),
             show_settings_window: false,
-            pending_delete_confirmation: false,
             clipboard: Clipboard::default(),
-            dragging_label_index: None,
-            drag_last_pos: None,
         }
     }
 
-    /// Get status message from executor
+    pub fn active_tab(&self) -> &ProjectTab {
+        &self.tabs[self.active_tab_index]
+    }
+
+    pub fn active_tab_mut(&mut self) -> &mut ProjectTab {
+        &mut self.tabs[self.active_tab_index]
+    }
+
+    pub fn new_tab(&mut self) {
+        let name = format!("Untitled {}", self.tabs.len() + 1);
+        self.tabs.push(ProjectTab::new(name));
+        self.active_tab_index = self.tabs.len() - 1;
+    }
+
+    pub fn close_tab(&mut self, index: usize) {
+        if self.tabs.len() <= 1 {
+            // Don't close the last tab, just reset it? Or allow closing app?
+            // For now, let's just create a new empty one if we close the last one
+            self.tabs.remove(index);
+            self.tabs.push(ProjectTab::new("Untitled".to_string()));
+            self.active_tab_index = 0;
+        } else {
+            self.tabs.remove(index);
+            if self.active_tab_index >= self.tabs.len() {
+                self.active_tab_index = self.tabs.len() - 1;
+            } else if self.active_tab_index > index {
+                // If we closed a tab before the active one, shift index
+                self.active_tab_index -= 1;
+            }
+        }
+    }
+
+    /// Get status message from active executor
     pub fn status_message(&self) -> &str {
-        &self.executor.status_message
+        &self.active_tab().executor.status_message
+    }
+
+    /// Get active tab and history mutably simultaneously (to satisfy borrow checker)
+    pub fn active_tab_mut_and_history(&mut self) -> (&mut ProjectTab, &mut Vec<String>) {
+        (
+            &mut self.tabs[self.active_tab_index],
+            &mut self.command_history,
+        )
     }
 
     /// Update keyboard modifiers (called from view)
     pub fn set_modifiers(&mut self, modifiers: InputModifiers) {
-        self.executor.set_modifiers(modifiers);
+        self.active_tab_mut().executor.set_modifiers(modifiers);
     }
 }

@@ -27,38 +27,45 @@ pub fn render_top_menu(ctx: &egui::Context, vm: &mut CadViewModel) {
             ui.menu_button("Actions", |ui| {
                 ui.set_min_width(140.0);
 
+                if vm.tabs.is_empty() {
+                    ui.label("No Project Open");
+                    return;
+                }
+
+                let tab = vm.active_tab_mut();
+
                 // Shapes section
                 ui.label("Shapes");
                 ui.separator();
                 if ui.button("Line (L)").clicked() {
-                    vm.executor.start_command(
+                    tab.executor.start_command(
                         "line",
-                        &mut vm.model,
-                        &vm.selection_manager.selected_indices,
+                        &mut tab.model,
+                        &tab.selection_manager.selected_indices,
                     );
                     ui.close_menu();
                 }
                 if ui.button("Circle (C)").clicked() {
-                    vm.executor.start_command(
+                    tab.executor.start_command(
                         "circle",
-                        &mut vm.model,
-                        &vm.selection_manager.selected_indices,
+                        &mut tab.model,
+                        &tab.selection_manager.selected_indices,
                     );
                     ui.close_menu();
                 }
                 if ui.button("Rectangle").clicked() {
-                    vm.executor.start_command(
+                    tab.executor.start_command(
                         "rect",
-                        &mut vm.model,
-                        &vm.selection_manager.selected_indices,
+                        &mut tab.model,
+                        &tab.selection_manager.selected_indices,
                     );
                     ui.close_menu();
                 }
                 if ui.button("Arc").clicked() {
-                    vm.executor.start_command(
+                    tab.executor.start_command(
                         "arc",
-                        &mut vm.model,
-                        &vm.selection_manager.selected_indices,
+                        &mut tab.model,
+                        &tab.selection_manager.selected_indices,
                     );
                     ui.close_menu();
                 }
@@ -68,15 +75,15 @@ pub fn render_top_menu(ctx: &egui::Context, vm: &mut CadViewModel) {
                 // Transform section
                 ui.label("Transform");
                 ui.separator();
-                let has_selection = !vm.selection_manager.selected_indices.is_empty();
+                let has_selection = !tab.selection_manager.selected_indices.is_empty();
                 if ui
                     .add_enabled(has_selection, egui::Button::new("Move (W)"))
                     .clicked()
                 {
-                    vm.executor.start_command(
+                    tab.executor.start_command(
                         "move",
-                        &mut vm.model,
-                        &vm.selection_manager.selected_indices,
+                        &mut tab.model,
+                        &tab.selection_manager.selected_indices,
                     );
                     ui.close_menu();
                 }
@@ -84,10 +91,10 @@ pub fn render_top_menu(ctx: &egui::Context, vm: &mut CadViewModel) {
                     .add_enabled(has_selection, egui::Button::new("Rotate (E)"))
                     .clicked()
                 {
-                    vm.executor.start_command(
+                    tab.executor.start_command(
                         "rotate",
-                        &mut vm.model,
-                        &vm.selection_manager.selected_indices,
+                        &mut tab.model,
+                        &tab.selection_manager.selected_indices,
                     );
                     ui.close_menu();
                 }
@@ -95,10 +102,10 @@ pub fn render_top_menu(ctx: &egui::Context, vm: &mut CadViewModel) {
                     .add_enabled(has_selection, egui::Button::new("Scale (R)"))
                     .clicked()
                 {
-                    vm.executor.start_command(
+                    tab.executor.start_command(
                         "scale",
-                        &mut vm.model,
-                        &vm.selection_manager.selected_indices,
+                        &mut tab.model,
+                        &tab.selection_manager.selected_indices,
                     );
                     ui.close_menu();
                 }
@@ -112,22 +119,16 @@ pub fn render_top_menu(ctx: &egui::Context, vm: &mut CadViewModel) {
                     .add_enabled(has_selection, egui::Button::new("Copy (Ctrl+C)"))
                     .clicked()
                 {
-                    vm.executor.start_command(
-                        "copy",
-                        &mut vm.model,
-                        &vm.selection_manager.selected_indices,
-                    );
+                    let indices = tab.selection_manager.selected_indices.clone();
+                    tab.executor.start_command("copy", &mut tab.model, &indices);
                     ui.close_menu();
                 }
                 if ui
                     .add_enabled(has_selection, egui::Button::new("Cut (Ctrl+X)"))
                     .clicked()
                 {
-                    vm.executor.start_command(
-                        "cut",
-                        &mut vm.model,
-                        &vm.selection_manager.selected_indices,
-                    );
+                    let indices = tab.selection_manager.selected_indices.clone();
+                    tab.executor.start_command("cut", &mut tab.model, &indices);
                     ui.close_menu();
                 }
 
@@ -137,18 +138,18 @@ pub fn render_top_menu(ctx: &egui::Context, vm: &mut CadViewModel) {
                 ui.label("Construction");
                 ui.separator();
                 if ui.button("Axis (A)").clicked() {
-                    vm.executor.start_command(
+                    tab.executor.start_command(
                         "axis",
-                        &mut vm.model,
-                        &vm.selection_manager.selected_indices,
+                        &mut tab.model,
+                        &tab.selection_manager.selected_indices,
                     );
                     ui.close_menu();
                 }
                 if ui.button("Trim (T)").clicked() {
-                    vm.executor.start_command(
+                    tab.executor.start_command(
                         "trim",
-                        &mut vm.model,
-                        &vm.selection_manager.selected_indices,
+                        &mut tab.model,
+                        &tab.selection_manager.selected_indices,
                     );
                     ui.close_menu();
                 }
@@ -156,10 +157,10 @@ pub fn render_top_menu(ctx: &egui::Context, vm: &mut CadViewModel) {
                     .add_enabled(has_selection, egui::Button::new("Offset (O)"))
                     .clicked()
                 {
-                    vm.executor.start_command(
+                    tab.executor.start_command(
                         "offset",
-                        &mut vm.model,
-                        &vm.selection_manager.selected_indices,
+                        &mut tab.model,
+                        &tab.selection_manager.selected_indices,
                     );
                     ui.close_menu();
                 }
@@ -170,18 +171,18 @@ pub fn render_top_menu(ctx: &egui::Context, vm: &mut CadViewModel) {
                 ui.label("Annotation");
                 ui.separator();
                 if ui.button("Text").clicked() {
-                    vm.executor.start_command(
+                    tab.executor.start_command(
                         "text",
-                        &mut vm.model,
-                        &vm.selection_manager.selected_indices,
+                        &mut tab.model,
+                        &tab.selection_manager.selected_indices,
                     );
                     ui.close_menu();
                 }
                 if ui.button("Distance").clicked() {
-                    vm.executor.start_command(
+                    tab.executor.start_command(
                         "distance",
-                        &mut vm.model,
-                        &vm.selection_manager.selected_indices,
+                        &mut tab.model,
+                        &tab.selection_manager.selected_indices,
                     );
                     ui.close_menu();
                 }

@@ -3,33 +3,36 @@ use crate::viewmodel::CadViewModel;
 impl CadViewModel {
     /// Save current state for undo
     pub fn save_undo_state(&mut self) {
-        self.undo_manager.save_state(&self.model.entities);
+        let tab = self.active_tab_mut();
+        tab.undo_manager.save_state(&tab.model.entities);
     }
 
     /// Perform undo
     pub fn undo(&mut self) -> bool {
-        if let Some(previous_state) = self.undo_manager.undo(&self.model.entities) {
-            self.model.entities = previous_state;
-            self.selection_manager.selected_indices.clear();
-            self.command_history.push("Undo".to_string());
-            self.executor.status_message = "Undo".to_string();
+        let (tab, history) = self.active_tab_mut_and_history();
+        if let Some(previous_state) = tab.undo_manager.undo(&tab.model.entities) {
+            tab.model.entities = previous_state;
+            tab.selection_manager.selected_indices.clear();
+            history.push("Undo".to_string());
+            tab.executor.status_message = "Undo".to_string();
             true
         } else {
-            self.executor.status_message = "Nothing to undo".to_string();
+            tab.executor.status_message = "Nothing to undo".to_string();
             false
         }
     }
 
     /// Perform redo
     pub fn redo(&mut self) -> bool {
-        if let Some(redo_state) = self.undo_manager.redo(&self.model.entities) {
-            self.model.entities = redo_state;
-            self.selection_manager.selected_indices.clear();
-            self.command_history.push("Redo".to_string());
-            self.executor.status_message = "Redo".to_string();
+        let (tab, history) = self.active_tab_mut_and_history();
+        if let Some(redo_state) = tab.undo_manager.redo(&tab.model.entities) {
+            tab.model.entities = redo_state;
+            tab.selection_manager.selected_indices.clear();
+            history.push("Redo".to_string());
+            tab.executor.status_message = "Redo".to_string();
             true
         } else {
-            self.executor.status_message = "Nothing to redo".to_string();
+            tab.executor.status_message = "Nothing to redo".to_string();
             false
         }
     }
