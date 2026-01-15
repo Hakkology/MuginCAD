@@ -1,4 +1,7 @@
 use crate::model::Entity;
+use crate::model::shapes::{
+    annotation::TextAnnotation, arc::Arc, circle::Circle, line::Line, rectangle::Rectangle,
+};
 use crate::viewmodel::CadViewModel;
 use eframe::egui;
 
@@ -185,157 +188,11 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
             ui.add_space(5.0);
 
             match entity {
-                Entity::Line(line) => {
-                    ui.group(|ui| {
-                        ui.label("Start Point");
-                        ui.horizontal(|ui| {
-                            ui.label("X:");
-                            ui.add(egui::DragValue::new(&mut line.start.x).speed(0.1));
-                            ui.label("Y:");
-                            ui.add(egui::DragValue::new(&mut line.start.y).speed(0.1));
-                        });
-                    });
-                    ui.add_space(5.0);
-                    ui.group(|ui| {
-                        ui.label("End Point");
-                        ui.horizontal(|ui| {
-                            ui.label("X:");
-                            ui.add(egui::DragValue::new(&mut line.end.x).speed(0.1));
-                            ui.label("Y:");
-                            ui.add(egui::DragValue::new(&mut line.end.y).speed(0.1));
-                        });
-                    });
-                    ui.add_space(5.0);
-
-                    // Length display
-                    ui.horizontal(|ui| {
-                        ui.label("Length:");
-                        ui.label(format!("{:.2}", line.length()));
-                    });
-
-                    // Show length toggle
-                    ui.checkbox(&mut line.show_length, "Show Length Label");
-
-                    // Label offset (only if show_length is true)
-                    if line.show_length {
-                        ui.group(|ui| {
-                            ui.label("Label Offset");
-                            ui.horizontal(|ui| {
-                                ui.label("X:");
-                                ui.add(egui::DragValue::new(&mut line.label_offset.x).speed(0.5));
-                                ui.label("Y:");
-                                ui.add(egui::DragValue::new(&mut line.label_offset.y).speed(0.5));
-                            });
-                        });
-                    }
-                }
-                Entity::Circle(circle) => {
-                    ui.group(|ui| {
-                        ui.label("Center");
-                        ui.horizontal(|ui| {
-                            ui.label("X:");
-                            ui.add(egui::DragValue::new(&mut circle.center.x).speed(0.1));
-                            ui.label("Y:");
-                            ui.add(egui::DragValue::new(&mut circle.center.y).speed(0.1));
-                        });
-                    });
-                    ui.add_space(5.0);
-                    ui.horizontal(|ui| {
-                        ui.label("Radius:");
-                        ui.add(
-                            egui::DragValue::new(&mut circle.radius)
-                                .speed(0.1)
-                                .range(0.0..=f32::INFINITY),
-                        );
-                    });
-                    ui.checkbox(&mut circle.filled, "Filled");
-                }
-                Entity::Rectangle(rect) => {
-                    ui.group(|ui| {
-                        ui.label("Min Corner");
-                        ui.horizontal(|ui| {
-                            ui.label("X:");
-                            ui.add(egui::DragValue::new(&mut rect.min.x).speed(0.1));
-                            ui.label("Y:");
-                            ui.add(egui::DragValue::new(&mut rect.min.y).speed(0.1));
-                        });
-                    });
-                    ui.add_space(5.0);
-                    ui.group(|ui| {
-                        ui.label("Max Corner");
-                        ui.horizontal(|ui| {
-                            ui.label("X:");
-                            ui.add(egui::DragValue::new(&mut rect.max.x).speed(0.1));
-                            ui.label("Y:");
-                            ui.add(egui::DragValue::new(&mut rect.max.y).speed(0.1));
-                        });
-                    });
-                    ui.checkbox(&mut rect.filled, "Filled");
-                }
-                Entity::Arc(arc) => {
-                    ui.group(|ui| {
-                        ui.label("Center");
-                        ui.horizontal(|ui| {
-                            ui.label("X:");
-                            ui.add(egui::DragValue::new(&mut arc.center.x).speed(0.1));
-                            ui.label("Y:");
-                            ui.add(egui::DragValue::new(&mut arc.center.y).speed(0.1));
-                        });
-                    });
-                    ui.add_space(5.0);
-                    ui.horizontal(|ui| {
-                        ui.label("Radius:");
-                        ui.add(
-                            egui::DragValue::new(&mut arc.radius)
-                                .speed(0.1)
-                                .range(0.0..=f32::INFINITY),
-                        );
-                    });
-                    ui.horizontal(|ui| {
-                        ui.label("Start Angle:");
-                        ui.add(egui::DragValue::new(&mut arc.start_angle).speed(0.01));
-                    });
-                    ui.horizontal(|ui| {
-                        ui.label("End Angle:");
-                        ui.add(egui::DragValue::new(&mut arc.end_angle).speed(0.01));
-                    });
-                    ui.checkbox(&mut arc.filled, "Filled");
-                }
-                Entity::Text(text) => {
-                    ui.group(|ui| {
-                        ui.label("Position");
-                        ui.horizontal(|ui| {
-                            ui.label("X:");
-                            ui.add(egui::DragValue::new(&mut text.position.x).speed(0.1));
-                            ui.label("Y:");
-                            ui.add(egui::DragValue::new(&mut text.position.y).speed(0.1));
-                        });
-                    });
-                    ui.add_space(5.0);
-                    ui.horizontal(|ui| {
-                        ui.label("Text:");
-                        ui.text_edit_singleline(&mut text.text);
-                    });
-                    ui.horizontal(|ui| {
-                        ui.label("Font Size:");
-                        ui.add(
-                            egui::DragValue::new(&mut text.style.font_size)
-                                .speed(0.5)
-                                .range(6.0..=72.0),
-                        );
-                    });
-                    ui.horizontal(|ui| {
-                        ui.label("Rotation:");
-                        // Convert radians to degrees for display
-                        let mut degrees = text.rotation.to_degrees();
-                        if ui
-                            .add(egui::DragValue::new(&mut degrees).speed(1.0).suffix("°"))
-                            .changed()
-                        {
-                            text.rotation = degrees.to_radians();
-                        }
-                    });
-                }
+                Entity::Line(line) => inspect_line(ui, line),
+                Entity::Circle(circle) => inspect_circle(ui, circle),
+                Entity::Rectangle(rect) => inspect_rectangle(ui, rect),
+                Entity::Arc(arc) => inspect_arc(ui, arc),
+                Entity::Text(text) => inspect_text(ui, text),
             }
 
             ui.add_space(20.0);
@@ -402,3 +259,159 @@ if ... clicked() {
     tab.executor.start_command("delete", &mut tab.model, &indices);
 }
 */
+
+fn inspect_line(ui: &mut egui::Ui, line: &mut Line) {
+    ui.group(|ui| {
+        ui.label("Start Point");
+        ui.horizontal(|ui| {
+            ui.label("X:");
+            ui.add(egui::DragValue::new(&mut line.start.x).speed(0.1));
+            ui.label("Y:");
+            ui.add(egui::DragValue::new(&mut line.start.y).speed(0.1));
+        });
+    });
+    ui.add_space(5.0);
+    ui.group(|ui| {
+        ui.label("End Point");
+        ui.horizontal(|ui| {
+            ui.label("X:");
+            ui.add(egui::DragValue::new(&mut line.end.x).speed(0.1));
+            ui.label("Y:");
+            ui.add(egui::DragValue::new(&mut line.end.y).speed(0.1));
+        });
+    });
+    ui.add_space(5.0);
+
+    // Length display
+    ui.horizontal(|ui| {
+        ui.label("Length:");
+        ui.label(format!("{:.2}", line.length()));
+    });
+
+    // Show length toggle
+    ui.checkbox(&mut line.show_length, "Show Length Label");
+
+    // Label offset (only if show_length is true)
+    if line.show_length {
+        ui.group(|ui| {
+            ui.label("Label Offset");
+            ui.horizontal(|ui| {
+                ui.label("X:");
+                ui.add(egui::DragValue::new(&mut line.label_offset.x).speed(0.5));
+                ui.label("Y:");
+                ui.add(egui::DragValue::new(&mut line.label_offset.y).speed(0.5));
+            });
+        });
+    }
+}
+
+fn inspect_circle(ui: &mut egui::Ui, circle: &mut Circle) {
+    ui.group(|ui| {
+        ui.label("Center");
+        ui.horizontal(|ui| {
+            ui.label("X:");
+            ui.add(egui::DragValue::new(&mut circle.center.x).speed(0.1));
+            ui.label("Y:");
+            ui.add(egui::DragValue::new(&mut circle.center.y).speed(0.1));
+        });
+    });
+    ui.add_space(5.0);
+    ui.horizontal(|ui| {
+        ui.label("Radius:");
+        ui.add(
+            egui::DragValue::new(&mut circle.radius)
+                .speed(0.1)
+                .range(0.0..=f32::INFINITY),
+        );
+    });
+    ui.checkbox(&mut circle.filled, "Filled");
+}
+
+fn inspect_rectangle(ui: &mut egui::Ui, rect: &mut Rectangle) {
+    ui.group(|ui| {
+        ui.label("Min Corner");
+        ui.horizontal(|ui| {
+            ui.label("X:");
+            ui.add(egui::DragValue::new(&mut rect.min.x).speed(0.1));
+            ui.label("Y:");
+            ui.add(egui::DragValue::new(&mut rect.min.y).speed(0.1));
+        });
+    });
+    ui.add_space(5.0);
+    ui.group(|ui| {
+        ui.label("Max Corner");
+        ui.horizontal(|ui| {
+            ui.label("X:");
+            ui.add(egui::DragValue::new(&mut rect.max.x).speed(0.1));
+            ui.label("Y:");
+            ui.add(egui::DragValue::new(&mut rect.max.y).speed(0.1));
+        });
+    });
+    ui.checkbox(&mut rect.filled, "Filled");
+}
+
+fn inspect_arc(ui: &mut egui::Ui, arc: &mut Arc) {
+    ui.group(|ui| {
+        ui.label("Center");
+        ui.horizontal(|ui| {
+            ui.label("X:");
+            ui.add(egui::DragValue::new(&mut arc.center.x).speed(0.1));
+            ui.label("Y:");
+            ui.add(egui::DragValue::new(&mut arc.center.y).speed(0.1));
+        });
+    });
+    ui.add_space(5.0);
+    ui.horizontal(|ui| {
+        ui.label("Radius:");
+        ui.add(
+            egui::DragValue::new(&mut arc.radius)
+                .speed(0.1)
+                .range(0.0..=f32::INFINITY),
+        );
+    });
+    ui.horizontal(|ui| {
+        ui.label("Start Angle:");
+        ui.add(egui::DragValue::new(&mut arc.start_angle).speed(0.01));
+    });
+    ui.horizontal(|ui| {
+        ui.label("End Angle:");
+        ui.add(egui::DragValue::new(&mut arc.end_angle).speed(0.01));
+    });
+    ui.checkbox(&mut arc.filled, "Filled");
+}
+
+fn inspect_text(ui: &mut egui::Ui, text: &mut TextAnnotation) {
+    ui.group(|ui| {
+        ui.label("Position");
+        ui.horizontal(|ui| {
+            ui.label("X:");
+            ui.add(egui::DragValue::new(&mut text.position.x).speed(0.1));
+            ui.label("Y:");
+            ui.add(egui::DragValue::new(&mut text.position.y).speed(0.1));
+        });
+    });
+    ui.add_space(5.0);
+    ui.horizontal(|ui| {
+        ui.label("Text:");
+        ui.text_edit_singleline(&mut text.text);
+    });
+    ui.horizontal(|ui| {
+        ui.label("Font Size:");
+        ui.add(
+            egui::DragValue::new(&mut text.style.font_size)
+                .speed(0.5)
+                .range(6.0..=72.0),
+        );
+    });
+    ui.horizontal(|ui| {
+        ui.label("Rotation:");
+        // Convert radians to degrees for display
+        let mut degrees = text.rotation.to_degrees();
+        if ui
+            .add(egui::DragValue::new(&mut degrees).speed(1.0).suffix("°"))
+            .changed()
+        {
+            text.rotation = degrees.to_radians();
+        }
+    });
+}

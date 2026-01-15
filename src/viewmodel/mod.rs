@@ -1,3 +1,19 @@
+//! View Model Layer (MVVM)
+//!
+//! This module contains the state management and business logic for the application.
+//! It acts as a bridge between the data model (`crate::model`) and the view (`crate::view`).
+//!
+//! Key components:
+//! - `CadViewModel`: The main state container.
+//! - `ProjectTab`: Manages state for a single open project (tab).
+//! - `InputManager`: Handling raw input events.
+//! - `CommandManager`: Managing the command execution and undo/redo history.
+//!
+//! The view model is responsible for:
+//! 1. Maintaining the state of the application.
+//! 2. Processing user inputs and executing commands.
+//! 3. Converting model data into a format suitable for rendering (though direct rendering is handled in `view`).
+
 mod commands;
 mod history;
 // mod index_helper;

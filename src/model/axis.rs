@@ -119,15 +119,15 @@ impl AxisManager {
     fn index_to_letter(index: usize) -> String {
         if index < 26 {
             char::from_u32('A' as u32 + index as u32)
-                .unwrap()
+                .unwrap_or('?')
                 .to_string()
         } else {
             let first = (index / 26) - 1;
             let second = index % 26;
             format!(
                 "{}{}",
-                char::from_u32('A' as u32 + first as u32).unwrap(),
-                char::from_u32('A' as u32 + second as u32).unwrap()
+                char::from_u32('A' as u32 + first as u32).unwrap_or('?'),
+                char::from_u32('A' as u32 + second as u32).unwrap_or('?')
             )
         }
     }
@@ -136,13 +136,15 @@ impl AxisManager {
     pub fn add_vertical(&mut self, x_position: f32) -> &Axis {
         let label = self.next_vertical_label();
         self.axes.push(Axis::vertical(x_position, label));
-        self.axes.last().unwrap()
+        let len = self.axes.len();
+        &self.axes[len - 1]
     }
 
     /// Add a horizontal axis at Y position with auto-label
     pub fn add_horizontal(&mut self, y_position: f32) -> &Axis {
         let label = self.next_horizontal_label();
         self.axes.push(Axis::horizontal(y_position, label));
-        self.axes.last().unwrap()
+        let len = self.axes.len();
+        &self.axes[len - 1]
     }
 }

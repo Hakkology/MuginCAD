@@ -1,3 +1,14 @@
+//! Core Data Model
+//!
+//! This module defines the core data structures of the CAD application.
+//! It aims to be pure data and logic, independent of the view or specific UI frameworks.
+//!
+//! Key components:
+//! - `Entity`: The primitive shapes (Line, Circle, etc.).
+//! - `CadModel`: The container for all entities in a project.
+//! - `AxisManager`: Architectural grid system.
+//! - `Vector2`: Basic math primitives.
+
 pub mod axis;
 pub mod math;
 pub mod shapes;
