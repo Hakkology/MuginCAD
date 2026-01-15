@@ -202,6 +202,54 @@ pub fn render_top_menu(ctx: &egui::Context, vm: &mut CadViewModel) {
                 }
             });
 
+            ui.menu_button("Structure", |ui| {
+                ui.set_min_width(140.0);
+
+                if vm.tabs.is_empty() {
+                    ui.label("No Project Open");
+                    return;
+                }
+
+                let tab = vm.active_tab_mut();
+
+                // Structural elements section
+                ui.label("Elements");
+                ui.separator();
+                if ui.button("Column (Col)").clicked() {
+                    tab.executor.start_command(
+                        "column",
+                        &mut tab.model,
+                        &tab.selection_manager.selected_indices,
+                    );
+                    ui.close_menu();
+                }
+                if ui.button("Beam (B)").clicked() {
+                    tab.executor.start_command(
+                        "beam",
+                        &mut tab.model,
+                        &tab.selection_manager.selected_indices,
+                    );
+                    ui.close_menu();
+                }
+
+                ui.add_space(8.0);
+
+                // Future elements (placeholder)
+                ui.label("Openings");
+                ui.separator();
+                ui.add_enabled(false, egui::Button::new("Door"))
+                    .on_hover_text("Coming soon");
+                ui.add_enabled(false, egui::Button::new("Window"))
+                    .on_hover_text("Coming soon");
+
+                ui.add_space(8.0);
+
+                ui.label("Slabs");
+                ui.separator();
+                ui.add_enabled(false, egui::Button::new("Flooring"))
+                    .on_hover_text("Coming soon");
+            });
+
             ui.menu_button("Tools", |ui| {
                 ui.set_min_width(120.0);
                 if ui.button("Settings").clicked() {

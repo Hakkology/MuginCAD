@@ -219,6 +219,74 @@ pub fn render_toolbar(ctx: &egui::Context, vm: &mut CadViewModel) {
                         &tab.selection_manager.selected_indices,
                     );
                 }
+
+                ui.separator();
+                ui.add_space(4.0);
+
+                // Structural elements section
+                ui.label(
+                    egui::RichText::new("Structure")
+                        .small()
+                        .color(egui::Color32::from_gray(150)),
+                );
+                ui.add_space(2.0);
+
+                if ui
+                    .add(
+                        egui::Button::new(egui::RichText::new("C").strong())
+                            .min_size(btn_size)
+                            .fill(egui::Color32::from_rgb(60, 60, 80)),
+                    )
+                    .on_hover_text("Column (col)")
+                    .clicked()
+                {
+                    tab.executor.start_command(
+                        "column",
+                        &mut tab.model,
+                        &tab.selection_manager.selected_indices,
+                    );
+                }
+
+                if ui
+                    .add(
+                        egui::Button::new(egui::RichText::new("B").strong())
+                            .min_size(btn_size)
+                            .fill(egui::Color32::from_rgb(60, 60, 80)),
+                    )
+                    .on_hover_text("Beam (b)")
+                    .clicked()
+                {
+                    tab.executor.start_command(
+                        "beam",
+                        &mut tab.model,
+                        &tab.selection_manager.selected_indices,
+                    );
+                }
+
+                // Disabled for now - phase 2
+                ui.add_enabled(
+                    false,
+                    egui::Button::new(egui::RichText::new("F").strong())
+                        .min_size(btn_size)
+                        .fill(egui::Color32::from_rgb(50, 50, 65)),
+                )
+                .on_hover_text("Flooring (coming soon)");
+
+                ui.add_enabled(
+                    false,
+                    egui::Button::new(egui::RichText::new("D").strong())
+                        .min_size(btn_size)
+                        .fill(egui::Color32::from_rgb(50, 50, 65)),
+                )
+                .on_hover_text("Door (coming soon)");
+
+                ui.add_enabled(
+                    false,
+                    egui::Button::new(egui::RichText::new("W").strong())
+                        .min_size(btn_size)
+                        .fill(egui::Color32::from_rgb(50, 50, 65)),
+                )
+                .on_hover_text("Window (coming soon)");
             });
         });
 }

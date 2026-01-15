@@ -101,6 +101,12 @@ impl Command for TrimCommand {
                     Entity::Text(_) => {
                         // Text annotations don't contribute to intersections
                     }
+                    // Structural elements don't participate in trim
+                    Entity::Column(_)
+                    | Entity::Beam(_)
+                    | Entity::Flooring(_)
+                    | Entity::Door(_)
+                    | Entity::Window(_) => {}
                 }
             }
 

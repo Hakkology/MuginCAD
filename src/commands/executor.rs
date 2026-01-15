@@ -9,6 +9,7 @@ use crate::commands::offset::OffsetCommand;
 use crate::commands::rectangle::RectangleCommand;
 use crate::commands::rotate::RotateCommand;
 use crate::commands::scale::ScaleCommand;
+use crate::commands::structural::{PlaceBeamCommand, PlaceColumnCommand};
 use crate::commands::text::TextCommand;
 use crate::commands::trim::TrimCommand;
 use crate::commands::{Command, CommandContext, InputModifiers, InputResult, PointResult};
@@ -89,6 +90,18 @@ impl CommandRegistry {
         registry.register("select_region", || {
             Box::new(crate::commands::io::export_region::SelectExportRegionCommand::new())
         });
+
+        // Register structural commands
+        registry.register("column", || {
+            Box::new(PlaceColumnCommand::new("50x50".to_string()))
+        });
+        registry.register("col", || {
+            Box::new(PlaceColumnCommand::new("50x50".to_string()))
+        });
+        registry.register("beam", || {
+            Box::new(PlaceBeamCommand::new("25x40".to_string()))
+        });
+        registry.register("b", || Box::new(PlaceBeamCommand::new("25x40".to_string())));
 
         registry
     }

@@ -90,6 +90,20 @@ impl SelectionManager {
                     Entity::Rectangle(r) => r.min,
                     Entity::Arc(a) => Vector2::new(a.center.x - a.radius, a.center.y - a.radius),
                     Entity::Text(t) => t.position,
+                    // Structural - approximate bounds
+                    Entity::Column(col) => {
+                        Vector2::new(col.position.x - 25.0, col.position.y - 25.0)
+                    }
+                    Entity::Beam(beam) => {
+                        Vector2::new(beam.start.x.min(beam.end.x), beam.start.y.min(beam.end.y))
+                    }
+                    Entity::Flooring(floor) => floor
+                        .boundary_points
+                        .iter()
+                        .fold(Vector2::new(f32::MAX, f32::MAX), |acc, p| {
+                            Vector2::new(acc.x.min(p.x), acc.y.min(p.y))
+                        }),
+                    Entity::Door(_) | Entity::Window(_) => Vector2::new(0.0, 0.0),
                 };
                 let e_max = match entity {
                     Entity::Line(l) => Vector2::new(l.start.x.max(l.end.x), l.start.y.max(l.end.y)),
@@ -97,6 +111,19 @@ impl SelectionManager {
                     Entity::Rectangle(r) => r.max,
                     Entity::Arc(a) => Vector2::new(a.center.x + a.radius, a.center.y + a.radius),
                     Entity::Text(t) => t.position,
+                    Entity::Column(col) => {
+                        Vector2::new(col.position.x + 25.0, col.position.y + 25.0)
+                    }
+                    Entity::Beam(beam) => {
+                        Vector2::new(beam.start.x.max(beam.end.x), beam.start.y.max(beam.end.y))
+                    }
+                    Entity::Flooring(floor) => floor
+                        .boundary_points
+                        .iter()
+                        .fold(Vector2::new(f32::MIN, f32::MIN), |acc, p| {
+                            Vector2::new(acc.x.max(p.x), acc.y.max(p.y))
+                        }),
+                    Entity::Door(_) | Entity::Window(_) => Vector2::new(0.0, 0.0),
                 };
 
                 // Check if entity is fully inside selection rect

@@ -226,6 +226,24 @@ impl SnapSystem {
                     points.push(SnapPoint::new(*pt, SnapPointType::Endpoint));
                 }
             }
+            // Structural elements - snap to centers and corners
+            Entity::Column(col) => {
+                points.push(SnapPoint::new(col.position, SnapPointType::Center));
+            }
+            Entity::Beam(beam) => {
+                points.push(SnapPoint::new(beam.start, SnapPointType::Endpoint));
+                points.push(SnapPoint::new(beam.end, SnapPointType::Endpoint));
+                points.push(SnapPoint::new(beam.center(), SnapPointType::Midpoint));
+            }
+            Entity::Flooring(floor) => {
+                points.push(SnapPoint::new(floor.center(), SnapPointType::Center));
+                for pt in &floor.boundary_points {
+                    points.push(SnapPoint::new(*pt, SnapPointType::Corner));
+                }
+            }
+            Entity::Door(_) | Entity::Window(_) => {
+                // TODO: add host-relative snap points
+            }
         }
 
         points

@@ -220,6 +220,82 @@ impl PdfExporter {
                     let font = doc.add_builtin_font(BuiltinFont::Helvetica).unwrap();
                     current_layer.use_text(text.text.clone(), 10.0, Mm(pos.0), Mm(pos.1), &font);
                 }
+                // Structural elements - render as filled rectangles
+                Entity::Column(col) => {
+                    let w = 50.0; // Default width
+                    let h = 50.0; // Default depth
+                    let corners = col.get_corners(w, h);
+
+                    let mut points = Vec::with_capacity(5);
+                    for c in &corners {
+                        let pt = transform(*c);
+                        points.push((Point::new(Mm(pt.0), Mm(pt.1)), false));
+                    }
+                    points.push(points[0].clone()); // Close
+
+                    let shape = Line {
+                        points,
+                        is_closed: true,
+                        has_fill: true,
+                        has_stroke: true,
+                        is_clipping_path: false,
+                    };
+
+                    let outline_color = Color::Rgb(Rgb::new(0.5, 0.5, 0.5, None));
+                    current_layer.set_outline_color(outline_color);
+                    current_layer.set_outline_thickness(0.5);
+                    current_layer.add_shape(shape);
+                }
+                Entity::Beam(beam) => {
+                    let width = 30.0;
+                    let corners = beam.get_corners(width);
+
+                    let mut points = Vec::with_capacity(5);
+                    for c in &corners {
+                        let pt = transform(*c);
+                        points.push((Point::new(Mm(pt.0), Mm(pt.1)), false));
+                    }
+                    points.push(points[0].clone());
+
+                    let shape = Line {
+                        points,
+                        is_closed: true,
+                        has_fill: true,
+                        has_stroke: true,
+                        is_clipping_path: false,
+                    };
+
+                    let outline_color = Color::Rgb(Rgb::new(0.4, 0.4, 0.4, None));
+                    current_layer.set_outline_color(outline_color);
+                    current_layer.set_outline_thickness(0.5);
+                    current_layer.add_shape(shape);
+                }
+                Entity::Flooring(floor) => {
+                    if floor.boundary_points.len() >= 3 {
+                        let mut points = Vec::with_capacity(floor.boundary_points.len() + 1);
+                        for p in &floor.boundary_points {
+                            let pt = transform(*p);
+                            points.push((Point::new(Mm(pt.0), Mm(pt.1)), false));
+                        }
+                        points.push(points[0].clone());
+
+                        let shape = Line {
+                            points,
+                            is_closed: true,
+                            has_fill: true,
+                            has_stroke: true,
+                            is_clipping_path: false,
+                        };
+
+                        let outline_color = Color::Rgb(Rgb::new(0.7, 0.7, 0.7, None));
+                        current_layer.set_outline_color(outline_color);
+                        current_layer.set_outline_thickness(0.3);
+                        current_layer.add_shape(shape);
+                    }
+                }
+                Entity::Door(_) | Entity::Window(_) => {
+                    // TODO: Implement door/window symbols in PDF
+                }
             }
         }
 

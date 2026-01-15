@@ -359,6 +359,62 @@ impl Renderable for Entity {
             Entity::Rectangle(e) => e.render(ctx, is_selected, is_hovered),
             Entity::Arc(e) => e.render(ctx, is_selected, is_hovered),
             Entity::Text(e) => e.render(ctx, is_selected, is_hovered),
+            // Structural elements - placeholder rendering as filled rectangles
+            Entity::Column(col) => {
+                let (color, stroke_width) = get_base_style(is_selected, is_hovered);
+                let fill_color = egui::Color32::from_rgb(120, 120, 120);
+
+                // Use default dimensions for now
+                let w = 50.0;
+                let h = 50.0;
+                let corners = col.get_corners(w, h);
+
+                let screen_corners: Vec<egui::Pos2> =
+                    corners.iter().map(|c| ctx.to_screen(*c)).collect();
+
+                ctx.painter.add(egui::Shape::convex_polygon(
+                    screen_corners,
+                    fill_color.linear_multiply(0.5),
+                    egui::Stroke::new(stroke_width, color),
+                ));
+            }
+            Entity::Beam(beam) => {
+                let (color, stroke_width) = get_base_style(is_selected, is_hovered);
+                let fill_color = egui::Color32::from_rgb(100, 100, 100);
+
+                let width = 30.0; // Default beam width
+                let corners = beam.get_corners(width);
+
+                let screen_corners: Vec<egui::Pos2> =
+                    corners.iter().map(|c| ctx.to_screen(*c)).collect();
+
+                ctx.painter.add(egui::Shape::convex_polygon(
+                    screen_corners,
+                    fill_color.linear_multiply(0.5),
+                    egui::Stroke::new(stroke_width, color),
+                ));
+            }
+            Entity::Flooring(floor) => {
+                let (color, stroke_width) = get_base_style(is_selected, is_hovered);
+                let fill_color = egui::Color32::from_rgb(180, 180, 180);
+
+                if floor.boundary_points.len() >= 3 {
+                    let screen_pts: Vec<egui::Pos2> = floor
+                        .boundary_points
+                        .iter()
+                        .map(|p| ctx.to_screen(*p))
+                        .collect();
+
+                    ctx.painter.add(egui::Shape::convex_polygon(
+                        screen_pts,
+                        fill_color.linear_multiply(0.3),
+                        egui::Stroke::new(stroke_width, color),
+                    ));
+                }
+            }
+            Entity::Door(_) | Entity::Window(_) => {
+                // TODO: Implement door/window symbol rendering
+            }
         }
     }
 }

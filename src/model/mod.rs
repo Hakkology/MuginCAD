@@ -4,7 +4,7 @@
 //! It aims to be pure data and logic, independent of the view or specific UI frameworks.
 //!
 //! Key components:
-//! - `Entity`: The primitive shapes (Line, Circle, etc.).
+//! - `Entity`: The primitive shapes (Line, Circle, etc.) and structural elements.
 //! - `CadModel`: The container for all entities in a project.
 //! - `AxisManager`: Architectural grid system.
 //! - `Vector2`: Basic math primitives.
@@ -12,6 +12,7 @@
 pub mod axis;
 pub mod math;
 pub mod shapes;
+pub mod structural;
 pub mod system;
 pub mod tools;
 
@@ -28,6 +29,7 @@ pub use shapes::arc::Arc;
 pub use shapes::circle::Circle;
 pub use shapes::line::Line;
 pub use shapes::rectangle::Rectangle;
+pub use structural::{Beam, Column, Door, Flooring, StructuralTypeManager, Window};
 pub use vector::Vector2;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -37,6 +39,12 @@ pub enum Entity {
     Rectangle(Rectangle),
     Arc(Arc),
     Text(TextAnnotation),
+    // Structural elements
+    Column(Column),
+    Beam(Beam),
+    Flooring(Flooring),
+    Door(Door),
+    Window(Window),
 }
 
 impl Entity {
@@ -47,6 +55,12 @@ impl Entity {
             Entity::Rectangle(rect) => rect.hit_test(pos, tolerance),
             Entity::Arc(arc) => arc.hit_test(pos, tolerance),
             Entity::Text(text) => text.hit_test(pos, tolerance),
+            // Structural - use simpler hit tests for now
+            Entity::Column(col) => col.hit_test(pos, tolerance, 50.0, 50.0), // Default size
+            Entity::Beam(beam) => beam.hit_test(pos, tolerance, 30.0),
+            Entity::Flooring(floor) => floor.hit_test(pos, tolerance),
+            Entity::Door(_) => false,   // TODO: implement
+            Entity::Window(_) => false, // TODO: implement
         }
     }
 
@@ -57,6 +71,11 @@ impl Entity {
             Entity::Rectangle(_) => "Rectangle",
             Entity::Arc(_) => "Arc",
             Entity::Text(_) => "Text",
+            Entity::Column(_) => "Column",
+            Entity::Beam(_) => "Beam",
+            Entity::Flooring(_) => "Flooring",
+            Entity::Door(_) => "Door",
+            Entity::Window(_) => "Window",
         }
     }
 
@@ -74,6 +93,11 @@ impl Entity {
             ),
             Entity::Arc(arc) => arc.center,
             Entity::Text(text) => text.position,
+            Entity::Column(col) => col.center(),
+            Entity::Beam(beam) => beam.center(),
+            Entity::Flooring(floor) => floor.center(),
+            Entity::Door(_) => Vector2::new(0.0, 0.0), // TODO
+            Entity::Window(_) => Vector2::new(0.0, 0.0), // TODO
         }
     }
 
@@ -100,6 +124,20 @@ impl Entity {
                     *pt = *pt + delta;
                 }
             }
+            Entity::Column(col) => {
+                col.position = col.position + delta;
+            }
+            Entity::Beam(beam) => {
+                beam.start = beam.start + delta;
+                beam.end = beam.end + delta;
+            }
+            Entity::Flooring(floor) => {
+                for pt in &mut floor.boundary_points {
+                    *pt = *pt + delta;
+                }
+            }
+            Entity::Door(_) => {}   // Attached to host
+            Entity::Window(_) => {} // Attached to host
         }
     }
 
@@ -126,7 +164,6 @@ impl Entity {
                 circle.center = rotate_point(circle.center);
             }
             Entity::Rectangle(rect) => {
-                // For rectangle, rotate the corners and recalculate bounds
                 let p1 = rotate_point(rect.min);
                 let p2 = rotate_point(Vector2::new(rect.max.x, rect.min.y));
                 let p3 = rotate_point(rect.max);
@@ -152,6 +189,21 @@ impl Entity {
                     *pt = rotate_point(*pt);
                 }
             }
+            Entity::Column(col) => {
+                col.position = rotate_point(col.position);
+                col.rotation += angle;
+            }
+            Entity::Beam(beam) => {
+                beam.start = rotate_point(beam.start);
+                beam.end = rotate_point(beam.end);
+            }
+            Entity::Flooring(floor) => {
+                for pt in &mut floor.boundary_points {
+                    *pt = rotate_point(*pt);
+                }
+            }
+            Entity::Door(_) => {}   // Attached
+            Entity::Window(_) => {} // Attached
         }
     }
 
@@ -188,14 +240,31 @@ impl Entity {
                 }
                 text.style.font_size *= factor;
             }
+            Entity::Column(col) => {
+                col.position = scale_point(col.position);
+                // Column dimensions come from type, not scaled
+            }
+            Entity::Beam(beam) => {
+                beam.start = scale_point(beam.start);
+                beam.end = scale_point(beam.end);
+            }
+            Entity::Flooring(floor) => {
+                for pt in &mut floor.boundary_points {
+                    *pt = scale_point(*pt);
+                }
+            }
+            Entity::Door(_) => {}
+            Entity::Window(_) => {}
         }
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct CadModel {
     pub entities: Vec<Entity>,
     pub axis_manager: axis::AxisManager,
     pub export_region: Option<(Vector2, Vector2)>,
+    pub structural_types: StructuralTypeManager,
 }
 
 impl CadModel {
@@ -204,6 +273,7 @@ impl CadModel {
             entities: Vec::new(),
             axis_manager: axis::AxisManager::new(),
             export_region: None,
+            structural_types: StructuralTypeManager::new(),
         }
     }
 

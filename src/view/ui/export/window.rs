@@ -234,6 +234,28 @@ impl ExportWindow {
                             max_b.x = max_b.x.max(t.position.x);
                             max_b.y = max_b.y.max(t.position.y);
                         }
+                        // Structural elements
+                        Entity::Column(col) => {
+                            min_b.x = min_b.x.min(col.position.x - 25.0);
+                            min_b.y = min_b.y.min(col.position.y - 25.0);
+                            max_b.x = max_b.x.max(col.position.x + 25.0);
+                            max_b.y = max_b.y.max(col.position.y + 25.0);
+                        }
+                        Entity::Beam(beam) => {
+                            min_b.x = min_b.x.min(beam.start.x).min(beam.end.x);
+                            min_b.y = min_b.y.min(beam.start.y).min(beam.end.y);
+                            max_b.x = max_b.x.max(beam.start.x).max(beam.end.x);
+                            max_b.y = max_b.y.max(beam.start.y).max(beam.end.y);
+                        }
+                        Entity::Flooring(floor) => {
+                            for p in &floor.boundary_points {
+                                min_b.x = min_b.x.min(p.x);
+                                min_b.y = min_b.y.min(p.y);
+                                max_b.x = max_b.x.max(p.x);
+                                max_b.y = max_b.y.max(p.y);
+                            }
+                        }
+                        Entity::Door(_) | Entity::Window(_) => {}
                     }
                 }
                 if !has {
@@ -378,6 +400,47 @@ impl ExportWindow {
                         egui::FontId::proportional(10.0),
                         egui::Color32::BLACK,
                     );
+                }
+                // Structural elements - draw as filled polygons
+                Entity::Column(col) => {
+                    let w = 50.0;
+                    let h = 50.0;
+                    let corners = col.get_corners(w, h);
+                    let screen_pts: Vec<egui::Pos2> =
+                        corners.iter().map(|c| transform_point(*c)).collect();
+                    shapes.push(egui::Shape::convex_polygon(
+                        screen_pts,
+                        egui::Color32::GRAY,
+                        egui::Stroke::new(1.0, egui::Color32::BLACK),
+                    ));
+                }
+                Entity::Beam(beam) => {
+                    let width = 30.0;
+                    let corners = beam.get_corners(width);
+                    let screen_pts: Vec<egui::Pos2> =
+                        corners.iter().map(|c| transform_point(*c)).collect();
+                    shapes.push(egui::Shape::convex_polygon(
+                        screen_pts,
+                        egui::Color32::DARK_GRAY,
+                        egui::Stroke::new(1.0, egui::Color32::BLACK),
+                    ));
+                }
+                Entity::Flooring(floor) => {
+                    if floor.boundary_points.len() >= 3 {
+                        let screen_pts: Vec<egui::Pos2> = floor
+                            .boundary_points
+                            .iter()
+                            .map(|p| transform_point(*p))
+                            .collect();
+                        shapes.push(egui::Shape::convex_polygon(
+                            screen_pts,
+                            egui::Color32::LIGHT_GRAY,
+                            egui::Stroke::new(1.0, egui::Color32::BLACK),
+                        ));
+                    }
+                }
+                Entity::Door(_) | Entity::Window(_) => {
+                    // TODO: Draw door/window symbols
                 }
             }
         }

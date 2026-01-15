@@ -82,7 +82,7 @@ impl Axis {
 }
 
 /// Axis manager - handles auto-labeling and axis collection
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct AxisManager {
     /// All axes
     pub axes: Vec<Axis>,

@@ -193,6 +193,35 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                 Entity::Rectangle(rect) => inspect_rectangle(ui, rect),
                 Entity::Arc(arc) => inspect_arc(ui, arc),
                 Entity::Text(text) => inspect_text(ui, text),
+                // Structural elements - basic info for now
+                Entity::Column(col) => {
+                    ui.label(format!("Type: {}", col.type_id));
+                    ui.label(format!(
+                        "Position: ({:.2}, {:.2})",
+                        col.position.x, col.position.y
+                    ));
+                    ui.label(format!("Rotation: {:.1}°", col.rotation.to_degrees()));
+                    ui.label(format!("Index: {}", col.index));
+                }
+                Entity::Beam(beam) => {
+                    ui.label(format!("Type: {}", beam.type_id));
+                    ui.label(format!("Start: ({:.2}, {:.2})", beam.start.x, beam.start.y));
+                    ui.label(format!("End: ({:.2}, {:.2})", beam.end.x, beam.end.y));
+                    ui.label(format!("Length: {:.2}", beam.length()));
+                    ui.label(format!("Index: {}", beam.index));
+                }
+                Entity::Flooring(floor) => {
+                    ui.label(format!("Type: {}", floor.type_id));
+                    ui.label(format!("Area: {:.2}", floor.area()));
+                    ui.label(format!("Perimeter: {:.2}", floor.perimeter()));
+                    ui.label(format!("Index: {}", floor.index));
+                }
+                Entity::Door(_) => {
+                    ui.label("Door (properties not yet implemented)");
+                }
+                Entity::Window(_) => {
+                    ui.label("Window (properties not yet implemented)");
+                }
             }
 
             ui.add_space(20.0);
