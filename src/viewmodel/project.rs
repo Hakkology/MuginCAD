@@ -9,7 +9,7 @@ impl CadViewModel {
         self.model.axis_manager.axes.clear();
         self.undo_manager = UndoManager::new(50);
         self.command_history.clear();
-        self.selected_indices.clear();
+        self.selection_manager.selected_indices.clear();
         self.current_snap = None;
         self.config = AppConfig::default();
         self.executor.cancel();
@@ -55,7 +55,7 @@ impl CadViewModel {
                     // Reset transient state
                     self.undo_manager = UndoManager::new(50);
                     self.command_history.clear();
-                    self.selected_indices.clear();
+                    self.selection_manager.selected_indices.clear();
                     self.current_snap = None;
                     self.executor.cancel();
                 }

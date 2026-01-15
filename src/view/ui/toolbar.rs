@@ -12,7 +12,7 @@ pub fn render_toolbar(ctx: &egui::Context, vm: &mut CadViewModel) {
                 .inner_margin(4.0),
         )
         .show(ctx, |ui| {
-            let has_selection = !vm.selected_indices.is_empty();
+            let has_selection = !vm.selection_manager.selected_indices.is_empty();
             let btn_size = egui::vec2(36.0, 36.0);
 
             // Center buttons horizontally
@@ -23,8 +23,11 @@ pub fn render_toolbar(ctx: &egui::Context, vm: &mut CadViewModel) {
                     .on_hover_text("Move (W)")
                     .clicked()
                 {
-                    vm.executor
-                        .start_command("move", &mut vm.model, &vm.selected_indices);
+                    vm.executor.start_command(
+                        "move",
+                        &mut vm.model,
+                        &vm.selection_manager.selected_indices,
+                    );
                 }
 
                 if ui
@@ -32,8 +35,11 @@ pub fn render_toolbar(ctx: &egui::Context, vm: &mut CadViewModel) {
                     .on_hover_text("Rotate (E)")
                     .clicked()
                 {
-                    vm.executor
-                        .start_command("rotate", &mut vm.model, &vm.selected_indices);
+                    vm.executor.start_command(
+                        "rotate",
+                        &mut vm.model,
+                        &vm.selection_manager.selected_indices,
+                    );
                 }
 
                 if ui
@@ -41,8 +47,11 @@ pub fn render_toolbar(ctx: &egui::Context, vm: &mut CadViewModel) {
                     .on_hover_text("Scale (R)")
                     .clicked()
                 {
-                    vm.executor
-                        .start_command("scale", &mut vm.model, &vm.selected_indices);
+                    vm.executor.start_command(
+                        "scale",
+                        &mut vm.model,
+                        &vm.selection_manager.selected_indices,
+                    );
                 }
 
                 ui.add_space(4.0);
@@ -53,8 +62,11 @@ pub fn render_toolbar(ctx: &egui::Context, vm: &mut CadViewModel) {
                     .on_hover_text("Copy (Ctrl+C)")
                     .clicked()
                 {
-                    vm.executor
-                        .start_command("copy", &mut vm.model, &vm.selected_indices);
+                    vm.executor.start_command(
+                        "copy",
+                        &mut vm.model,
+                        &vm.selection_manager.selected_indices,
+                    );
                 }
 
                 if ui
@@ -62,8 +74,11 @@ pub fn render_toolbar(ctx: &egui::Context, vm: &mut CadViewModel) {
                     .on_hover_text("Cut (Ctrl+X)")
                     .clicked()
                 {
-                    vm.executor
-                        .start_command("cut", &mut vm.model, &vm.selected_indices);
+                    vm.executor.start_command(
+                        "cut",
+                        &mut vm.model,
+                        &vm.selection_manager.selected_indices,
+                    );
                 }
 
                 ui.separator();
@@ -75,8 +90,11 @@ pub fn render_toolbar(ctx: &egui::Context, vm: &mut CadViewModel) {
                     .on_hover_text("Line (L)")
                     .clicked()
                 {
-                    vm.executor
-                        .start_command("line", &mut vm.model, &vm.selected_indices);
+                    vm.executor.start_command(
+                        "line",
+                        &mut vm.model,
+                        &vm.selection_manager.selected_indices,
+                    );
                 }
 
                 if ui
@@ -84,8 +102,11 @@ pub fn render_toolbar(ctx: &egui::Context, vm: &mut CadViewModel) {
                     .on_hover_text("Circle (C)")
                     .clicked()
                 {
-                    vm.executor
-                        .start_command("circle", &mut vm.model, &vm.selected_indices);
+                    vm.executor.start_command(
+                        "circle",
+                        &mut vm.model,
+                        &vm.selection_manager.selected_indices,
+                    );
                 }
 
                 if ui
@@ -93,8 +114,11 @@ pub fn render_toolbar(ctx: &egui::Context, vm: &mut CadViewModel) {
                     .on_hover_text("Rectangle")
                     .clicked()
                 {
-                    vm.executor
-                        .start_command("rect", &mut vm.model, &vm.selected_indices);
+                    vm.executor.start_command(
+                        "rect",
+                        &mut vm.model,
+                        &vm.selection_manager.selected_indices,
+                    );
                 }
 
                 if ui
@@ -102,8 +126,11 @@ pub fn render_toolbar(ctx: &egui::Context, vm: &mut CadViewModel) {
                     .on_hover_text("Arc")
                     .clicked()
                 {
-                    vm.executor
-                        .start_command("arc", &mut vm.model, &vm.selected_indices);
+                    vm.executor.start_command(
+                        "arc",
+                        &mut vm.model,
+                        &vm.selection_manager.selected_indices,
+                    );
                 }
 
                 ui.separator();
@@ -115,8 +142,11 @@ pub fn render_toolbar(ctx: &egui::Context, vm: &mut CadViewModel) {
                     .on_hover_text("Axis (A)")
                     .clicked()
                 {
-                    vm.executor
-                        .start_command("axis", &mut vm.model, &vm.selected_indices);
+                    vm.executor.start_command(
+                        "axis",
+                        &mut vm.model,
+                        &vm.selection_manager.selected_indices,
+                    );
                 }
 
                 if ui
@@ -124,8 +154,11 @@ pub fn render_toolbar(ctx: &egui::Context, vm: &mut CadViewModel) {
                     .on_hover_text("Trim (T)")
                     .clicked()
                 {
-                    vm.executor
-                        .start_command("trim", &mut vm.model, &vm.selected_indices);
+                    vm.executor.start_command(
+                        "trim",
+                        &mut vm.model,
+                        &vm.selection_manager.selected_indices,
+                    );
                 }
 
                 if ui
@@ -133,8 +166,11 @@ pub fn render_toolbar(ctx: &egui::Context, vm: &mut CadViewModel) {
                     .on_hover_text("Offset (O)")
                     .clicked()
                 {
-                    vm.executor
-                        .start_command("offset", &mut vm.model, &vm.selected_indices);
+                    vm.executor.start_command(
+                        "offset",
+                        &mut vm.model,
+                        &vm.selection_manager.selected_indices,
+                    );
                 }
             });
         });

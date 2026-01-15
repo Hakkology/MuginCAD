@@ -1,10 +1,14 @@
 pub mod axis;
-pub mod config;
-pub mod project;
+pub mod math;
 pub mod shapes;
-pub mod snap;
-pub mod undo;
-pub mod vector;
+pub mod system;
+pub mod tools;
+
+pub use math::vector;
+pub use system::config;
+pub use system::project;
+pub use tools::snap;
+pub use tools::undo;
 
 use serde::{Deserialize, Serialize};
 

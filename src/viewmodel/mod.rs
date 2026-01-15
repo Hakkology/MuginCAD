@@ -1,9 +1,13 @@
 mod commands;
 mod history;
+// mod index_helper;
+mod input;
 mod project;
 mod selection;
 mod snap;
 
+// Re-export specific items if needed, or use them internally
+use self::selection::SelectionManager;
 use crate::commands::InputModifiers;
 use crate::commands::executor::CommandExecutor;
 use crate::model::config::AppConfig;
@@ -11,7 +15,6 @@ use crate::model::snap::{SnapPoint, SnapSystem};
 use crate::model::undo::UndoManager;
 use crate::model::{CadModel, Entity, Vector2};
 use crate::view::viewport::Viewport;
-use std::collections::HashSet;
 
 /// Clipboard for copy/cut/paste operations
 #[derive(Default)]
@@ -26,9 +29,7 @@ pub struct CadViewModel {
     pub command_history: Vec<String>,
     pub history_nav_index: Option<usize>,
     pub executor: CommandExecutor,
-    pub selected_indices: HashSet<usize>,
-    pub selection_rect_start: Option<Vector2>,
-    pub selection_rect_current: Option<Vector2>,
+    pub selection_manager: SelectionManager,
     pub snap_system: SnapSystem,
     pub current_snap: Option<SnapPoint>,
     pub undo_manager: UndoManager,
@@ -49,9 +50,7 @@ impl CadViewModel {
             command_history: Vec::new(),
             history_nav_index: None,
             executor: CommandExecutor::new(),
-            selected_indices: HashSet::new(),
-            selection_rect_start: None,
-            selection_rect_current: None,
+            selection_manager: SelectionManager::new(),
             snap_system: SnapSystem::new(),
             current_snap: None,
             undo_manager: UndoManager::new(50), // 50 undo levels

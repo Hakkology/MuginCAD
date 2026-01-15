@@ -117,6 +117,33 @@ impl Command for ScaleCommand {
         &self.points
     }
 
+    fn draw_preview(
+        &self,
+        ctx: &crate::view::rendering::context::DrawContext,
+        points: &[Vector2],
+        current_cad: Vector2,
+    ) {
+        use eframe::egui;
+        let preview_stroke = egui::Stroke::new(
+            1.0,
+            egui::Color32::from_rgba_unmultiplied(255, 255, 255, 128),
+        );
+        if let Some(&base) = points.first() {
+            ctx.painter.line_segment(
+                [ctx.to_screen(base), ctx.to_screen(current_cad)],
+                preview_stroke,
+            );
+            // Draw base marker (filled square)
+            let base_screen = ctx.to_screen(base);
+            let size = 4.0;
+            ctx.painter.rect_filled(
+                egui::Rect::from_center_size(base_screen, egui::vec2(size * 2.0, size * 2.0)),
+                0.0,
+                egui::Color32::WHITE,
+            );
+        }
+    }
+
     fn clone_box(&self) -> Box<dyn Command> {
         Box::new(self.clone())
     }

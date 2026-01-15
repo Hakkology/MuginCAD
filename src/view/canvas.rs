@@ -2,7 +2,6 @@ use crate::commands::InputModifiers;
 // use crate::model::snap::SnapPointType;
 use crate::model::Vector2;
 use crate::view::rendering::context::DrawContext;
-use crate::view::rendering::preview;
 use crate::view::rendering::renderer;
 use crate::viewmodel::CadViewModel;
 use eframe::egui;
@@ -219,7 +218,10 @@ pub fn render_canvas(ui: &mut egui::Ui, vm: &mut CadViewModel) {
     }
 
     // Draw drag selection box
-    if let (Some(start), Some(current)) = (vm.selection_rect_start, vm.selection_rect_current) {
+    if let (Some(start), Some(current)) = (
+        vm.selection_manager.selection_rect_start,
+        vm.selection_manager.selection_rect_current,
+    ) {
         let min_x = start.x.min(current.x);
         let max_x = start.x.max(current.x);
         let min_y = start.y.min(current.y);
@@ -241,7 +243,7 @@ pub fn render_canvas(ui: &mut egui::Ui, vm: &mut CadViewModel) {
     renderer::render_entities(
         &ctx,
         &vm.model.entities,
-        &vm.selected_indices,
+        &vm.selection_manager.selected_indices,
         hovered_entity_idx,
     );
 
@@ -310,7 +312,7 @@ pub fn render_canvas(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                     effective_cad
                 };
 
-                preview::draw_preview(&ctx, cmd, points, current_cad);
+                cmd.draw_preview(&ctx, points, current_cad);
             }
         }
     }

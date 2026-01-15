@@ -99,6 +99,95 @@ impl Command for ArcCommand {
         &self.points
     }
 
+    fn draw_preview(
+        &self,
+        ctx: &crate::view::rendering::context::DrawContext,
+        points: &[Vector2],
+        current_cad: Vector2,
+    ) {
+        use eframe::egui;
+        let preview_stroke = egui::Stroke::new(
+            1.0,
+            egui::Color32::from_rgba_unmultiplied(255, 255, 255, 128),
+        );
+
+        match points.len() {
+            1 => {
+                let center = points[0];
+                ctx.painter.line_segment(
+                    [ctx.to_screen(center), ctx.to_screen(current_cad)],
+                    preview_stroke,
+                );
+                ctx.painter.circle_stroke(
+                    ctx.to_screen(center),
+                    4.0,
+                    egui::Stroke::new(1.5, egui::Color32::YELLOW),
+                );
+                let radius = center.dist(current_cad) * ctx.zoom;
+                ctx.painter.circle_stroke(
+                    ctx.to_screen(center),
+                    radius,
+                    egui::Stroke::new(
+                        0.5,
+                        egui::Color32::from_rgba_unmultiplied(150, 150, 150, 80),
+                    ),
+                );
+            }
+            2 => {
+                let center = points[0];
+                let start = points[1];
+                let start_angle = (start.y - center.y).atan2(start.x - center.x);
+                let end_angle = (current_cad.y - center.y).atan2(current_cad.x - center.x);
+
+                let is_clockwise = self.clockwise;
+
+                let segments = 32;
+                let angle_range = if is_clockwise {
+                    let mut range = start_angle - end_angle;
+                    if range < 0.0 {
+                        range += std::f32::consts::PI * 2.0;
+                    }
+                    -range
+                } else {
+                    let mut range = end_angle - start_angle;
+                    if range < 0.0 {
+                        range += std::f32::consts::PI * 2.0;
+                    }
+                    range
+                };
+
+                let angle_step = angle_range / segments as f32;
+                let radius = center.dist(start); // Should match start point distance
+
+                let mut arc_points = Vec::with_capacity(segments + 1);
+                for i in 0..=segments {
+                    let angle = start_angle + angle_step * i as f32;
+                    let pt = Vector2::new(
+                        center.x + radius * angle.cos(),
+                        center.y + radius * angle.sin(),
+                    );
+                    arc_points.push(ctx.to_screen(pt));
+                }
+
+                for i in 0..arc_points.len() - 1 {
+                    ctx.painter
+                        .line_segment([arc_points[i], arc_points[i + 1]], preview_stroke);
+                }
+
+                // Center and start markers
+                ctx.painter
+                    .circle_filled(ctx.to_screen(center), 3.0, egui::Color32::YELLOW);
+                ctx.painter
+                    .circle_filled(ctx.to_screen(start), 3.0, egui::Color32::GREEN);
+                ctx.painter.line_segment(
+                    [ctx.to_screen(center), ctx.to_screen(current_cad)],
+                    preview_stroke,
+                );
+            }
+            _ => {}
+        }
+    }
+
     fn clone_box(&self) -> Box<dyn Command> {
         Box::new(self.clone())
     }

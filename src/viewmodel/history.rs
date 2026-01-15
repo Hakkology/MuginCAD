@@ -10,7 +10,7 @@ impl CadViewModel {
     pub fn undo(&mut self) -> bool {
         if let Some(previous_state) = self.undo_manager.undo(&self.model.entities) {
             self.model.entities = previous_state;
-            self.selected_indices.clear();
+            self.selection_manager.selected_indices.clear();
             self.command_history.push("Undo".to_string());
             self.executor.status_message = "Undo".to_string();
             true
@@ -24,7 +24,7 @@ impl CadViewModel {
     pub fn redo(&mut self) -> bool {
         if let Some(redo_state) = self.undo_manager.redo(&self.model.entities) {
             self.model.entities = redo_state;
-            self.selected_indices.clear();
+            self.selection_manager.selected_indices.clear();
             self.command_history.push("Redo".to_string());
             self.executor.status_message = "Redo".to_string();
             true

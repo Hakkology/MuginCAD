@@ -67,6 +67,41 @@ impl Command for CircleCommand {
         &self.points
     }
 
+    fn draw_preview(
+        &self,
+        ctx: &crate::view::rendering::context::DrawContext,
+        points: &[Vector2],
+        current_cad: Vector2,
+    ) {
+        use eframe::egui;
+        let preview_stroke = egui::Stroke::new(
+            1.0,
+            egui::Color32::from_rgba_unmultiplied(255, 255, 255, 128),
+        );
+
+        if let Some(&center) = points.first() {
+            let cad_radius = center.dist(current_cad);
+            let screen_radius = cad_radius * ctx.zoom;
+
+            // Draw circle
+            ctx.painter
+                .circle_stroke(ctx.to_screen(center), screen_radius, preview_stroke);
+
+            // Draw radius line
+            ctx.painter.line_segment(
+                [ctx.to_screen(center), ctx.to_screen(current_cad)],
+                preview_stroke,
+            );
+
+            // Draw center marker
+            ctx.painter.circle_stroke(
+                ctx.to_screen(center),
+                4.0,
+                egui::Stroke::new(1.5, egui::Color32::YELLOW),
+            );
+        }
+    }
+
     fn clone_box(&self) -> Box<dyn Command> {
         Box::new(self.clone())
     }

@@ -14,7 +14,7 @@ pub use ui::toolbar;
 pub use ui::topmenu;
 
 pub use rendering::context;
-pub use rendering::preview;
+
 pub use rendering::renderer;
 
 use crate::viewmodel::CadViewModel;
@@ -67,24 +67,34 @@ impl eframe::App for CadApp {
 
         // Copy with Ctrl+C
         if ctx.input(|i| i.modifiers.ctrl && i.key_pressed(egui::Key::C)) {
-            if !self.view_model.selected_indices.is_empty() && !self.view_model.executor.is_active()
+            if !self
+                .view_model
+                .selection_manager
+                .selected_indices
+                .is_empty()
+                && !self.view_model.executor.is_active()
             {
                 self.view_model.executor.start_command(
                     "copy",
                     &mut self.view_model.model,
-                    &self.view_model.selected_indices,
+                    &self.view_model.selection_manager.selected_indices,
                 );
             }
         }
 
         // Cut with Ctrl+X
         if ctx.input(|i| i.modifiers.ctrl && i.key_pressed(egui::Key::X)) {
-            if !self.view_model.selected_indices.is_empty() && !self.view_model.executor.is_active()
+            if !self
+                .view_model
+                .selection_manager
+                .selected_indices
+                .is_empty()
+                && !self.view_model.executor.is_active()
             {
                 self.view_model.executor.start_command(
                     "cut",
                     &mut self.view_model.model,
-                    &self.view_model.selected_indices,
+                    &self.view_model.selection_manager.selected_indices,
                 );
             }
         }
@@ -95,7 +105,11 @@ impl eframe::App for CadApp {
         // Inspector Panel Logic
 
         let show_inspector = self.view_model.config.gui_config.show_inspector_always
-            || !self.view_model.selected_indices.is_empty();
+            || !self
+                .view_model
+                .selection_manager
+                .selected_indices
+                .is_empty();
 
         if show_inspector {
             egui::SidePanel::right("inspector")

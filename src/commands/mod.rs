@@ -1,17 +1,24 @@
-pub mod arc;
-pub mod axis;
-pub mod circle;
-pub mod copy;
-pub mod distance;
+pub mod create;
 pub mod executor;
-pub mod line;
-pub mod r#move;
-pub mod offset;
-pub mod rectangle;
-pub mod rotate;
-pub mod scale;
-pub mod text;
-pub mod trim;
+pub mod manipulate;
+pub mod utility;
+
+// Re-exports for easier access
+pub use create::arc;
+pub use create::axis;
+pub use create::circle;
+pub use create::line;
+pub use create::rectangle;
+pub use create::text;
+
+pub use manipulate::copy;
+pub use manipulate::r#move;
+pub use manipulate::offset;
+pub use manipulate::rotate;
+pub use manipulate::scale;
+pub use manipulate::trim;
+
+pub use utility::distance;
 
 use crate::model::{CadModel, Vector2};
 use std::collections::HashSet;
@@ -149,6 +156,16 @@ pub trait Command: std::fmt::Debug {
     /// Get as Any mutable for downcasting to concrete types
     fn as_any_mut(&mut self) -> Option<&mut dyn std::any::Any> {
         None
+    }
+
+    /// Draw command preview
+    fn draw_preview(
+        &self,
+        _ctx: &crate::view::rendering::context::DrawContext,
+        _points: &[Vector2],
+        _current_cad: Vector2,
+    ) {
+        // Default: no preview
     }
 }
 

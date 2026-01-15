@@ -50,6 +50,25 @@ impl Command for LineCommand {
         &self.points
     }
 
+    fn draw_preview(
+        &self,
+        ctx: &crate::view::rendering::context::DrawContext,
+        points: &[Vector2],
+        current_cad: Vector2,
+    ) {
+        use eframe::egui;
+        let preview_stroke = egui::Stroke::new(
+            1.0,
+            egui::Color32::from_rgba_unmultiplied(255, 255, 255, 128),
+        );
+        if let Some(&last_point) = points.last() {
+            ctx.painter.line_segment(
+                [ctx.to_screen(last_point), ctx.to_screen(current_cad)],
+                preview_stroke,
+            );
+        }
+    }
+
     fn clone_box(&self) -> Box<dyn Command> {
         Box::new(self.clone())
     }

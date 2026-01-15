@@ -61,12 +61,12 @@ impl CadViewModel {
                 self.save_undo_state();
                 self.model.entities.clear();
                 self.command_history.clear();
-                self.selected_indices.clear();
+                self.selection_manager.selected_indices.clear();
                 self.executor.cancel();
                 return;
             }
             "d" | "delete" => {
-                if !self.selected_indices.is_empty() {
+                if !self.selection_manager.selected_indices.is_empty() {
                     self.pending_delete_confirmation = true;
                     self.executor.status_message =
                         "Are you sure you want to delete? (Y/N)".to_string();
@@ -84,8 +84,11 @@ impl CadViewModel {
         self.save_undo_state();
 
         // Process with command executor
-        self.executor
-            .process_input(&input_text, &mut self.model, &self.selected_indices);
+        self.executor.process_input(
+            &input_text,
+            &mut self.model,
+            &self.selection_manager.selected_indices,
+        );
     }
 
     /// Cancel current command (right-click or Escape)
@@ -96,7 +99,7 @@ impl CadViewModel {
             self.executor.status_message = "Cancelled".to_string();
         }
         // Also clear selection rect if we were dragging
-        self.selection_rect_start = None;
-        self.selection_rect_current = None;
+        self.selection_manager.selection_rect_start = None;
+        self.selection_manager.selection_rect_current = None;
     }
 }

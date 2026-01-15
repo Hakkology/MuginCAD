@@ -100,6 +100,32 @@ impl Command for CopyCommand {
         &self.points
     }
 
+    fn draw_preview(
+        &self,
+        ctx: &crate::view::rendering::context::DrawContext,
+        points: &[Vector2],
+        current_cad: Vector2,
+    ) {
+        use eframe::egui;
+
+        if let Some(&base) = points.first() {
+            ctx.painter.line_segment(
+                [ctx.to_screen(base), ctx.to_screen(current_cad)],
+                egui::Stroke::new(1.5, egui::Color32::from_rgb(100, 200, 255)),
+            );
+            ctx.painter.circle_stroke(
+                ctx.to_screen(base),
+                4.0,
+                egui::Stroke::new(1.0, egui::Color32::from_rgb(100, 200, 255)),
+            );
+            ctx.painter.circle_filled(
+                ctx.to_screen(current_cad),
+                3.0,
+                egui::Color32::from_rgb(100, 200, 255),
+            );
+        }
+    }
+
     fn clone_box(&self) -> Box<dyn Command> {
         Box::new(self.clone())
     }
