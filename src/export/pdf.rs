@@ -158,7 +158,7 @@ impl PdfExporter {
                 Entity::Arc(arc) => {
                     // Approximate arc with line segments
                     let segments = 24;
-                    let mut start_angle = arc.start_angle;
+                    let start_angle = arc.start_angle;
                     let mut end_angle = arc.end_angle;
 
                     if end_angle < start_angle {

@@ -283,7 +283,8 @@ pub fn find_closed_region(model: &CadModel, p: Vector2) -> Option<(Vec<usize>, V
 struct EdgeInfo {
     entity_idx: usize,
     target: usize,
-    is_arc: bool,
+    #[allow(dead_code)]
+    is_arc: bool, // Reserved for potential arc-specific traversal logic
 }
 
 fn intersect_ray_entity(origin: Vector2, dir: Vector2, entity: &Entity) -> Option<Vector2> {
