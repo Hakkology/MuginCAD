@@ -11,7 +11,7 @@ pub fn render_top_menu(ctx: &egui::Context, vm: &mut CadViewModel) {
             ui.menu_button("Project", |ui| {
                 ui.set_min_width(120.0);
                 if ui.button("New").clicked() {
-                    vm.new_project();
+                    vm.new_tab();
                     ui.close_menu();
                 }
                 if ui.button("Save").clicked() {

@@ -3,33 +3,15 @@ use crate::model::undo::UndoManager;
 use crate::viewmodel::CadViewModel;
 
 impl CadViewModel {
-    /// Reset the current tab to a new empty project
-    pub fn new_project(&mut self) {
-        let tab_idx = self.active_tab_index;
-        let tab = &mut self.tabs[tab_idx];
-        tab.model.entities.clear();
-        tab.model.axis_manager.axes.clear();
-        tab.undo_manager = UndoManager::new(50);
-        tab.selection_manager.selected_indices.clear();
-        tab.current_snap = None;
-        tab.file_path = None;
-        tab.name = "Untitled".to_string();
-        tab.is_dirty = false;
-        tab.executor.cancel();
-
-        self.command_history.clear();
-        self.config = AppConfig::default();
-    }
-
     /// Save project to a file
     pub fn save_project(&mut self) {
         let tab_idx = self.active_tab_index;
-        // Don't borrow mutably yet if we can help it, but we need entities.
-        // Let's borrow mutably since we update path later.
+        let default_name = format!("{}.oliv", self.tabs[tab_idx].name);
         let tab = &mut self.tabs[tab_idx];
 
         if let Some(mut path) = rfd::FileDialog::new()
             .add_filter("OliveCAD Project", &["oliv"])
+            .set_file_name(&default_name)
             .save_file()
         {
             // Ensure extension is present

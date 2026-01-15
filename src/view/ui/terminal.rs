@@ -37,8 +37,8 @@ pub fn render_terminal(ui: &mut egui::Ui, vm: &mut CadViewModel) {
 
             let response = ui.add(text_edit);
 
-            // Always keep focus on terminal
-            if !response.has_focus() {
+            // Always keep focus on terminal unless a modal (like rename) is open
+            if vm.tab_renaming_index.is_none() && !response.has_focus() {
                 response.request_focus();
             }
 

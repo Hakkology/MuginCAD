@@ -29,6 +29,7 @@ pub struct CadViewModel {
     pub history_nav_index: Option<usize>,
     pub config: AppConfig,
     pub show_settings_window: bool,
+    pub tab_renaming_index: Option<usize>,
     pub clipboard: Clipboard,
 }
 
@@ -44,6 +45,7 @@ impl CadViewModel {
             history_nav_index: None,
             config: AppConfig::default(),
             show_settings_window: false,
+            tab_renaming_index: None,
             clipboard: Clipboard::default(),
         }
     }
