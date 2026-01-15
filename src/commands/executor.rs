@@ -240,4 +240,22 @@ impl CommandExecutor {
         self.filled_mode = !self.filled_mode;
         self.filled_mode
     }
+
+    /// Toggle arc direction (CW/CCW) if arc command is active
+    pub fn toggle_arc_direction(&mut self) -> bool {
+        if let Some(cmd) = &mut self.active_command {
+            if cmd.name() == "Arc" {
+                if let Some(any) = cmd.as_any_mut() {
+                    if let Some(arc_cmd) = any.downcast_mut::<crate::commands::arc::ArcCommand>() {
+                        arc_cmd.toggle_direction();
+                        let dir = if arc_cmd.clockwise { "CW" } else { "CCW" };
+                        self.status_message =
+                            format!("Specify end point [{}] (R to reverse):", dir);
+                        return true;
+                    }
+                }
+            }
+        }
+        false
+    }
 }

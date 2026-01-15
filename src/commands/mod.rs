@@ -140,6 +140,16 @@ pub trait Command: std::fmt::Debug {
 
     /// Clone the command (for state management)
     fn clone_box(&self) -> Box<dyn Command>;
+
+    /// Get as Any for downcasting to concrete types
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        None
+    }
+
+    /// Get as Any mutable for downcasting to concrete types
+    fn as_any_mut(&mut self) -> Option<&mut dyn std::any::Any> {
+        None
+    }
 }
 
 /// Parse a point from string like "10,20" or "10.5, -20.3"

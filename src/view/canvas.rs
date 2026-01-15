@@ -104,6 +104,11 @@ pub fn render_canvas(ui: &mut egui::Ui, vm: &mut CadViewModel) {
         } else if response.secondary_clicked() {
             vm.cancel_command();
         }
+
+        // Handle 'R' key for arc direction toggle
+        if ui.input(|i| i.key_pressed(egui::Key::R)) && !modifiers.ctrl && !modifiers.shift {
+            vm.executor.toggle_arc_direction();
+        }
     }
 
     // Draw grid (with viewport offset)
@@ -512,6 +517,55 @@ pub fn render_canvas(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                                 to_screen(Vector2::new(max.x, min.y)),
                             );
                             painter.rect_stroke(rect_screen, 0.0, preview_stroke);
+
+                            // Calculate dimensions
+                            let width = (max.x - min.x).abs();
+                            let height = (max.y - min.y).abs();
+
+                            let dim_color = egui::Color32::from_rgb(255, 200, 100);
+                            let dim_font = egui::FontId::proportional(11.0);
+
+                            // Width annotation (bottom edge)
+                            let bottom_mid = to_screen(Vector2::new((min.x + max.x) / 2.0, min.y));
+                            painter.text(
+                                egui::pos2(bottom_mid.x, bottom_mid.y + 14.0),
+                                egui::Align2::CENTER_CENTER,
+                                format!("W: {:.2}", width),
+                                dim_font.clone(),
+                                dim_color,
+                            );
+
+                            // Height annotation (right edge)
+                            let right_mid = to_screen(Vector2::new(max.x, (min.y + max.y) / 2.0));
+                            painter.text(
+                                egui::pos2(right_mid.x + 30.0, right_mid.y),
+                                egui::Align2::CENTER_CENTER,
+                                format!("H: {:.2}", height),
+                                dim_font.clone(),
+                                dim_color,
+                            );
+
+                            // Corner markers
+                            let corner_size = 4.0;
+                            let corners = [
+                                to_screen(Vector2::new(min.x, min.y)),
+                                to_screen(Vector2::new(max.x, min.y)),
+                                to_screen(Vector2::new(max.x, max.y)),
+                                to_screen(Vector2::new(min.x, max.y)),
+                            ];
+                            for corner in &corners {
+                                painter.rect_filled(
+                                    egui::Rect::from_center_size(
+                                        *corner,
+                                        egui::vec2(corner_size, corner_size),
+                                    ),
+                                    0.0,
+                                    egui::Color32::WHITE,
+                                );
+                            }
+
+                            // Start point marker (green)
+                            painter.circle_filled(to_screen(start), 4.0, egui::Color32::GREEN);
                         }
                         "Arc" => {
                             // Arc preview: center → start point → end point
@@ -554,12 +608,33 @@ pub fn render_canvas(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                                     let end_angle =
                                         (current_cad.y - center.y).atan2(current_cad.x - center.x);
 
+                                    // Check if arc command is clockwise
+                                    let is_clockwise = if let Some(arc_cmd) =
+                                        cmd.as_any().and_then(|a| {
+                                            a.downcast_ref::<crate::commands::arc::ArcCommand>()
+                                        }) {
+                                        arc_cmd.clockwise
+                                    } else {
+                                        false
+                                    };
+
                                     // Draw arc preview
                                     let segments = 32;
-                                    let mut angle_range = end_angle - start_angle;
-                                    if angle_range < 0.0 {
-                                        angle_range += std::f32::consts::PI * 2.0;
-                                    }
+                                    let angle_range = if is_clockwise {
+                                        // Clockwise: go the other way
+                                        let mut range = start_angle - end_angle;
+                                        if range < 0.0 {
+                                            range += std::f32::consts::PI * 2.0;
+                                        }
+                                        -range // Negative for CW
+                                    } else {
+                                        // Counter-clockwise
+                                        let mut range = end_angle - start_angle;
+                                        if range < 0.0 {
+                                            range += std::f32::consts::PI * 2.0;
+                                        }
+                                        range
+                                    };
                                     let angle_step = angle_range / segments as f32;
 
                                     let mut arc_points: Vec<egui::Pos2> =
@@ -574,12 +649,30 @@ pub fn render_canvas(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                                     }
 
                                     // Draw arc outline
+                                    let arc_stroke = if is_clockwise {
+                                        egui::Stroke::new(
+                                            1.5,
+                                            egui::Color32::from_rgb(255, 150, 100),
+                                        )
+                                    } else {
+                                        preview_stroke
+                                    };
                                     for i in 0..arc_points.len().saturating_sub(1) {
                                         painter.line_segment(
                                             [arc_points[i], arc_points[i + 1]],
-                                            preview_stroke,
+                                            arc_stroke,
                                         );
                                     }
+
+                                    // Draw direction indicator text
+                                    let dir_text = if is_clockwise { "CW" } else { "CCW" };
+                                    painter.text(
+                                        to_screen(center),
+                                        egui::Align2::CENTER_CENTER,
+                                        dir_text,
+                                        egui::FontId::proportional(10.0),
+                                        egui::Color32::from_rgb(255, 200, 100),
+                                    );
 
                                     // Draw center marker
                                     painter.circle_stroke(
