@@ -1,6 +1,7 @@
 pub mod create;
 pub mod executor;
 pub mod manipulate;
+pub mod measure;
 pub mod utility;
 
 // Re-exports for easier access

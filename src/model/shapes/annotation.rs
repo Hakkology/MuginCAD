@@ -12,6 +12,8 @@ pub enum AnnotationType {
     Area,
     /// Radius measurement (circle/arc)
     Radius,
+    /// Perimeter measurement
+    Perimeter,
 }
 
 /// Text alignment for annotations
@@ -98,6 +100,38 @@ impl TextAnnotation {
             },
             anchor_points: vec![start, end],
             rotation: dy.atan2(dx),
+        }
+    }
+
+    /// Create an area measurement annotation
+    pub fn new_area(centroid: Vector2, area: f32, polygon_points: Vec<Vector2>) -> Self {
+        Self {
+            position: centroid,
+            text: format!("Area: {:.2}", area),
+            annotation_type: AnnotationType::Area,
+            style: TextStyle {
+                font_size: 14.0,
+                color: [100, 255, 100], // Light Green
+                alignment: TextAlignment::Center,
+            },
+            anchor_points: polygon_points,
+            rotation: 0.0,
+        }
+    }
+
+    /// Create a perimeter measurement annotation
+    pub fn new_perimeter(centroid: Vector2, perimeter: f32, path_points: Vec<Vector2>) -> Self {
+        Self {
+            position: Vector2::new(centroid.x, centroid.y - 18.0), // Offset slightly below area
+            text: format!("Perim: {:.2}", perimeter),
+            annotation_type: AnnotationType::Perimeter,
+            style: TextStyle {
+                font_size: 14.0,
+                color: [100, 200, 255], // Light Blue
+                alignment: TextAlignment::Center,
+            },
+            anchor_points: path_points,
+            rotation: 0.0,
         }
     }
 

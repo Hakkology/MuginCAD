@@ -80,6 +80,12 @@ impl CommandRegistry {
         registry.register("dim", || {
             Box::new(crate::commands::create::measure::MeasureCommand::new())
         });
+        registry.register("area", || {
+            Box::new(crate::commands::measure::area::MeasureAreaCommand::new())
+        });
+        registry.register("perim", || {
+            Box::new(crate::commands::measure::perimeter::MeasurePerimeterCommand::new())
+        });
 
         registry
     }

@@ -195,6 +195,30 @@ pub fn render_toolbar(ctx: &egui::Context, vm: &mut CadViewModel) {
                         &tab.selection_manager.selected_indices,
                     );
                 }
+
+                if ui
+                    .add(egui::Button::new("Area").min_size(btn_size))
+                    .on_hover_text("Measure Closed Area")
+                    .clicked()
+                {
+                    tab.executor.start_command(
+                        "area",
+                        &mut tab.model,
+                        &tab.selection_manager.selected_indices,
+                    );
+                }
+
+                if ui
+                    .add(egui::Button::new("Perim").min_size(btn_size))
+                    .on_hover_text("Measure Perimeter")
+                    .clicked()
+                {
+                    tab.executor.start_command(
+                        "perim",
+                        &mut tab.model,
+                        &tab.selection_manager.selected_indices,
+                    );
+                }
             });
         });
 }
