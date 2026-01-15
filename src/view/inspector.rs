@@ -270,6 +270,17 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                                 .range(6.0..=72.0),
                         );
                     });
+                    ui.horizontal(|ui| {
+                        ui.label("Rotation:");
+                        // Convert radians to degrees for display
+                        let mut degrees = text.rotation.to_degrees();
+                        if ui
+                            .add(egui::DragValue::new(&mut degrees).speed(1.0).suffix("°"))
+                            .changed()
+                        {
+                            text.rotation = degrees.to_radians();
+                        }
+                    });
                 }
             }
 

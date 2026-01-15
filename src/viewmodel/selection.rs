@@ -46,7 +46,33 @@ impl CadViewModel {
     }
 
     pub fn handle_drag_start(&mut self, pos: Vector2, modifiers: InputModifiers) {
+        // Reset drag state
+        self.dragging_label_index = None;
+        self.drag_last_pos = None;
+
         if !self.executor.is_active() {
+            // Check for label dragging first
+            let tolerance = 5.0 / self.viewport.zoom;
+            // Check all text entities? No, check Line labels.
+            // Iterate all entities to find Lines with labels
+            for (i, entity) in self.model.entities.iter().enumerate().rev() {
+                if let crate::model::Entity::Line(line) = entity {
+                    if line.hit_test_label(pos, tolerance) {
+                        self.dragging_label_index = Some(i);
+                        self.drag_last_pos = Some(pos);
+                        self.executor.status_message = "Dragging label...".to_string();
+                        // Also select the line if not selected
+                        if !self.selected_indices.contains(&i) {
+                            if !modifiers.shift && !modifiers.ctrl {
+                                self.selected_indices.clear();
+                            }
+                            self.selected_indices.insert(i);
+                        }
+                        return; // Found a label to drag, skip selection rect
+                    }
+                }
+            }
+
             if !modifiers.shift && !modifiers.ctrl {
                 self.selected_indices.clear();
             }
@@ -58,7 +84,18 @@ impl CadViewModel {
     }
 
     pub fn handle_drag_update(&mut self, pos: Vector2) {
-        if self.selection_rect_start.is_some() {
+        if let Some(idx) = self.dragging_label_index {
+            if let Some(last_pos) = self.drag_last_pos {
+                let delta = pos - last_pos;
+
+                // Update the specific line entity
+                if let Some(crate::model::Entity::Line(line)) = self.model.entities.get_mut(idx) {
+                    line.label_offset = line.label_offset + delta;
+                }
+
+                self.drag_last_pos = Some(pos);
+            }
+        } else if self.selection_rect_start.is_some() {
             self.selection_rect_current = Some(pos);
         }
     }

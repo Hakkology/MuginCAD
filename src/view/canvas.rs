@@ -271,22 +271,157 @@ pub fn render_canvas(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                     egui::Stroke::new(stroke_width, color),
                 );
 
-                // Draw length label if enabled
+                // Draw length label and dimension lines if enabled
                 if line.show_length {
-                    let label_pos = to_screen(line.label_position());
+                    // Calculate label position using model logic (consistent with hit test)
+                    // The tolerance is roughly 5.0 / zoom
+                    let tolerance = 5.0 / viewport_zoom;
+                    let smart_offset = line.calculate_smart_offset(tolerance);
+
+                    // Final World Position = Mid + Smart + UserOffset
+                    let world_label_pos = line.midpoint() + smart_offset + line.label_offset;
+
+                    // --- Dimension Lines Logic ---
+                    // Re-calculate smart offset vector separately to get Normal Direction
+                    let dx = line.end.x - line.start.x;
+                    let dy = line.end.y - line.start.y;
+                    let len = (dx * dx + dy * dy).sqrt();
+
+                    if len > 0.001 {
+                        // 1. Calculate Perpendicular "Rail" Height
+                        // Smart offset is the base perpendicular vector
+                        // Normalize it to get Normal Direction
+                        let smart_len =
+                            smart_offset.x * smart_offset.x + smart_offset.y * smart_offset.y;
+                        let smart_len = smart_len.sqrt();
+
+                        let (perp_offset_x, perp_offset_y) = if smart_len > 0.001 {
+                            let nx = smart_offset.x / smart_len;
+                            let ny = smart_offset.y / smart_len;
+
+                            // Project user label_offset onto Normal
+                            let user_proj = line.label_offset.x * nx + line.label_offset.y * ny;
+
+                            // Total perpendicular distance = smart_len + user_proj
+                            let total_perp = smart_len + user_proj;
+                            (nx * total_perp, ny * total_perp)
+                        } else {
+                            (smart_offset.x, smart_offset.y)
+                        };
+
+                        let perp_vec = Vector2::new(perp_offset_x, perp_offset_y);
+
+                        // Extension lines start at line endpoints and go to the "level" of the label (perp plane)
+                        let ext_start_pos = line.start + perp_vec;
+                        let ext_end_pos = line.end + perp_vec;
+
+                        // Helper to screen
+                        let s_line_start = to_screen(line.start);
+                        let s_line_end = to_screen(line.end);
+                        let s_ext_start = to_screen(ext_start_pos);
+                        let s_ext_end = to_screen(ext_end_pos);
+
+                        let dim_color = egui::Color32::from_rgb(150, 150, 150);
+                        let dim_stroke = egui::Stroke::new(1.0, dim_color);
+
+                        // Draw Extension Lines
+                        painter.line_segment([s_line_start, s_ext_start], dim_stroke);
+                        painter.line_segment([s_line_end, s_ext_end], dim_stroke);
+
+                        // 2. Calculate Dimension Line (The Parallel Rail)
+                        // It connects ext_start and ext_end, BUT must extend to cover the Label if it's outside.
+                        // Project Label onto the Rail Axis.
+                        // Rail Axis Direction = Tangent of Line = (dx/len, dy/len)
+                        let tx = dx / len;
+                        let ty = dy / len;
+
+                        // Label Position World
+                        // Note: we must use the SAME label_pos as hit_test and rendering text
+                        let label_world_pos = line.midpoint() + smart_offset + line.label_offset;
+
+                        // Project label relative to ext_start
+                        let label_rel_x = label_world_pos.x - ext_start_pos.x;
+                        let label_rel_y = label_world_pos.y - ext_start_pos.y;
+
+                        let label_proj_t = label_rel_x * tx + label_rel_y * ty;
+
+                        // Rail length
+                        let rail_len = len; // Distance between ext_start and ext_end is same as line len
+
+                        // Determine min/max T for the dimension line
+                        let t_min = 0.0f32.min(label_proj_t);
+                        let t_max = rail_len.max(label_proj_t);
+
+                        // Calculate final Dimension Line endpoints
+                        let dim_start_world = Vector2::new(
+                            ext_start_pos.x + tx * t_min,
+                            ext_start_pos.y + ty * t_min,
+                        );
+                        let dim_end_world = Vector2::new(
+                            ext_start_pos.x + tx * t_max,
+                            ext_start_pos.y + ty * t_max,
+                        );
+
+                        let s_dim_start = to_screen(dim_start_world);
+                        let s_dim_end = to_screen(dim_end_world);
+
+                        // Draw Parallel Dimension Line
+                        painter.line_segment([s_dim_start, s_dim_end], dim_stroke);
+                    }
+
+                    // Draw the text
+                    let world_label_pos = line.midpoint() + smart_offset + line.label_offset;
+                    // Convert to Screen
+                    let label_pos = to_screen(world_label_pos);
+
+                    // Calculate Screen Angle for rotation
+                    let screen_start = to_screen(line.start);
+                    let screen_end = to_screen(line.end);
+                    let screen_dx = screen_end.x - screen_start.x;
+                    let screen_dy = screen_end.y - screen_start.y;
+                    let screen_angle = screen_dy.atan2(screen_dx);
+
                     let length_text = format!("{:.2}", line.length());
                     let label_color = if is_selected {
                         egui::Color32::GOLD
                     } else {
                         egui::Color32::from_rgb(255, 200, 100)
                     };
-                    painter.text(
-                        label_pos,
-                        egui::Align2::CENTER_CENTER,
-                        &length_text,
-                        egui::FontId::proportional(12.0),
-                        label_color,
-                    );
+
+                    // Use rotated text aligned with line angle
+                    // Screen angle already in screen coordinate system (no need to negate)
+                    // Flip text 180 degrees if pointing mostly left (so text is always readable)
+                    let adjusted_angle = if screen_angle.abs() > std::f32::consts::FRAC_PI_2 {
+                        screen_angle + std::f32::consts::PI
+                    } else {
+                        screen_angle
+                    };
+
+                    let font_id = egui::FontId::proportional(12.0);
+                    let galley = painter.layout_no_wrap(length_text, font_id, label_color);
+                    let text_size = galley.size();
+
+                    // Calculate position to rotate around center
+                    // Resulting center should be at label_pos
+                    // pos = Center - Rotate(Size/2)
+                    let half_w = text_size.x / 2.0;
+                    let half_h = text_size.y / 2.0;
+                    let cos_a = adjusted_angle.cos();
+                    let sin_a = adjusted_angle.sin();
+                    let rot_x = half_w * cos_a - half_h * sin_a;
+                    let rot_y = half_w * sin_a + half_h * cos_a;
+
+                    let final_pos = egui::pos2(label_pos.x - rot_x, label_pos.y - rot_y);
+
+                    painter.add(egui::epaint::TextShape {
+                        pos: final_pos,
+                        galley,
+                        underline: egui::Stroke::NONE,
+                        fallback_color: label_color,
+                        override_text_color: Some(label_color),
+                        opacity_factor: 1.0,
+                        angle: adjusted_angle,
+                    });
                 }
             }
             Entity::Circle(circle) => {
@@ -383,13 +518,37 @@ pub fn render_canvas(ui: &mut egui::Ui, vm: &mut CadViewModel) {
 
                 // Draw text
                 let font_size = text.style.font_size * viewport_zoom;
-                painter.text(
-                    text_pos,
-                    egui::Align2::CENTER_CENTER,
-                    &text.text,
-                    egui::FontId::proportional(font_size.max(8.0).min(48.0)),
-                    final_color,
-                );
+                let font_id = egui::FontId::proportional(font_size.max(8.0).min(48.0));
+
+                let galley = painter.layout_no_wrap(text.text.clone(), font_id, final_color);
+                let text_size = galley.size();
+
+                // Rotate text using stored rotation
+                // Egui rotates around the pos (top-left of text box).
+                // We want to rotate around the center of the text box, located at text_pos.
+                // pos = Center - Rotate(Size/2)
+
+                // Visual angle: negate for screen space if text.rotation is CCW in CAD
+                let angle = -text.rotation;
+
+                let half_w = text_size.x / 2.0;
+                let half_h = text_size.y / 2.0;
+                let cos_a = angle.cos();
+                let sin_a = angle.sin();
+                let rot_x = half_w * cos_a - half_h * sin_a;
+                let rot_y = half_w * sin_a + half_h * cos_a;
+
+                let final_pos = egui::pos2(text_pos.x - rot_x, text_pos.y - rot_y);
+
+                painter.add(egui::epaint::TextShape {
+                    pos: final_pos,
+                    galley,
+                    underline: egui::Stroke::NONE,
+                    fallback_color: final_color,
+                    override_text_color: Some(final_color),
+                    opacity_factor: 1.0,
+                    angle: angle,
+                });
             }
         }
     }

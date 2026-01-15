@@ -54,6 +54,9 @@ pub struct TextAnnotation {
     pub style: TextStyle,
     /// Anchor points for measurements (start/end for distance, polygon for area, etc.)
     pub anchor_points: Vec<Vector2>,
+    /// Rotation angle in radians
+    #[serde(default)]
+    pub rotation: f32,
 }
 
 impl TextAnnotation {
@@ -65,6 +68,7 @@ impl TextAnnotation {
             annotation_type: AnnotationType::Custom,
             style: TextStyle::default(),
             anchor_points: Vec::new(),
+            rotation: 0.0,
         }
     }
 
@@ -93,6 +97,7 @@ impl TextAnnotation {
                 alignment: TextAlignment::Center,
             },
             anchor_points: vec![start, end],
+            rotation: dy.atan2(dx),
         }
     }
 
@@ -110,22 +115,22 @@ impl TextAnnotation {
                 alignment: TextAlignment::Center,
             },
             anchor_points: vec![center],
+            rotation: 0.0,
         }
     }
 
-    /// Hit test for text annotation (simplified bounding box)
+    /// Hit test for text annotation - simple distance-based check
     pub fn hit_test(&self, pos: Vector2, tolerance: f32) -> bool {
-        // Approximate text bounds based on character count and font size
-        let width = self.text.len() as f32 * self.style.font_size * 0.5;
-        let height = self.style.font_size;
+        // Calculate approximate text size
+        let width = self.text.len() as f32 * self.style.font_size * 0.6;
+        let height = self.style.font_size * 1.5;
 
-        let half_width = width / 2.0 + tolerance;
-        let half_height = height / 2.0 + tolerance;
+        // Use distance from center for reliable detection
+        let dx = (pos.x - self.position.x).abs();
+        let dy = (pos.y - self.position.y).abs();
 
-        pos.x >= self.position.x - half_width
-            && pos.x <= self.position.x + half_width
-            && pos.y >= self.position.y - half_height
-            && pos.y <= self.position.y + half_height
+        // Generous hit area
+        dx <= (width / 2.0 + tolerance + 10.0) && dy <= (height / 2.0 + tolerance + 10.0)
     }
 
     /// Recalculate measurement text if anchor points change

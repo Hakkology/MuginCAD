@@ -37,6 +37,8 @@ pub struct CadViewModel {
     pub show_settings_window: bool,
     pub pending_delete_confirmation: bool,
     pub clipboard: Clipboard,
+    pub dragging_label_index: Option<usize>,
+    pub drag_last_pos: Option<Vector2>,
 }
 
 impl CadViewModel {
@@ -58,6 +60,8 @@ impl CadViewModel {
             show_settings_window: false,
             pending_delete_confirmation: false,
             clipboard: Clipboard::default(),
+            dragging_label_index: None,
+            drag_last_pos: None,
         }
     }
 
