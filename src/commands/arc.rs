@@ -1,5 +1,5 @@
 use crate::commands::{Command, CommandCategory, CommandContext, InputResult, PointResult};
-use crate::model::arc::Arc;
+use crate::model::shapes::arc::Arc;
 use crate::model::{Entity, Vector2};
 
 /// Arc command - draws an arc from 3 points: center, start point, end point

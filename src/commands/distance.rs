@@ -1,5 +1,5 @@
 use crate::commands::{Command, CommandCategory, CommandContext, PointResult};
-use crate::model::annotation::TextAnnotation;
+use crate::model::shapes::annotation::TextAnnotation;
 use crate::model::{Entity, Vector2};
 
 /// Distance command - measures distance between two points

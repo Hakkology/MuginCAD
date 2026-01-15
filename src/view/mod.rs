@@ -1,10 +1,21 @@
 pub mod canvas;
-pub mod inspector;
-pub mod settings;
-pub mod terminal;
-pub mod toolbar;
-pub mod topmenu;
+pub mod rendering;
+pub mod ui;
 pub mod viewport;
+
+// Re-export for convenience if needed, or update call sites.
+// For now, let's keep them accessible via the new paths or re-export.
+// Ideally usage should be `view::ui::inspector`.
+// But to break less code initially, we can re-export.
+pub use ui::inspector;
+pub use ui::settings;
+pub use ui::terminal;
+pub use ui::toolbar;
+pub use ui::topmenu;
+
+pub use rendering::context;
+pub use rendering::preview;
+pub use rendering::renderer;
 
 use crate::viewmodel::CadViewModel;
 use eframe::egui;

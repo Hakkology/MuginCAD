@@ -1,22 +1,18 @@
-pub mod annotation;
-pub mod arc;
 pub mod axis;
-pub mod circle;
 pub mod config;
-pub mod line;
 pub mod project;
-pub mod rectangle;
+pub mod shapes;
 pub mod snap;
 pub mod undo;
 pub mod vector;
 
 use serde::{Deserialize, Serialize};
 
-pub use annotation::TextAnnotation;
-pub use arc::Arc;
-pub use circle::Circle;
-pub use line::Line;
-pub use rectangle::Rectangle;
+pub use shapes::annotation::TextAnnotation;
+pub use shapes::arc::Arc;
+pub use shapes::circle::Circle;
+pub use shapes::line::Line;
+pub use shapes::rectangle::Rectangle;
 pub use vector::Vector2;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
