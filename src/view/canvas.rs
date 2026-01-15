@@ -466,8 +466,36 @@ pub fn render_canvas(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                         }
                         "CIRCLE" => {
                             let center = points[0];
-                            let radius = center.dist(current_cad) * viewport_zoom;
-                            painter.circle_stroke(to_screen(center), radius, preview_stroke);
+                            let cad_radius = center.dist(current_cad);
+                            let screen_radius = cad_radius * viewport_zoom;
+                            painter.circle_stroke(to_screen(center), screen_radius, preview_stroke);
+
+                            // Draw radius line
+                            painter.line_segment(
+                                [to_screen(center), to_screen(current_cad)],
+                                preview_stroke,
+                            );
+
+                            // Draw center marker
+                            painter.circle_stroke(
+                                to_screen(center),
+                                4.0,
+                                egui::Stroke::new(1.5, egui::Color32::YELLOW),
+                            );
+
+                            // Draw radius text
+                            let mid_point = Vector2::new(
+                                (center.x + current_cad.x) / 2.0,
+                                (center.y + current_cad.y) / 2.0,
+                            );
+                            let text_pos = to_screen(mid_point);
+                            painter.text(
+                                egui::pos2(text_pos.x, text_pos.y - 12.0),
+                                egui::Align2::CENTER_CENTER,
+                                format!("R: {:.2}", cad_radius),
+                                egui::FontId::proportional(12.0),
+                                egui::Color32::from_rgb(255, 200, 100),
+                            );
                         }
                         "RECTANGLE" => {
                             let start = points[0];
@@ -484,6 +512,106 @@ pub fn render_canvas(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                                 to_screen(Vector2::new(max.x, min.y)),
                             );
                             painter.rect_stroke(rect_screen, 0.0, preview_stroke);
+                        }
+                        "Arc" => {
+                            // Arc preview: center → start point → end point
+                            match points.len() {
+                                1 => {
+                                    // Have center, show radius line to mouse
+                                    let center = points[0];
+                                    painter.line_segment(
+                                        [to_screen(center), to_screen(current_cad)],
+                                        preview_stroke,
+                                    );
+                                    // Draw center marker
+                                    painter.circle_stroke(
+                                        to_screen(center),
+                                        4.0,
+                                        egui::Stroke::new(1.5, egui::Color32::YELLOW),
+                                    );
+                                    // Draw radius circle preview
+                                    let radius = center.dist(current_cad) * viewport_zoom;
+                                    painter.circle_stroke(
+                                        to_screen(center),
+                                        radius,
+                                        egui::Stroke::new(
+                                            0.5,
+                                            egui::Color32::from_rgba_unmultiplied(
+                                                150, 150, 150, 80,
+                                            ),
+                                        ),
+                                    );
+                                }
+                                2 => {
+                                    // Have center and start, show arc to mouse (end point)
+                                    let center = points[0];
+                                    let start = points[1];
+                                    let radius = center.dist(start);
+
+                                    // Calculate angles
+                                    let start_angle =
+                                        (start.y - center.y).atan2(start.x - center.x);
+                                    let end_angle =
+                                        (current_cad.y - center.y).atan2(current_cad.x - center.x);
+
+                                    // Draw arc preview
+                                    let segments = 32;
+                                    let mut angle_range = end_angle - start_angle;
+                                    if angle_range < 0.0 {
+                                        angle_range += std::f32::consts::PI * 2.0;
+                                    }
+                                    let angle_step = angle_range / segments as f32;
+
+                                    let mut arc_points: Vec<egui::Pos2> =
+                                        Vec::with_capacity(segments + 1);
+                                    for i in 0..=segments {
+                                        let angle = start_angle + angle_step * i as f32;
+                                        let pt = Vector2::new(
+                                            center.x + radius * angle.cos(),
+                                            center.y + radius * angle.sin(),
+                                        );
+                                        arc_points.push(to_screen(pt));
+                                    }
+
+                                    // Draw arc outline
+                                    for i in 0..arc_points.len().saturating_sub(1) {
+                                        painter.line_segment(
+                                            [arc_points[i], arc_points[i + 1]],
+                                            preview_stroke,
+                                        );
+                                    }
+
+                                    // Draw center marker
+                                    painter.circle_stroke(
+                                        to_screen(center),
+                                        4.0,
+                                        egui::Stroke::new(1.5, egui::Color32::YELLOW),
+                                    );
+
+                                    // Draw start point marker
+                                    painter.circle_filled(
+                                        to_screen(start),
+                                        3.0,
+                                        egui::Color32::GREEN,
+                                    );
+
+                                    // Draw radii lines
+                                    painter.line_segment(
+                                        [to_screen(center), to_screen(start)],
+                                        egui::Stroke::new(
+                                            0.5,
+                                            egui::Color32::from_rgba_unmultiplied(
+                                                150, 150, 150, 100,
+                                            ),
+                                        ),
+                                    );
+                                    painter.line_segment(
+                                        [to_screen(center), to_screen(current_cad)],
+                                        preview_stroke,
+                                    );
+                                }
+                                _ => {}
+                            }
                         }
                         "MOVE" => {
                             // Draw a line from base point to destination

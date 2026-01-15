@@ -6,6 +6,7 @@ pub mod distance;
 pub mod executor;
 pub mod line;
 pub mod r#move;
+pub mod offset;
 pub mod rectangle;
 pub mod rotate;
 pub mod scale;

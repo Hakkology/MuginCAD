@@ -127,6 +127,15 @@ pub fn render_toolbar(ctx: &egui::Context, vm: &mut CadViewModel) {
                     vm.executor
                         .start_command("trim", &mut vm.model, &vm.selected_indices);
                 }
+
+                if ui
+                    .add_enabled(has_selection, egui::Button::new("||").min_size(btn_size))
+                    .on_hover_text("Offset (O)")
+                    .clicked()
+                {
+                    vm.executor
+                        .start_command("offset", &mut vm.model, &vm.selected_indices);
+                }
             });
         });
 }

@@ -119,6 +119,14 @@ pub fn render_top_menu(ctx: &egui::Context, vm: &mut CadViewModel) {
                         .start_command("trim", &mut vm.model, &vm.selected_indices);
                     ui.close_menu();
                 }
+                if ui
+                    .add_enabled(has_selection, egui::Button::new("Offset (O)"))
+                    .clicked()
+                {
+                    vm.executor
+                        .start_command("offset", &mut vm.model, &vm.selected_indices);
+                    ui.close_menu();
+                }
 
                 ui.add_space(8.0);
 

@@ -5,6 +5,7 @@ use crate::commands::copy::CopyCommand;
 use crate::commands::distance::DistanceCommand;
 use crate::commands::line::LineCommand;
 use crate::commands::r#move::MoveCommand;
+use crate::commands::offset::OffsetCommand;
 use crate::commands::rectangle::RectangleCommand;
 use crate::commands::rotate::RotateCommand;
 use crate::commands::scale::ScaleCommand;
@@ -64,6 +65,9 @@ impl CommandRegistry {
         // Register edit commands
         registry.register("trim", || Box::new(TrimCommand::new()));
         registry.register("t", || Box::new(TrimCommand::new()));
+
+        registry.register("offset", || Box::new(OffsetCommand::new()));
+        registry.register("o", || Box::new(OffsetCommand::new()));
 
         // Register annotation commands
         registry.register("text", || Box::new(TextCommand::new()));
