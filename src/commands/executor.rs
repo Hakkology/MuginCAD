@@ -74,6 +74,13 @@ impl CommandRegistry {
         registry.register("distance", || Box::new(DistanceCommand::new()));
         registry.register("dist", || Box::new(DistanceCommand::new()));
 
+        registry.register("measure", || {
+            Box::new(crate::commands::create::measure::MeasureCommand::new())
+        });
+        registry.register("dim", || {
+            Box::new(crate::commands::create::measure::MeasureCommand::new())
+        });
+
         registry
     }
 

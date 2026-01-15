@@ -16,6 +16,23 @@ impl Vector2 {
         (self.x * self.x + self.y * self.y).sqrt()
     }
 
+    pub fn length_squared(&self) -> f32 {
+        self.x * self.x + self.y * self.y
+    }
+
+    pub fn dot(&self, other: Self) -> f32 {
+        self.x * other.x + self.y * other.y
+    }
+
+    pub fn normalized(&self) -> Self {
+        let len = self.length();
+        if len > 0.0 {
+            Self::new(self.x / len, self.y / len)
+        } else {
+            *self
+        }
+    }
+
     pub fn dist(&self, other: Self) -> f32 {
         (*self - other).length()
     }

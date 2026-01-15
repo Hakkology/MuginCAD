@@ -172,6 +172,29 @@ pub fn render_toolbar(ctx: &egui::Context, vm: &mut CadViewModel) {
                         &tab.selection_manager.selected_indices,
                     );
                 }
+                if ui
+                    .add(egui::Button::new("Txt").min_size(btn_size))
+                    .on_hover_text("Text Annotation")
+                    .clicked()
+                {
+                    tab.executor.start_command(
+                        "text",
+                        &mut tab.model,
+                        &tab.selection_manager.selected_indices,
+                    );
+                }
+
+                if ui
+                    .add(egui::Button::new("Dim").min_size(btn_size))
+                    .on_hover_text("Measure Distance")
+                    .clicked()
+                {
+                    tab.executor.start_command(
+                        "measure",
+                        &mut tab.model,
+                        &tab.selection_manager.selected_indices,
+                    );
+                }
             });
         });
 }

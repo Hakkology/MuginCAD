@@ -218,7 +218,6 @@ impl Renderable for Arc {
 
 impl Renderable for TextAnnotation {
     fn render(&self, ctx: &DrawContext, is_selected: bool, _is_hovered: bool) {
-        let text_pos = ctx.to_screen(self.position);
         let text_color = egui::Color32::from_rgb(
             self.style.color[0],
             self.style.color[1],
@@ -230,7 +229,95 @@ impl Renderable for TextAnnotation {
             text_color
         };
 
-        if self.anchor_points.len() >= 2 {
+        // Calculate text size first
+        let font_size = self.style.font_size * ctx.zoom;
+        let font_id = egui::FontId::proportional(font_size.max(8.0).min(48.0));
+        let galley = ctx
+            .painter
+            .layout_no_wrap(self.text.clone(), font_id, final_color);
+        let text_size = galley.size();
+
+        if self.anchor_points.len() >= 2
+            && matches!(
+                self.annotation_type,
+                crate::model::shapes::annotation::AnnotationType::Distance
+            )
+        {
+            let p1 = self.anchor_points[0];
+            let p2 = self.anchor_points[1];
+            let label_pos = self.position;
+
+            let d = p2 - p1;
+            let len = d.length();
+            if len > 0.001 {
+                let u = d / len;
+                let v = label_pos - p1;
+
+                // Project v onto u to find parallel component t
+                let t = v.dot(u);
+                // Perpendicular vector from line to label
+                let mut perp = v - u * t;
+
+                // Add margin between text and line (line should be "below" text)
+                if perp.length_squared() > 0.0001 {
+                    let dir = perp.normalized();
+                    let margin = 3.0 / ctx.zoom;
+                    let half_h_world = (text_size.y / 2.0) / ctx.zoom;
+                    // Move line away from text towards the object properties
+                    perp = perp - dir * (half_h_world + margin);
+                }
+
+                // Points on the dimension line (original anchors projection)
+                let dim_p1_proj = p1 + perp;
+                let dim_p2_proj = p2 + perp;
+
+                let dim_color = final_color.linear_multiply(0.6);
+                let dim_stroke = egui::Stroke::new(1.0, dim_color);
+
+                // Extension lines
+                let perp_len_sq = perp.length_squared();
+                if perp_len_sq > 0.0001 {
+                    let perp_dir = perp.normalized();
+                    let zoom_factor = 1.0 / ctx.zoom;
+                    let overshoot = perp_dir * (5.0 * zoom_factor);
+                    let gap = perp_dir * (2.0 * zoom_factor);
+
+                    let ext1_start = p1 + gap;
+                    let ext1_end = dim_p1_proj + overshoot;
+
+                    let ext2_start = p2 + gap;
+                    let ext2_end = dim_p2_proj + overshoot;
+
+                    ctx.painter.line_segment(
+                        [ctx.to_screen(ext1_start), ctx.to_screen(ext1_end)],
+                        dim_stroke,
+                    );
+                    ctx.painter.line_segment(
+                        [ctx.to_screen(ext2_start), ctx.to_screen(ext2_end)],
+                        dim_stroke,
+                    );
+                }
+
+                // Draw main dimension line with extension to cover text
+                // text_size is in screen pixels, convert to world units
+                let half_w_world = (text_size.x / 2.0) / ctx.zoom * 1.1; // 10% padding
+
+                let line_start_t = 0.0f32.min(t - half_w_world);
+                let line_end_t = len.max(t + half_w_world);
+
+                let line_p1 = dim_p1_proj + u * line_start_t;
+                let line_p2 = dim_p1_proj + u * line_end_t;
+
+                ctx.painter
+                    .line_segment([ctx.to_screen(line_p1), ctx.to_screen(line_p2)], dim_stroke);
+
+                // Draw ticks at original intersections
+                ctx.painter
+                    .circle_filled(ctx.to_screen(dim_p1_proj), 2.0, dim_color);
+                ctx.painter
+                    .circle_filled(ctx.to_screen(dim_p2_proj), 2.0, dim_color);
+            }
+        } else if self.anchor_points.len() >= 2 {
             let start = ctx.to_screen(self.anchor_points[0]);
             let end = ctx.to_screen(self.anchor_points[1]);
             ctx.painter.line_segment(
@@ -241,14 +328,7 @@ impl Renderable for TextAnnotation {
             ctx.painter.circle_filled(end, 3.0, final_color);
         }
 
-        let font_size = self.style.font_size * ctx.zoom;
-        let font_id = egui::FontId::proportional(font_size.max(8.0).min(48.0));
-
-        let galley = ctx
-            .painter
-            .layout_no_wrap(self.text.clone(), font_id, final_color);
-        let text_size = galley.size();
-
+        let text_pos = ctx.to_screen(self.position);
         let angle = -self.rotation;
         let half_w = text_size.x / 2.0;
         let half_h = text_size.y / 2.0;

@@ -52,11 +52,20 @@ impl CadViewModel {
             let mut label_drag_index = None;
 
             for (i, entity) in tab.model.entities.iter().enumerate().rev() {
-                if let crate::model::Entity::Line(line) = entity {
-                    if line.hit_test_label(pos, tolerance) {
-                        label_drag_index = Some(i);
-                        break;
+                match entity {
+                    crate::model::Entity::Line(line) => {
+                        if line.hit_test_label(pos, tolerance) {
+                            label_drag_index = Some(i);
+                            break;
+                        }
                     }
+                    crate::model::Entity::Text(text) => {
+                        if text.hit_test(pos, tolerance) {
+                            label_drag_index = Some(i);
+                            break;
+                        }
+                    }
+                    _ => {}
                 }
             }
 
@@ -91,9 +100,17 @@ impl CadViewModel {
             if let Some(last_pos) = tab.drag_last_pos {
                 let delta = pos - last_pos;
 
-                // Update the specific line entity
-                if let Some(crate::model::Entity::Line(line)) = tab.model.entities.get_mut(idx) {
-                    line.label_offset = line.label_offset + delta;
+                // Update the specific entity
+                if let Some(entity) = tab.model.entities.get_mut(idx) {
+                    match entity {
+                        crate::model::Entity::Line(line) => {
+                            line.label_offset = line.label_offset + delta;
+                        }
+                        crate::model::Entity::Text(text) => {
+                            text.position = text.position + delta;
+                        }
+                        _ => {}
+                    }
                 }
 
                 tab.drag_last_pos = Some(pos);
