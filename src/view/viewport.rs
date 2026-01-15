@@ -98,9 +98,4 @@ impl Viewport {
         self.offset.x += screen_pos.x - new_screen.x;
         self.offset.y += screen_pos.y - new_screen.y;
     }
-
-    /// Get zoom as percentage (100 = 100%)
-    pub fn zoom_percent(&self) -> i32 {
-        (self.zoom * 100.0).round() as i32
-    }
 }

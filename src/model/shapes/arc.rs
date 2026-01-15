@@ -12,26 +12,7 @@ pub struct Arc {
 }
 
 impl Arc {
-    pub fn new(
-        center: Vector2,
-        radius: f32,
-        start_angle: f32,
-        end_angle: f32,
-        filled: bool,
-    ) -> Self {
-        Self {
-            center,
-            radius,
-            start_angle,
-            end_angle,
-            filled,
-        }
-    }
-
     /// Create arc from 3 points: center, start point, end point
-    pub fn from_three_points(center: Vector2, start: Vector2, end: Vector2, filled: bool) -> Self {
-        Self::from_three_points_directed(center, start, end, filled, false)
-    }
 
     /// Create arc from 3 points with direction control
     /// If clockwise is true, arc goes CW from start to end, otherwise CCW

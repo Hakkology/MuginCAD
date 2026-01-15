@@ -145,18 +145,4 @@ impl AxisManager {
         self.axes.push(Axis::horizontal(y_position, label));
         self.axes.last().unwrap()
     }
-
-    /// Clear all axes
-    pub fn clear(&mut self) {
-        self.axes.clear();
-        self.next_vertical_index = 0;
-        self.next_horizontal_index = 1;
-    }
-
-    /// Remove axis by index
-    pub fn remove(&mut self, index: usize) {
-        if index < self.axes.len() {
-            self.axes.remove(index);
-        }
-    }
 }

@@ -28,7 +28,6 @@ use std::collections::HashSet;
 pub struct InputModifiers {
     pub shift: bool,
     pub ctrl: bool,
-    pub alt: bool,
 }
 
 /// Context passed to commands for execution
@@ -46,8 +45,6 @@ pub enum CommandCategory {
     Creation,
     /// Manipulates existing entities (Move, Rotate, Scale)
     Manipulation,
-    /// Utility commands (Clear, Undo, etc.)
-    Utility,
 }
 
 /// Result of processing a point in a command
@@ -83,7 +80,6 @@ pub trait Command: std::fmt::Debug {
         match self.category() {
             CommandCategory::Creation => true,
             CommandCategory::Manipulation => !ctx.selected_indices.is_empty(),
-            CommandCategory::Utility => true,
         }
     }
 
@@ -146,12 +142,8 @@ pub trait Command: std::fmt::Debug {
     fn on_start(&mut self, _ctx: &CommandContext) {}
 
     /// Clone the command (for state management)
+    #[allow(dead_code)]
     fn clone_box(&self) -> Box<dyn Command>;
-
-    /// Get as Any for downcasting to concrete types
-    fn as_any(&self) -> Option<&dyn std::any::Any> {
-        None
-    }
 
     /// Get as Any mutable for downcasting to concrete types
     fn as_any_mut(&mut self) -> Option<&mut dyn std::any::Any> {

@@ -101,24 +101,6 @@ impl TextAnnotation {
         }
     }
 
-    /// Create a radius measurement annotation
-    pub fn new_radius(center: Vector2, radius: f32) -> Self {
-        let position = Vector2::new(center.x + radius / 2.0, center.y);
-
-        Self {
-            position,
-            text: format!("R{:.2}", radius),
-            annotation_type: AnnotationType::Radius,
-            style: TextStyle {
-                font_size: 12.0,
-                color: [255, 200, 100],
-                alignment: TextAlignment::Center,
-            },
-            anchor_points: vec![center],
-            rotation: 0.0,
-        }
-    }
-
     /// Hit test for text annotation - simple distance-based check
     pub fn hit_test(&self, pos: Vector2, tolerance: f32) -> bool {
         // Calculate approximate text size
@@ -131,27 +113,5 @@ impl TextAnnotation {
 
         // Generous hit area
         dx <= (width / 2.0 + tolerance + 10.0) && dy <= (height / 2.0 + tolerance + 10.0)
-    }
-
-    /// Recalculate measurement text if anchor points change
-    pub fn recalculate(&mut self) {
-        match self.annotation_type {
-            AnnotationType::Distance => {
-                if self.anchor_points.len() >= 2 {
-                    let start = self.anchor_points[0];
-                    let end = self.anchor_points[1];
-                    let distance = ((end.x - start.x).powi(2) + (end.y - start.y).powi(2)).sqrt();
-                    self.text = format!("{:.2}", distance);
-
-                    // Update position to midpoint
-                    self.position =
-                        Vector2::new((start.x + end.x) / 2.0, (start.y + end.y) / 2.0 + 15.0);
-                }
-            }
-            AnnotationType::Radius => {
-                // Radius would need external radius value, skip auto-recalc
-            }
-            _ => {}
-        }
     }
 }

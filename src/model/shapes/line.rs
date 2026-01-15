@@ -95,9 +95,4 @@ impl Line {
             (self.start.y + self.end.y) / 2.0,
         )
     }
-
-    /// Get the label position (midpoint + offset)
-    pub fn label_position(&self) -> Vector2 {
-        self.midpoint() + self.label_offset
-    }
 }

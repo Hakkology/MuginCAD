@@ -25,10 +25,6 @@ impl SelectionManager {
         self.selected_indices.is_empty()
     }
 
-    pub fn len(&self) -> usize {
-        self.selected_indices.len()
-    }
-
     /// Handle click selection logic
     /// Returns a status message string
     pub fn handle_click_selection(

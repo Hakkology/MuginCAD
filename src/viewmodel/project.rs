@@ -1,4 +1,3 @@
-use crate::model::config::AppConfig;
 use crate::model::undo::UndoManager;
 use crate::viewmodel::CadViewModel;
 

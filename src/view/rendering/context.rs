@@ -9,7 +9,6 @@ pub struct DrawContext<'a> {
     pub zoom: f32,
     pub offset: Vector2,
     pub screen_center: Vector2,
-    pub ui: &'a egui::Ui,
 }
 
 impl<'a> DrawContext<'a> {

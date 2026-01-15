@@ -16,8 +16,6 @@ pub use ui::topmenu;
 
 pub use rendering::context;
 
-pub use rendering::renderer;
-
 use crate::viewmodel::CadViewModel;
 use eframe::egui;
 

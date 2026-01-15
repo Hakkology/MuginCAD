@@ -15,7 +15,9 @@ use crate::model::{Entity, Vector2};
 /// Clipboard for copy/cut/paste operations
 #[derive(Default)]
 pub struct Clipboard {
+    #[allow(dead_code)]
     pub entities: Vec<Entity>,
+    #[allow(dead_code)]
     pub base_point: Option<Vector2>,
 }
 
@@ -30,6 +32,7 @@ pub struct CadViewModel {
     pub config: AppConfig,
     pub show_settings_window: bool,
     pub tab_renaming_index: Option<usize>,
+    #[allow(dead_code)]
     pub clipboard: Clipboard,
 }
 

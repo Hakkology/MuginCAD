@@ -6,15 +6,11 @@ use crate::model::{Entity, Vector2};
 #[derive(Debug, Clone)]
 pub struct TextCommand {
     points: Vec<Vector2>,
-    text_content: Option<String>,
 }
 
 impl TextCommand {
     pub fn new() -> Self {
-        Self {
-            points: Vec::new(),
-            text_content: None,
-        }
+        Self { points: Vec::new() }
     }
 }
 
