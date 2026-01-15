@@ -50,6 +50,7 @@ pub struct CadViewModel {
     pub tab_renaming_index: Option<usize>,
     #[allow(dead_code)]
     pub clipboard: Clipboard,
+    pub export_window: crate::view::ui::export::window::ExportWindow,
 }
 
 impl CadViewModel {
@@ -66,6 +67,7 @@ impl CadViewModel {
             show_settings_window: false,
             tab_renaming_index: None,
             clipboard: Clipboard::default(),
+            export_window: crate::view::ui::export::window::ExportWindow::default(),
         }
     }
 

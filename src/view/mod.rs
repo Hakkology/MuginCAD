@@ -45,6 +45,21 @@ impl eframe::App for CadApp {
             settings::render_settings_window(ctx, &mut self.view_model);
         }
 
+        // Render Export Window if open
+        {
+            let CadViewModel {
+                export_window,
+                tabs,
+                active_tab_index,
+                ..
+            } = &mut self.view_model;
+            // Ensure index is valid
+            if *active_tab_index < tabs.len() {
+                let model = &tabs[*active_tab_index].model;
+                export_window.show(ctx, model);
+            }
+        }
+
         // Top Menu
         topmenu::render_top_menu(ctx, &mut self.view_model);
 

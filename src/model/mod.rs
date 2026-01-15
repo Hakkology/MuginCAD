@@ -195,6 +195,7 @@ impl Entity {
 pub struct CadModel {
     pub entities: Vec<Entity>,
     pub axis_manager: axis::AxisManager,
+    pub export_region: Option<(Vector2, Vector2)>,
 }
 
 impl CadModel {
@@ -202,6 +203,7 @@ impl CadModel {
         Self {
             entities: Vec::new(),
             axis_manager: axis::AxisManager::new(),
+            export_region: None,
         }
     }
 

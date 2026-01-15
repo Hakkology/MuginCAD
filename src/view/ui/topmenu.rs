@@ -22,6 +22,20 @@ pub fn render_top_menu(ctx: &egui::Context, vm: &mut CadViewModel) {
                     vm.load_project();
                     ui.close_menu();
                 }
+                ui.separator();
+                if ui.button("Export PDF...").clicked() {
+                    vm.export_window.open = true;
+                    ui.close_menu();
+                }
+                if ui.button("Select Export Region").clicked() {
+                    let tab = vm.active_tab_mut();
+                    tab.executor.start_command(
+                        "select_region",
+                        &mut tab.model,
+                        &std::collections::HashSet::new(),
+                    );
+                    ui.close_menu();
+                }
             });
 
             ui.menu_button("Actions", |ui| {

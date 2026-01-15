@@ -1,5 +1,6 @@
 pub mod create;
 pub mod executor;
+pub mod io;
 pub mod manipulate;
 pub mod measure;
 pub mod utility;
@@ -46,6 +47,8 @@ pub enum CommandCategory {
     Creation,
     /// Manipulates existing entities (Move, Rotate, Scale)
     Manipulation,
+    /// Utility commands (Measure, etc)
+    Utility,
 }
 
 /// Result of processing a point in a command
@@ -81,6 +84,7 @@ pub trait Command: std::fmt::Debug {
         match self.category() {
             CommandCategory::Creation => true,
             CommandCategory::Manipulation => !ctx.selected_indices.is_empty(),
+            CommandCategory::Utility => true,
         }
     }
 

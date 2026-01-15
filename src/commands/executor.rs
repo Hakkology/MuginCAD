@@ -86,6 +86,9 @@ impl CommandRegistry {
         registry.register("perim", || {
             Box::new(crate::commands::measure::perimeter::MeasurePerimeterCommand::new())
         });
+        registry.register("select_region", || {
+            Box::new(crate::commands::io::export_region::SelectExportRegionCommand::new())
+        });
 
         registry
     }
