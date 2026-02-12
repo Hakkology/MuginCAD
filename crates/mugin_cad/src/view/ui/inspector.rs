@@ -4,6 +4,7 @@ use crate::model::shapes::{
 };
 use crate::viewmodel::CadViewModel;
 use eframe::egui;
+use mugin_widgets::properties;
 
 pub fn render_selection_status(ui: &mut egui::Ui, vm: &mut CadViewModel) {
     if vm.tabs.is_empty() {
@@ -53,10 +54,8 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
         return;
     }
 
-    // History Tools
-    ui.group(|ui| {
-        ui.label(egui::RichText::new("History").strong());
-        ui.add_space(5.0);
+    // ── History Tools ────────────────────────────────────────
+    properties::section(ui, "History", |ui| {
         ui.horizontal(|ui| {
             let (can_undo, can_redo, undo_count) = {
                 let tab = vm.active_tab();
@@ -97,10 +96,8 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
 
     ui.add_space(10.0);
 
-    // Utility Toolbar
-    ui.group(|ui| {
-        ui.label(egui::RichText::new("Transform Tools").strong());
-        ui.add_space(5.0);
+    // ── Transform Tools ──────────────────────────────────────
+    properties::section(ui, "Transform Tools", |ui| {
         ui.horizontal(|ui| {
             let has_selection = !vm
                 .active_tab()
@@ -172,8 +169,7 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
     ui.separator();
     ui.add_space(10.0);
 
-    // Editing logic requiring mutable access
-    // To avoid holding the borrow too long or conflicts, we'll scope it
+    // ── Entity Inspector ─────────────────────────────────────
     let tab = vm.active_tab_mut();
 
     if tab.selection_manager.selected_indices.len() == 1 {
@@ -200,17 +196,7 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                 .button(egui::RichText::new("Delete Entity").color(egui::Color32::RED))
                 .clicked()
             {
-                // vm is borrowed as tab, so we need to drop tab ref before calling vm.delete_selected()
-                // We cannot call vm.delete_selected() here because `tab` is borrowed.
-                // We can mark a flag? Or use interior mutability?
-                // Or just use tab.selection_manager to clear selection or something?
-                // Ideally `delete_selected` is on VM.
-                // BUT we are inside `if let Some(entity) = tab.model...`
-                // So we are holding a mutable borrow to `tab`.
-                // We MUST drop `tab` before calling `vm.delete_selected()`.
-                // We can't do that inside `match entity`.
-                // Check if button clicked, store result, then execute after block.
-                // Since this is immediate mode UI, we can just return a "delete_requested" flag.
+                // Delete action deferred due to borrow conflict
             }
         }
     } else if !tab.selection_manager.selected_indices.is_empty() {
@@ -228,7 +214,7 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                 .button(egui::RichText::new("Delete Selected Items").color(egui::Color32::RED))
                 .clicked()
             {
-                // same issue
+                // Delete action deferred
             }
         });
     } else {
@@ -243,175 +229,59 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
         });
     }
 }
-// Note: I cannot implement the `delete_selected` logic easily here without refactoring the code structure to avoid holding `tab` borrow.
-// I will try to use a "command" pattern or just accept I need to rewrite this function more fundamentally.
-// For now, I'll use a valid replacement that avoids the `vm.delete_selected` call INSIDE the borrow,
-// OR I will simply accept I need to call it via `tab` logic if possible.
-// Actually, `delete_selected` just invokes `executor.start_command("delete", model, selection)`.
-// So I can do that directly on `tab`!
-// `vm.delete_selected` is just a convenience wrapper. I can replicate it.
-
-/*
-Re-implementation of delete logic inline:
-let tab = vm.active_tab_mut();
-if ... clicked() {
-    let indices = tab.selection_manager.selected_indices.clone();
-    tab.executor.start_command("delete", &mut tab.model, &indices);
-}
-*/
 
 fn inspect_line(ui: &mut egui::Ui, line: &mut Line) {
-    ui.group(|ui| {
-        ui.label("Start Point");
-        ui.horizontal(|ui| {
-            ui.label("X:");
-            ui.add(egui::DragValue::new(&mut line.start.x).speed(0.1));
-            ui.label("Y:");
-            ui.add(egui::DragValue::new(&mut line.start.y).speed(0.1));
-        });
-    });
+    properties::point2(ui, "Start Point", &mut line.start.x, &mut line.start.y);
     ui.add_space(5.0);
-    ui.group(|ui| {
-        ui.label("End Point");
-        ui.horizontal(|ui| {
-            ui.label("X:");
-            ui.add(egui::DragValue::new(&mut line.end.x).speed(0.1));
-            ui.label("Y:");
-            ui.add(egui::DragValue::new(&mut line.end.y).speed(0.1));
-        });
-    });
+    properties::point2(ui, "End Point", &mut line.end.x, &mut line.end.y);
     ui.add_space(5.0);
 
-    // Length display
-    ui.horizontal(|ui| {
-        ui.label("Length:");
-        ui.label(format!("{:.2}", line.length()));
-    });
+    properties::display_float(ui, "Length:", line.length(), 2);
+    properties::toggle(ui, "Show Length Label", &mut line.show_length);
 
-    // Show length toggle
-    ui.checkbox(&mut line.show_length, "Show Length Label");
-
-    // Label offset (only if show_length is true)
     if line.show_length {
-        ui.group(|ui| {
-            ui.label("Label Offset");
-            ui.horizontal(|ui| {
-                ui.label("X:");
-                ui.add(egui::DragValue::new(&mut line.label_offset.x).speed(0.5));
-                ui.label("Y:");
-                ui.add(egui::DragValue::new(&mut line.label_offset.y).speed(0.5));
-            });
-        });
+        properties::point2_speed(
+            ui,
+            "Label Offset",
+            &mut line.label_offset.x,
+            &mut line.label_offset.y,
+            0.5,
+        );
     }
 }
 
 fn inspect_circle(ui: &mut egui::Ui, circle: &mut Circle) {
-    ui.group(|ui| {
-        ui.label("Center");
-        ui.horizontal(|ui| {
-            ui.label("X:");
-            ui.add(egui::DragValue::new(&mut circle.center.x).speed(0.1));
-            ui.label("Y:");
-            ui.add(egui::DragValue::new(&mut circle.center.y).speed(0.1));
-        });
-    });
+    properties::point2(ui, "Center", &mut circle.center.x, &mut circle.center.y);
     ui.add_space(5.0);
-    ui.horizontal(|ui| {
-        ui.label("Radius:");
-        ui.add(
-            egui::DragValue::new(&mut circle.radius)
-                .speed(0.1)
-                .range(0.0..=f32::INFINITY),
-        );
-    });
-    ui.checkbox(&mut circle.filled, "Filled");
+    properties::float_range(ui, "Radius:", &mut circle.radius, 0.1, 0.0..=f32::INFINITY);
+    properties::toggle(ui, "Filled", &mut circle.filled);
 }
 
 fn inspect_rectangle(ui: &mut egui::Ui, rect: &mut Rectangle) {
-    ui.group(|ui| {
-        ui.label("Min Corner");
-        ui.horizontal(|ui| {
-            ui.label("X:");
-            ui.add(egui::DragValue::new(&mut rect.min.x).speed(0.1));
-            ui.label("Y:");
-            ui.add(egui::DragValue::new(&mut rect.min.y).speed(0.1));
-        });
-    });
+    properties::point2(ui, "Min Corner", &mut rect.min.x, &mut rect.min.y);
     ui.add_space(5.0);
-    ui.group(|ui| {
-        ui.label("Max Corner");
-        ui.horizontal(|ui| {
-            ui.label("X:");
-            ui.add(egui::DragValue::new(&mut rect.max.x).speed(0.1));
-            ui.label("Y:");
-            ui.add(egui::DragValue::new(&mut rect.max.y).speed(0.1));
-        });
-    });
-    ui.checkbox(&mut rect.filled, "Filled");
+    properties::point2(ui, "Max Corner", &mut rect.max.x, &mut rect.max.y);
+    properties::toggle(ui, "Filled", &mut rect.filled);
 }
 
 fn inspect_arc(ui: &mut egui::Ui, arc: &mut Arc) {
-    ui.group(|ui| {
-        ui.label("Center");
-        ui.horizontal(|ui| {
-            ui.label("X:");
-            ui.add(egui::DragValue::new(&mut arc.center.x).speed(0.1));
-            ui.label("Y:");
-            ui.add(egui::DragValue::new(&mut arc.center.y).speed(0.1));
-        });
-    });
+    properties::point2(ui, "Center", &mut arc.center.x, &mut arc.center.y);
     ui.add_space(5.0);
-    ui.horizontal(|ui| {
-        ui.label("Radius:");
-        ui.add(
-            egui::DragValue::new(&mut arc.radius)
-                .speed(0.1)
-                .range(0.0..=f32::INFINITY),
-        );
-    });
-    ui.horizontal(|ui| {
-        ui.label("Start Angle:");
-        ui.add(egui::DragValue::new(&mut arc.start_angle).speed(0.01));
-    });
-    ui.horizontal(|ui| {
-        ui.label("End Angle:");
-        ui.add(egui::DragValue::new(&mut arc.end_angle).speed(0.01));
-    });
-    ui.checkbox(&mut arc.filled, "Filled");
+    properties::float_range(ui, "Radius:", &mut arc.radius, 0.1, 0.0..=f32::INFINITY);
+    properties::float_value(ui, "Start Angle:", &mut arc.start_angle, 0.01);
+    properties::float_value(ui, "End Angle:", &mut arc.end_angle, 0.01);
+    properties::toggle(ui, "Filled", &mut arc.filled);
 }
 
 fn inspect_text(ui: &mut egui::Ui, text: &mut TextAnnotation) {
-    ui.group(|ui| {
-        ui.label("Position");
-        ui.horizontal(|ui| {
-            ui.label("X:");
-            ui.add(egui::DragValue::new(&mut text.position.x).speed(0.1));
-            ui.label("Y:");
-            ui.add(egui::DragValue::new(&mut text.position.y).speed(0.1));
-        });
-    });
+    properties::point2(ui, "Position", &mut text.position.x, &mut text.position.y);
     ui.add_space(5.0);
+
     ui.horizontal(|ui| {
         ui.label("Text:");
         ui.text_edit_singleline(&mut text.text);
     });
-    ui.horizontal(|ui| {
-        ui.label("Font Size:");
-        ui.add(
-            egui::DragValue::new(&mut text.style.font_size)
-                .speed(0.5)
-                .range(6.0..=72.0),
-        );
-    });
-    ui.horizontal(|ui| {
-        ui.label("Rotation:");
-        // Convert radians to degrees for display
-        let mut degrees = text.rotation.to_degrees();
-        if ui
-            .add(egui::DragValue::new(&mut degrees).speed(1.0).suffix("°"))
-            .changed()
-        {
-            text.rotation = degrees.to_radians();
-        }
-    });
+
+    properties::float_range(ui, "Font Size:", &mut text.style.font_size, 0.5, 6.0..=72.0);
+    properties::angle_degrees(ui, "Rotation:", &mut text.rotation);
 }

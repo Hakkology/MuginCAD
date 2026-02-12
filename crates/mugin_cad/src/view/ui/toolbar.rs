@@ -1,5 +1,6 @@
 use crate::viewmodel::CadViewModel;
 use eframe::egui;
+use mugin_widgets::toolbar;
 
 /// Render the left toolbar with icon buttons for commands
 pub fn render_toolbar(ctx: &egui::Context, vm: &mut CadViewModel) {
@@ -18,41 +19,25 @@ pub fn render_toolbar(ctx: &egui::Context, vm: &mut CadViewModel) {
             }
 
             let tab = vm.active_tab_mut();
-            let has_selection = !tab.selection_manager.selected_indices.is_empty();
-            let btn_size = egui::vec2(36.0, 36.0);
+            let has_sel = !tab.selection_manager.selected_indices.is_empty();
 
-            // Center buttons horizontally
             ui.vertical_centered(|ui| {
-                // Transform section
-                if ui
-                    .add_enabled(has_selection, egui::Button::new("M").min_size(btn_size))
-                    .on_hover_text("Move (W)")
-                    .clicked()
-                {
+                // ── Transform ────────────────────────────────────
+                if toolbar::tool_button(ui, "M", "Move (W)", has_sel) {
                     tab.executor.start_command(
                         "move",
                         &mut tab.model,
                         &tab.selection_manager.selected_indices,
                     );
                 }
-
-                if ui
-                    .add_enabled(has_selection, egui::Button::new("R").min_size(btn_size))
-                    .on_hover_text("Rotate (E)")
-                    .clicked()
-                {
+                if toolbar::tool_button(ui, "R", "Rotate (E)", has_sel) {
                     tab.executor.start_command(
                         "rotate",
                         &mut tab.model,
                         &tab.selection_manager.selected_indices,
                     );
                 }
-
-                if ui
-                    .add_enabled(has_selection, egui::Button::new("S").min_size(btn_size))
-                    .on_hover_text("Scale (R)")
-                    .clicked()
-                {
+                if toolbar::tool_button(ui, "S", "Scale (R)", has_sel) {
                     tab.executor.start_command(
                         "scale",
                         &mut tab.model,
@@ -62,70 +47,41 @@ pub fn render_toolbar(ctx: &egui::Context, vm: &mut CadViewModel) {
 
                 ui.add_space(4.0);
 
-                // Clipboard section
-                if ui
-                    .add_enabled(has_selection, egui::Button::new("C").min_size(btn_size))
-                    .on_hover_text("Copy (Ctrl+C)")
-                    .clicked()
-                {
+                // ── Clipboard ────────────────────────────────────
+                if toolbar::tool_button(ui, "C", "Copy (Ctrl+C)", has_sel) {
                     let indices = tab.selection_manager.selected_indices.clone();
                     tab.executor.start_command("copy", &mut tab.model, &indices);
                 }
-
-                if ui
-                    .add_enabled(has_selection, egui::Button::new("X").min_size(btn_size))
-                    .on_hover_text("Cut (Ctrl+X)")
-                    .clicked()
-                {
+                if toolbar::tool_button(ui, "X", "Cut (Ctrl+X)", has_sel) {
                     let indices = tab.selection_manager.selected_indices.clone();
                     tab.executor.start_command("cut", &mut tab.model, &indices);
                 }
 
-                ui.separator();
-                ui.add_space(4.0);
+                toolbar::separator(ui);
 
-                // Shapes section
-                if ui
-                    .add(egui::Button::new("/").min_size(btn_size))
-                    .on_hover_text("Line (L)")
-                    .clicked()
-                {
+                // ── Shapes ───────────────────────────────────────
+                if toolbar::tool_button(ui, "/", "Line (L)", true) {
                     tab.executor.start_command(
                         "line",
                         &mut tab.model,
                         &tab.selection_manager.selected_indices,
                     );
                 }
-
-                if ui
-                    .add(egui::Button::new("O").min_size(btn_size))
-                    .on_hover_text("Circle (C)")
-                    .clicked()
-                {
+                if toolbar::tool_button(ui, "O", "Circle (C)", true) {
                     tab.executor.start_command(
                         "circle",
                         &mut tab.model,
                         &tab.selection_manager.selected_indices,
                     );
                 }
-
-                if ui
-                    .add(egui::Button::new("[]").min_size(btn_size))
-                    .on_hover_text("Rectangle")
-                    .clicked()
-                {
+                if toolbar::tool_button(ui, "[]", "Rectangle", true) {
                     tab.executor.start_command(
                         "rect",
                         &mut tab.model,
                         &tab.selection_manager.selected_indices,
                     );
                 }
-
-                if ui
-                    .add(egui::Button::new("(").min_size(btn_size))
-                    .on_hover_text("Arc")
-                    .clicked()
-                {
+                if toolbar::tool_button(ui, "(", "Arc", true) {
                     tab.executor.start_command(
                         "arc",
                         &mut tab.model,
@@ -133,86 +89,52 @@ pub fn render_toolbar(ctx: &egui::Context, vm: &mut CadViewModel) {
                     );
                 }
 
-                ui.separator();
-                ui.add_space(4.0);
+                toolbar::separator(ui);
 
-                // Construction section
-                if ui
-                    .add(egui::Button::new("+").min_size(btn_size))
-                    .on_hover_text("Axis (A)")
-                    .clicked()
-                {
+                // ── Construction ─────────────────────────────────
+                if toolbar::tool_button(ui, "+", "Axis (A)", true) {
                     tab.executor.start_command(
                         "axis",
                         &mut tab.model,
                         &tab.selection_manager.selected_indices,
                     );
                 }
-
-                if ui
-                    .add(egui::Button::new("T").min_size(btn_size))
-                    .on_hover_text("Trim (T)")
-                    .clicked()
-                {
+                if toolbar::tool_button(ui, "T", "Trim (T)", true) {
                     tab.executor.start_command(
                         "trim",
                         &mut tab.model,
                         &tab.selection_manager.selected_indices,
                     );
                 }
-
-                if ui
-                    .add_enabled(has_selection, egui::Button::new("||").min_size(btn_size))
-                    .on_hover_text("Offset (O)")
-                    .clicked()
-                {
+                if toolbar::tool_button(ui, "||", "Offset (O)", has_sel) {
                     tab.executor.start_command(
                         "offset",
                         &mut tab.model,
                         &tab.selection_manager.selected_indices,
                     );
                 }
-                if ui
-                    .add(egui::Button::new("Txt").min_size(btn_size))
-                    .on_hover_text("Text Annotation")
-                    .clicked()
-                {
+                if toolbar::tool_button(ui, "Txt", "Text Annotation", true) {
                     tab.executor.start_command(
                         "text",
                         &mut tab.model,
                         &tab.selection_manager.selected_indices,
                     );
                 }
-
-                if ui
-                    .add(egui::Button::new("Dim").min_size(btn_size))
-                    .on_hover_text("Measure Distance")
-                    .clicked()
-                {
+                if toolbar::tool_button(ui, "Dim", "Measure Distance", true) {
                     tab.executor.start_command(
                         "measure",
                         &mut tab.model,
                         &tab.selection_manager.selected_indices,
                     );
                 }
-
-                if ui
-                    .add(egui::Button::new("Area").min_size(btn_size))
-                    .on_hover_text("Measure Closed Area")
-                    .clicked()
-                {
+                if toolbar::tool_button(ui, "Area", "Measure Closed Area", true) {
                     tab.executor.start_command(
                         "area",
                         &mut tab.model,
                         &tab.selection_manager.selected_indices,
                     );
                 }
-
-                if ui
-                    .add(egui::Button::new("Perim").min_size(btn_size))
-                    .on_hover_text("Measure Perimeter")
-                    .clicked()
-                {
+                if toolbar::tool_button(ui, "Perim", "Measure Perimeter", true) {
                     tab.executor.start_command(
                         "perim",
                         &mut tab.model,

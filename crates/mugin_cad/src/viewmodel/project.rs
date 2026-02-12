@@ -5,17 +5,17 @@ impl CadViewModel {
     /// Save project to a file
     pub fn save_project(&mut self) {
         let tab_idx = self.active_tab_index;
-        let default_name = format!("{}.oliv", self.tabs[tab_idx].name);
+        let default_name = format!("{}.mugin", self.tabs[tab_idx].name);
         let tab = &mut self.tabs[tab_idx];
 
         if let Some(mut path) = rfd::FileDialog::new()
-            .add_filter("OliveCAD Project", &["oliv"])
+            .add_filter("MuginCAD Project", &["mugin"])
             .set_file_name(&default_name)
             .save_file()
         {
             // Ensure extension is present
-            if path.extension().and_then(|ext| ext.to_str()) != Some("oliv") {
-                path.set_extension("oliv");
+            if path.extension().and_then(|ext| ext.to_str()) != Some("mugin") {
+                path.set_extension("mugin");
             }
 
             // We need to access self.config. self.tabs is borrowed by 'tab'.
@@ -43,7 +43,7 @@ impl CadViewModel {
     /// Load project from a file
     pub fn load_project(&mut self) {
         if let Some(path) = rfd::FileDialog::new()
-            .add_filter("OliveCAD Project", &["oliv"])
+            .add_filter("MuginCAD Project", &["mugin"])
             .pick_file()
         {
             if let Ok(content) = std::fs::read_to_string(&path) {

@@ -1,43 +1,43 @@
 use crate::viewmodel::CadViewModel;
 use eframe::egui;
+use mugin_widgets::toolbar;
 
 /// Render the top menu bar
 pub fn render_top_menu(ctx: &egui::Context, vm: &mut CadViewModel) {
     egui::TopBottomPanel::top("top_menu").show(ctx, |ui| {
-        // Add some padding
         ui.style_mut().spacing.item_spacing = egui::vec2(10.0, 5.0);
 
         egui::menu::bar(ui, |ui| {
+            // ── Project Menu ─────────────────────────────────
             ui.menu_button("Project", |ui| {
                 ui.set_min_width(120.0);
-                if ui.button("New").clicked() {
+
+                if toolbar::menu_action(ui, "New") {
                     vm.new_tab();
-                    ui.close_menu();
                 }
-                if ui.button("Save").clicked() {
+                if toolbar::menu_action(ui, "Save") {
                     vm.save_project();
-                    ui.close_menu();
                 }
-                if ui.button("Load").clicked() {
+                if toolbar::menu_action(ui, "Load") {
                     vm.load_project();
-                    ui.close_menu();
                 }
+
                 ui.separator();
-                if ui.button("Export PDF...").clicked() {
+
+                if toolbar::menu_action(ui, "Export PDF...") {
                     vm.export_window.open = true;
-                    ui.close_menu();
                 }
-                if ui.button("Select Export Region").clicked() {
+                if toolbar::menu_action(ui, "Select Export Region") {
                     let tab = vm.active_tab_mut();
                     tab.executor.start_command(
                         "select_region",
                         &mut tab.model,
                         &std::collections::HashSet::new(),
                     );
-                    ui.close_menu();
                 }
             });
 
+            // ── Actions Menu ─────────────────────────────────
             ui.menu_button("Actions", |ui| {
                 ui.set_min_width(140.0);
 
@@ -47,166 +47,121 @@ pub fn render_top_menu(ctx: &egui::Context, vm: &mut CadViewModel) {
                 }
 
                 let tab = vm.active_tab_mut();
+                let has_sel = !tab.selection_manager.selected_indices.is_empty();
 
-                // Shapes section
-                ui.label("Shapes");
-                ui.separator();
-                if ui.button("Line (L)").clicked() {
+                // Shapes
+                toolbar::menu_section(ui, "Shapes");
+                if toolbar::menu_action(ui, "Line (L)") {
                     tab.executor.start_command(
                         "line",
                         &mut tab.model,
                         &tab.selection_manager.selected_indices,
                     );
-                    ui.close_menu();
                 }
-                if ui.button("Circle (C)").clicked() {
+                if toolbar::menu_action(ui, "Circle (C)") {
                     tab.executor.start_command(
                         "circle",
                         &mut tab.model,
                         &tab.selection_manager.selected_indices,
                     );
-                    ui.close_menu();
                 }
-                if ui.button("Rectangle").clicked() {
+                if toolbar::menu_action(ui, "Rectangle") {
                     tab.executor.start_command(
                         "rect",
                         &mut tab.model,
                         &tab.selection_manager.selected_indices,
                     );
-                    ui.close_menu();
                 }
-                if ui.button("Arc").clicked() {
+                if toolbar::menu_action(ui, "Arc") {
                     tab.executor.start_command(
                         "arc",
                         &mut tab.model,
                         &tab.selection_manager.selected_indices,
                     );
-                    ui.close_menu();
                 }
 
-                ui.add_space(8.0);
-
-                // Transform section
-                ui.label("Transform");
-                ui.separator();
-                let has_selection = !tab.selection_manager.selected_indices.is_empty();
-                if ui
-                    .add_enabled(has_selection, egui::Button::new("Move (W)"))
-                    .clicked()
-                {
+                // Transform
+                toolbar::menu_section(ui, "Transform");
+                if toolbar::menu_item(ui, "Move (W)", has_sel) {
                     tab.executor.start_command(
                         "move",
                         &mut tab.model,
                         &tab.selection_manager.selected_indices,
                     );
-                    ui.close_menu();
                 }
-                if ui
-                    .add_enabled(has_selection, egui::Button::new("Rotate (E)"))
-                    .clicked()
-                {
+                if toolbar::menu_item(ui, "Rotate (E)", has_sel) {
                     tab.executor.start_command(
                         "rotate",
                         &mut tab.model,
                         &tab.selection_manager.selected_indices,
                     );
-                    ui.close_menu();
                 }
-                if ui
-                    .add_enabled(has_selection, egui::Button::new("Scale (R)"))
-                    .clicked()
-                {
+                if toolbar::menu_item(ui, "Scale (R)", has_sel) {
                     tab.executor.start_command(
                         "scale",
                         &mut tab.model,
                         &tab.selection_manager.selected_indices,
                     );
-                    ui.close_menu();
                 }
 
-                ui.add_space(8.0);
-
-                // Clipboard section
-                ui.label("Clipboard");
-                ui.separator();
-                if ui
-                    .add_enabled(has_selection, egui::Button::new("Copy (Ctrl+C)"))
-                    .clicked()
-                {
+                // Clipboard
+                toolbar::menu_section(ui, "Clipboard");
+                if toolbar::menu_item(ui, "Copy (Ctrl+C)", has_sel) {
                     let indices = tab.selection_manager.selected_indices.clone();
                     tab.executor.start_command("copy", &mut tab.model, &indices);
-                    ui.close_menu();
                 }
-                if ui
-                    .add_enabled(has_selection, egui::Button::new("Cut (Ctrl+X)"))
-                    .clicked()
-                {
+                if toolbar::menu_item(ui, "Cut (Ctrl+X)", has_sel) {
                     let indices = tab.selection_manager.selected_indices.clone();
                     tab.executor.start_command("cut", &mut tab.model, &indices);
-                    ui.close_menu();
                 }
 
-                ui.add_space(8.0);
-
-                // Construction section
-                ui.label("Construction");
-                ui.separator();
-                if ui.button("Axis (A)").clicked() {
+                // Construction
+                toolbar::menu_section(ui, "Construction");
+                if toolbar::menu_action(ui, "Axis (A)") {
                     tab.executor.start_command(
                         "axis",
                         &mut tab.model,
                         &tab.selection_manager.selected_indices,
                     );
-                    ui.close_menu();
                 }
-                if ui.button("Trim (T)").clicked() {
+                if toolbar::menu_action(ui, "Trim (T)") {
                     tab.executor.start_command(
                         "trim",
                         &mut tab.model,
                         &tab.selection_manager.selected_indices,
                     );
-                    ui.close_menu();
                 }
-                if ui
-                    .add_enabled(has_selection, egui::Button::new("Offset (O)"))
-                    .clicked()
-                {
+                if toolbar::menu_item(ui, "Offset (O)", has_sel) {
                     tab.executor.start_command(
                         "offset",
                         &mut tab.model,
                         &tab.selection_manager.selected_indices,
                     );
-                    ui.close_menu();
                 }
 
-                ui.add_space(8.0);
-
-                // Annotation section
-                ui.label("Annotation");
-                ui.separator();
-                if ui.button("Text").clicked() {
+                // Annotation
+                toolbar::menu_section(ui, "Annotation");
+                if toolbar::menu_action(ui, "Text") {
                     tab.executor.start_command(
                         "text",
                         &mut tab.model,
                         &tab.selection_manager.selected_indices,
                     );
-                    ui.close_menu();
                 }
-                if ui.button("Distance").clicked() {
+                if toolbar::menu_action(ui, "Distance") {
                     tab.executor.start_command(
                         "distance",
                         &mut tab.model,
                         &tab.selection_manager.selected_indices,
                     );
-                    ui.close_menu();
                 }
             });
 
+            // ── Tools Menu ───────────────────────────────────
             ui.menu_button("Tools", |ui| {
                 ui.set_min_width(120.0);
-                if ui.button("Settings").clicked() {
+                if toolbar::menu_action(ui, "Settings") {
                     vm.show_settings_window = true;
-                    ui.close_menu();
                 }
             });
         });

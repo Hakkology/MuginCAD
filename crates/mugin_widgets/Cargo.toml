@@ -1,0 +1,9 @@
+[package]
+name = "mugin_widgets"
+version = "0.1.0"
+edition = "2024"
+description = "A reusable egui widget toolkit for CAD and engineering applications"
+license = "MIT"
+
+[dependencies]
+eframe = "0.29.1"

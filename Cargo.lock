@@ -3,11 +3,12 @@
 version = 4
 
 [[package]]
-name = "OliveCAD"
+name = "MuginCAD"
 version = "0.1.0"
 dependencies = [
  "eframe",
  "glam",
+ "mugin_widgets",
  "printpdf",
  "rfd",
  "serde",
@@ -1931,6 +1932,13 @@ checksum = "ac9557c559cd6fc9867e122e20d2cbefc9ca29d80d027a8e39310920ed2f0a97"
 dependencies = [
  "num-traits",
  "pxfm",
+]
+
+[[package]]
+name = "mugin_widgets"
+version = "0.1.0"
+dependencies = [
+ "eframe",
 ]
 
 [[package]]
