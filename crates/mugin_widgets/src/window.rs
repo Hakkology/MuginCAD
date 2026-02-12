@@ -155,3 +155,42 @@ pub fn confirm(title: &str, ctx: &egui::Context, open: &mut bool, message: &str)
 
     result
 }
+
+// ─── Generic Window ──────────────────────────────────────────────────────
+
+/// Shows a generic resizable window with standard behaviors.
+///
+/// # Arguments
+/// * `title` - Window title
+/// * `ctx` - Egui context
+/// * `open` - Mutable boolean to control visibility
+/// * `min_size` - Minimum window size (width, height)
+/// * `scroll` - Whether to enable vertical scrolling
+/// * `body` - Closure to render window content
+///
+/// # Example
+///
+/// ```rust
+/// mugin_widgets::window::window("My Window", ctx, &mut open, [400.0, 300.0], true, |ui| {
+///     ui.label("Content");
+/// });
+/// ```
+pub fn window(
+    title: &str,
+    ctx: &egui::Context,
+    open: &mut bool,
+    min_size: [f32; 2],
+    scroll: bool,
+    body: impl FnOnce(&mut egui::Ui),
+) {
+    if !*open {
+        return;
+    }
+
+    egui::Window::new(title)
+        .open(open)
+        .min_width(min_size[0])
+        .min_height(min_size[1])
+        .vscroll(scroll)
+        .show(ctx, body);
+}

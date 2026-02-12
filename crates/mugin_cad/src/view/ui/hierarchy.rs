@@ -165,6 +165,7 @@ fn shape_icon(shape: &Shape) -> &'static str {
         Shape::Rectangle(_) => "▭",
         Shape::Arc(_) => "◠",
         Shape::Text(_) => "🔤",
+        Shape::Column(_) => "🏛", // Temple/Column icon
     }
 }
 

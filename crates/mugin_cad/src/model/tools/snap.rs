@@ -226,6 +226,15 @@ impl SnapSystem {
                     points.push(SnapPoint::new(*pt, SnapPointType::Endpoint));
                 }
             }
+            Shape::Column(col) => {
+                // Center
+                points.push(SnapPoint::new(col.center, SnapPointType::Center));
+                // Corners
+                let corners = col.get_corners();
+                for p in corners {
+                    points.push(SnapPoint::new(p, SnapPointType::Corner));
+                }
+            }
             Shape::None => {}
         }
 

@@ -42,8 +42,10 @@ pub fn render_terminal(ui: &mut egui::Ui, vm: &mut CadViewModel) {
             // For inspector, we simply check if the terminal already lost focus to
             // another widget — if so, don't steal it back this frame.
             // Only grab focus if no rename or text editing is happening elsewhere.
-            let text_edit_elsewhere =
-                vm.tab_renaming_index.is_some() || vm.hierarchy_renaming || vm.inspector_renaming;
+            let text_edit_elsewhere = vm.tab_renaming_index.is_some()
+                || vm.hierarchy_renaming
+                || vm.inspector_renaming
+                || vm.structure_manager_open;
 
             // Only request focus if we don't have it and nothing else needs it
             if !text_edit_elsewhere {

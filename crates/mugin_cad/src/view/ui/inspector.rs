@@ -2,6 +2,7 @@ use crate::model::Shape;
 use crate::model::shapes::{
     annotation::TextAnnotation, arc::Arc, circle::Circle, line::Line, rectangle::Rectangle,
 };
+use crate::model::structure::column::ColumnData;
 use crate::viewmodel::CadViewModel;
 use eframe::egui;
 use mugin_widgets::properties;
@@ -180,6 +181,7 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                     Shape::Rectangle(rect) => inspect_rectangle(ui, rect),
                     Shape::Arc(arc) => inspect_arc(ui, arc),
                     Shape::Text(text) => inspect_text(ui, text),
+                    Shape::Column(col) => inspect_column(ui, col),
                     Shape::None => {}
                 }
 
@@ -305,4 +307,23 @@ fn inspect_text(ui: &mut egui::Ui, text: &mut TextAnnotation) {
 
     properties::float_range(ui, "Font Size:", &mut text.style.font_size, 0.5, 6.0..=72.0);
     properties::angle_degrees(ui, "Rotation:", &mut text.rotation);
+}
+
+fn inspect_column(ui: &mut egui::Ui, col: &mut ColumnData) {
+    ui.heading("Column Properties");
+    properties::point2(ui, "Center", &mut col.center.x, &mut col.center.y);
+    ui.add_space(5.0);
+
+    properties::float_range(ui, "Width:", &mut col.width, 1.0, 1.0..=1000.0);
+    properties::float_range(ui, "Height:", &mut col.height, 1.0, 1.0..=1000.0);
+    properties::angle_degrees(ui, "Rotation:", &mut col.rotation);
+
+    ui.add_space(5.0);
+    ui.horizontal(|ui| {
+        ui.label("Label:");
+        ui.text_edit_singleline(&mut col.label);
+    });
+
+    // Future: Material selection via ComboBox
+    ui.label(egui::RichText::new(format!("Material ID: {}", col.material_id)).weak());
 }

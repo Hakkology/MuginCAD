@@ -13,6 +13,7 @@
 pub mod axis;
 pub mod math;
 pub mod shapes;
+pub mod structure;
 pub mod system;
 pub mod tools;
 
@@ -31,6 +32,7 @@ pub use shapes::arc::Arc;
 pub use shapes::circle::Circle;
 pub use shapes::line::Line;
 pub use shapes::rectangle::Rectangle;
+pub use structure::column::ColumnData;
 pub use vector::Vector2;
 
 /// Global atomic counter for unique entity IDs.
@@ -52,6 +54,7 @@ pub enum Shape {
     Rectangle(Rectangle),
     Arc(Arc),
     Text(TextAnnotation),
+    Column(ColumnData),
 }
 
 impl Shape {
@@ -63,6 +66,7 @@ impl Shape {
             Shape::Rectangle(_) => "Rectangle",
             Shape::Arc(_) => "Arc",
             Shape::Text(_) => "Text",
+            Shape::Column(_) => "Column",
         }
     }
 }
@@ -76,6 +80,7 @@ impl Geometry for Shape {
             Shape::Rectangle(s) => s.hit_test(pos, tolerance),
             Shape::Arc(s) => s.hit_test(pos, tolerance),
             Shape::Text(s) => s.hit_test(pos, tolerance),
+            Shape::Column(s) => s.hit_test(pos, tolerance),
         }
     }
 
@@ -87,6 +92,7 @@ impl Geometry for Shape {
             Shape::Rectangle(s) => s.center(),
             Shape::Arc(s) => s.center(),
             Shape::Text(s) => s.center(),
+            Shape::Column(s) => s.center(),
         }
     }
 
@@ -101,6 +107,7 @@ impl Geometry for Shape {
             Shape::Rectangle(s) => s.bounding_box(),
             Shape::Arc(s) => s.bounding_box(),
             Shape::Text(s) => s.bounding_box(),
+            Shape::Column(s) => s.bounding_box(),
         }
     }
 
@@ -112,6 +119,7 @@ impl Geometry for Shape {
             Shape::Rectangle(s) => s.as_polyline(),
             Shape::Arc(s) => s.as_polyline(),
             Shape::Text(s) => s.as_polyline(),
+            Shape::Column(s) => s.as_polyline(),
         }
     }
 
@@ -123,6 +131,7 @@ impl Geometry for Shape {
             Shape::Rectangle(s) => s.translate(delta),
             Shape::Arc(s) => s.translate(delta),
             Shape::Text(s) => s.translate(delta),
+            Shape::Column(s) => s.translate(delta),
         }
     }
 
@@ -134,6 +143,7 @@ impl Geometry for Shape {
             Shape::Rectangle(s) => s.rotate(pivot, angle),
             Shape::Arc(s) => s.rotate(pivot, angle),
             Shape::Text(s) => s.rotate(pivot, angle),
+            Shape::Column(s) => s.rotate(pivot, angle),
         }
     }
 
@@ -145,6 +155,7 @@ impl Geometry for Shape {
             Shape::Rectangle(s) => s.scale(base, factor),
             Shape::Arc(s) => s.scale(base, factor),
             Shape::Text(s) => s.scale(base, factor),
+            Shape::Column(s) => s.scale(base, factor),
         }
     }
 
@@ -156,6 +167,7 @@ impl Geometry for Shape {
             Shape::Rectangle(s) => s.is_closed(),
             Shape::Arc(s) => s.is_closed(),
             Shape::Text(s) => s.is_closed(),
+            Shape::Column(s) => s.is_closed(),
         }
     }
 
@@ -167,6 +179,7 @@ impl Geometry for Shape {
             Shape::Rectangle(s) => s.is_filled(),
             Shape::Arc(s) => s.is_filled(),
             Shape::Text(s) => s.is_filled(),
+            Shape::Column(s) => s.is_filled(),
         }
     }
 }
@@ -229,6 +242,10 @@ impl Entity {
 
     pub fn text(annotation: TextAnnotation) -> Self {
         Self::new(Shape::Text(annotation))
+    }
+
+    pub fn column(data: ColumnData) -> Self {
+        Self::new(Shape::Column(data))
     }
 
     // ── Queries ─────────────────────────────────────────────
@@ -365,9 +382,12 @@ impl Entity {
 
 // ─── CadModel ───────────────────────────────────────────────────
 
+use crate::model::structure::definitions::StructureDefinitions;
+
 pub struct CadModel {
     pub entities: Vec<Entity>,
     pub axis_manager: axis::AxisManager,
+    pub definitions: StructureDefinitions,
     pub export_region: Option<(Vector2, Vector2)>,
 }
 
@@ -376,6 +396,7 @@ impl CadModel {
         Self {
             entities: Vec::new(),
             axis_manager: axis::AxisManager::new(),
+            definitions: StructureDefinitions::new(),
             export_region: None,
         }
     }

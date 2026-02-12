@@ -2,6 +2,7 @@ pub mod export;
 pub mod hierarchy;
 pub mod inspector;
 pub mod settings;
+pub mod structure;
 pub mod tab_bar;
 pub mod terminal;
 pub mod toolbar;

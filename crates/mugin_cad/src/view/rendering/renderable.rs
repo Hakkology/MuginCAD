@@ -351,6 +351,55 @@ impl Renderable for TextAnnotation {
     }
 }
 
+use crate::model::structure::column::ColumnData;
+
+impl Renderable for ColumnData {
+    fn render(&self, ctx: &DrawContext, is_selected: bool, is_hovered: bool) {
+        let (base_color, stroke_width) = get_base_style(is_selected, is_hovered);
+
+        // Use a distinct color for columns if not selected/hovered
+        let color = if !is_selected && !is_hovered {
+            egui::Color32::from_rgb(100, 100, 120) // Slateish
+        } else {
+            base_color
+        };
+
+        let corners = self.get_corners();
+        let screen_points: Vec<egui::Pos2> = corners.iter().map(|p| ctx.to_screen(*p)).collect();
+
+        // 1. Draw Body
+        ctx.painter.add(egui::Shape::convex_polygon(
+            screen_points.clone(),
+            color.linear_multiply(0.2), // Light fill
+            egui::Stroke::new(stroke_width, color),
+        ));
+
+        // 2. Draw Label
+        if !self.label.is_empty() {
+            let center_screen = ctx.to_screen(self.center);
+            let font_id = egui::FontId::proportional(14.0);
+
+            // Text color (contrast)
+            let text_color = if is_selected {
+                egui::Color32::BLACK
+            } else {
+                egui::Color32::WHITE
+            };
+
+            let final_pos = center_screen; // Anchor center
+
+            let galley = ctx
+                .painter
+                .layout_no_wrap(self.label.clone(), font_id, text_color);
+
+            let text_rect = galley.rect;
+            let text_pos = final_pos - (text_rect.size() / 2.0); // Center align
+
+            ctx.painter.galley(text_pos, galley, text_color);
+        }
+    }
+}
+
 impl Renderable for Entity {
     fn render(&self, ctx: &DrawContext, is_selected: bool, is_hovered: bool) {
         match &self.shape {
@@ -359,6 +408,7 @@ impl Renderable for Entity {
             Shape::Rectangle(e) => e.render(ctx, is_selected, is_hovered),
             Shape::Arc(e) => e.render(ctx, is_selected, is_hovered),
             Shape::Text(e) => e.render(ctx, is_selected, is_hovered),
+            Shape::Column(e) => e.render(ctx, is_selected, is_hovered),
             Shape::None => {}
         }
         // Basic render propagates selection (legacy behavior)
@@ -385,6 +435,7 @@ impl Entity {
             Shape::Rectangle(e) => e.render(ctx, is_self_selected, is_self_hovered),
             Shape::Arc(e) => e.render(ctx, is_self_selected, is_self_hovered),
             Shape::Text(e) => e.render(ctx, is_self_selected, is_self_hovered),
+            Shape::Column(e) => e.render(ctx, is_self_selected, is_self_hovered),
             Shape::None => {}
         }
 

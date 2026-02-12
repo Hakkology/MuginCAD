@@ -37,6 +37,14 @@ pub fn render_top_menu(ctx: &egui::Context, vm: &mut CadViewModel) {
                 }
             });
 
+            // ── Structure Menu ───────────────────────────────
+            ui.menu_button("Structure", |ui| {
+                ui.set_min_width(120.0);
+                if toolbar::menu_action(ui, "Structure Manager") {
+                    vm.structure_manager_open = true;
+                }
+            });
+
             // ── Actions Menu ─────────────────────────────────
             ui.menu_button("Actions", |ui| {
                 ui.set_min_width(140.0);

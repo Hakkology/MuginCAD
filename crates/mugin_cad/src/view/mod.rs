@@ -16,6 +16,7 @@ pub use rendering::context;
 
 use crate::viewmodel::CadViewModel;
 use eframe::egui;
+use mugin_widgets::panel;
 
 pub struct CadApp {
     pub view_model: CadViewModel,
@@ -41,6 +42,11 @@ impl eframe::App for CadApp {
         // Render Settings Window if open
         if self.view_model.show_settings_window {
             settings::render_settings_window(ctx, &mut self.view_model);
+        }
+
+        // Render Structure Manager if open
+        if self.view_model.structure_manager_open {
+            ui::structure::manager::render_structure_manager(ctx, &mut self.view_model);
         }
 
         // Render Export Window if open
@@ -72,17 +78,9 @@ impl eframe::App for CadApp {
         toolbar::render_toolbar(ctx, &mut self.view_model);
 
         // Hierarchy Panel (left side, after toolbar)
-        egui::SidePanel::left("hierarchy")
-            .resizable(true)
-            .default_width(200.0)
-            .frame(
-                egui::Frame::none()
-                    .fill(egui::Color32::from_rgb(25, 25, 25))
-                    .inner_margin(8.0),
-            )
-            .show(ctx, |ui| {
-                hierarchy::render_hierarchy(ui, &mut self.view_model);
-            });
+        panel::left_panel("hierarchy", 200.0, ctx, |ui| {
+            hierarchy::render_hierarchy(ui, &mut self.view_model);
+        });
 
         // Inspector Panel Logic
         let show_inspector = self.view_model.config.gui_config.show_inspector_always
@@ -94,17 +92,9 @@ impl eframe::App for CadApp {
                 .is_empty();
 
         if show_inspector {
-            egui::SidePanel::right("inspector")
-                .resizable(true)
-                .default_width(250.0)
-                .frame(
-                    egui::Frame::none()
-                        .fill(egui::Color32::from_rgb(25, 25, 25))
-                        .inner_margin(10.0),
-                )
-                .show(ctx, |ui| {
-                    inspector::render_inspector(ui, &mut self.view_model);
-                });
+            panel::right_panel("inspector", 250.0, ctx, |ui| {
+                inspector::render_inspector(ui, &mut self.view_model);
+            });
         }
 
         egui::TopBottomPanel::bottom("terminal")

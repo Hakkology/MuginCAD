@@ -26,6 +26,7 @@
 //! ```
 
 pub mod hierarchy;
+pub mod panel;
 pub mod properties;
 pub mod toolbar;
 pub mod window;
