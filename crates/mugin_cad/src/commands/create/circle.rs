@@ -1,6 +1,6 @@
 use crate::commands::preview;
 use crate::commands::{Command, CommandContext, InputResult, PointResult, parse_point};
-use crate::model::{Circle, Entity, Vector2};
+use crate::model::{Entity, Vector2};
 
 define_command!(CircleCommand);
 
@@ -20,7 +20,7 @@ impl Command for CircleCommand {
             let center = self.points[0];
             let radius = center.dist(self.points[1]);
             ctx.model
-                .add_entity(Entity::Circle(Circle::new(center, radius, ctx.filled_mode)));
+                .add_entity(Entity::circle(center, radius, ctx.filled_mode));
             PointResult::Complete
         } else {
             PointResult::NeedMore {
@@ -40,11 +40,8 @@ impl Command for CircleCommand {
             if let Ok(radius) = input.parse::<f32>() {
                 if radius > 0.0 {
                     let center = self.points[0];
-                    ctx.model.add_entity(Entity::Circle(Circle::new(
-                        center,
-                        radius,
-                        ctx.filled_mode,
-                    )));
+                    ctx.model
+                        .add_entity(Entity::circle(center, radius, ctx.filled_mode));
                     return InputResult::Parameter(PointResult::Complete);
                 }
             }

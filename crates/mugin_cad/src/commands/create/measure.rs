@@ -31,7 +31,7 @@ impl Command for MeasureCommand {
         let end = self.points[1];
 
         let annotation = TextAnnotation::new_distance(start, end);
-        ctx.model.add_entity(Entity::Text(annotation));
+        ctx.model.add_entity(Entity::text(annotation));
 
         PointResult::Complete
     }

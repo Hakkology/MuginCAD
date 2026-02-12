@@ -24,7 +24,7 @@ impl Command for MeasurePerimeterCommand {
             let centroid = geometry::calculate_centroid(&vertices);
 
             let annotation = crate::model::TextAnnotation::new_perimeter(centroid, perim, vertices);
-            ctx.model.add_entity(Entity::Text(annotation));
+            ctx.model.add_entity(Entity::text(annotation));
 
             PointResult::Complete
         } else {

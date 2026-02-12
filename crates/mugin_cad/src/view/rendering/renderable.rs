@@ -1,8 +1,8 @@
-use crate::model::Entity;
 use crate::model::Vector2;
 use crate::model::shapes::{
     annotation::TextAnnotation, arc::Arc, circle::Circle, line::Line, rectangle::Rectangle,
 };
+use crate::model::{Entity, Shape};
 use crate::view::rendering::context::DrawContext;
 use eframe::egui;
 
@@ -353,17 +353,17 @@ impl Renderable for TextAnnotation {
 
 impl Renderable for Entity {
     fn render(&self, ctx: &DrawContext, is_selected: bool, is_hovered: bool) {
-        match self {
-            Entity::Line(e) => e.render(ctx, is_selected, is_hovered),
-            Entity::Circle(e) => e.render(ctx, is_selected, is_hovered),
-            Entity::Rectangle(e) => e.render(ctx, is_selected, is_hovered),
-            Entity::Arc(e) => e.render(ctx, is_selected, is_hovered),
-            Entity::Text(e) => e.render(ctx, is_selected, is_hovered),
-            Entity::Composite { children, .. } => {
-                for child in children {
-                    child.render(ctx, is_selected, is_hovered);
-                }
-            }
+        match &self.shape {
+            Shape::Line(e) => e.render(ctx, is_selected, is_hovered),
+            Shape::Circle(e) => e.render(ctx, is_selected, is_hovered),
+            Shape::Rectangle(e) => e.render(ctx, is_selected, is_hovered),
+            Shape::Arc(e) => e.render(ctx, is_selected, is_hovered),
+            Shape::Text(e) => e.render(ctx, is_selected, is_hovered),
+            Shape::None => {}
+        }
+        // Render children recursively
+        for child in &self.children {
+            child.render(ctx, is_selected, is_hovered);
         }
     }
 }

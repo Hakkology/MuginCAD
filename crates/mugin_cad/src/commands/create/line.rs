@@ -1,6 +1,6 @@
 use crate::commands::preview;
 use crate::commands::{Command, CommandContext, PointResult};
-use crate::model::{Entity, Line, Vector2};
+use crate::model::{Entity, Vector2};
 
 define_command!(LineCommand);
 
@@ -26,7 +26,7 @@ impl Command for LineCommand {
         if self.points.len() >= 2 {
             let start = self.points[self.points.len() - 2];
             let end = self.points[self.points.len() - 1];
-            ctx.model.add_entity(Entity::Line(Line::new(start, end)));
+            ctx.model.add_entity(Entity::line(start, end));
         }
 
         PointResult::NeedMore {

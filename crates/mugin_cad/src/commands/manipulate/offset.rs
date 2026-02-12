@@ -1,5 +1,5 @@
 use crate::commands::{Command, CommandCategory, CommandContext, InputResult, PointResult};
-use crate::model::{Entity, Line, Vector2};
+use crate::model::{Entity, Line, Shape, Vector2};
 
 define_manipulation_command!(OffsetCommand,
     selected_lines: Vec<(usize, Line)> = Vec::new(),
@@ -60,17 +60,22 @@ impl Command for OffsetCommand {
         self.entity_indices = ctx.selected_indices.iter().cloned().collect();
         // Only collect lines from selected entities
         for &idx in &self.entity_indices {
-            if let Some(Entity::Line(line)) = ctx.model.entities.get(idx) {
-                self.selected_lines.push((idx, line.clone()));
+            if let Some(entity) = ctx.model.entities.get(idx) {
+                if let Shape::Line(line) = &entity.shape {
+                    self.selected_lines.push((idx, line.clone()));
+                }
             }
         }
     }
 
     fn can_execute(&self, ctx: &CommandContext) -> bool {
         // Check if there's at least one line in the selection
-        ctx.selected_indices
-            .iter()
-            .any(|&idx| matches!(ctx.model.entities.get(idx), Some(Entity::Line(_))))
+        ctx.selected_indices.iter().any(|&idx| {
+            matches!(
+                ctx.model.entities.get(idx).map(|e| &e.shape),
+                Some(Shape::Line(_))
+            )
+        })
     }
 
     fn push_point(&mut self, pos: Vector2, ctx: &mut CommandContext) -> PointResult {
@@ -92,7 +97,7 @@ impl Command for OffsetCommand {
         if let Some(distance) = self.offset_distance {
             for (_, line) in &self.selected_lines {
                 let offset_line = self.offset_line(line, distance, pos);
-                ctx.model.add_entity(Entity::Line(offset_line));
+                ctx.model.add_entity(Entity::new(Shape::Line(offset_line)));
             }
         }
 

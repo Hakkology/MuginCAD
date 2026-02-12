@@ -49,7 +49,7 @@ impl Command for TextCommand {
         }
 
         let annotation = TextAnnotation::new_custom(self.points[0], text);
-        ctx.model.add_entity(Entity::Text(annotation));
+        ctx.model.add_entity(Entity::text(annotation));
 
         InputResult::Point(PointResult::Complete)
     }

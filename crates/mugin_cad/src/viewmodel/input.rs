@@ -1,5 +1,5 @@
 use crate::commands::InputModifiers;
-use crate::model::Vector2;
+use crate::model::{Shape, Vector2};
 use crate::viewmodel::CadViewModel;
 
 impl CadViewModel {
@@ -52,14 +52,14 @@ impl CadViewModel {
             let mut label_drag_index = None;
 
             for (i, entity) in tab.model.entities.iter().enumerate().rev() {
-                match entity {
-                    crate::model::Entity::Line(line) => {
+                match &entity.shape {
+                    Shape::Line(line) => {
                         if line.hit_test_label(pos, tolerance) {
                             label_drag_index = Some(i);
                             break;
                         }
                     }
-                    crate::model::Entity::Text(text) => {
+                    Shape::Text(text) => {
                         if text.hit_test(pos, tolerance) {
                             label_drag_index = Some(i);
                             break;
@@ -102,11 +102,11 @@ impl CadViewModel {
 
                 // Update the specific entity
                 if let Some(entity) = tab.model.entities.get_mut(idx) {
-                    match entity {
-                        crate::model::Entity::Line(line) => {
+                    match &mut entity.shape {
+                        Shape::Line(line) => {
                             line.label_offset = line.label_offset + delta;
                         }
-                        crate::model::Entity::Text(text) => {
+                        Shape::Text(text) => {
                             text.position = text.position + delta;
                         }
                         _ => {}

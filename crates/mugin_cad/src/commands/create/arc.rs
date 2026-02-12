@@ -50,7 +50,7 @@ impl Command for ArcCommand {
                     self.filled,
                     self.clockwise,
                 );
-                ctx.model.add_entity(Entity::Arc(arc));
+                ctx.model.add_entity(Entity::arc(arc));
                 PointResult::Complete
             }
             _ => PointResult::Complete,

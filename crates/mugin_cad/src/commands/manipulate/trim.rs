@@ -1,6 +1,6 @@
 use crate::commands::{Command, CommandCategory, CommandContext, PointResult};
 use crate::model::math::geometry;
-use crate::model::{Entity, Vector2};
+use crate::model::{Shape, Vector2};
 
 define_command!(TrimCommand);
 
@@ -24,7 +24,7 @@ impl Command for TrimCommand {
         let mut best_dist = f32::MAX;
 
         for (i, entity) in ctx.model.entities.iter().enumerate() {
-            if let Entity::Line(line) = entity {
+            if let Shape::Line(line) = &entity.shape {
                 let dist = geometry::point_to_line_distance(pos, line.start, line.end);
                 if dist < tolerance && dist < best_dist {
                     best_dist = dist;
@@ -35,7 +35,7 @@ impl Command for TrimCommand {
 
         if let Some(line_idx) = best_line_idx {
             // Find all intersection points with other entities
-            let line = if let Entity::Line(l) = &ctx.model.entities[line_idx] {
+            let line = if let Shape::Line(l) = &ctx.model.entities[line_idx].shape {
                 l.clone()
             } else {
                 return PointResult::NeedMore {
@@ -50,8 +50,8 @@ impl Command for TrimCommand {
                     continue;
                 }
 
-                match entity {
-                    Entity::Line(other) => {
+                match &entity.shape {
+                    Shape::Line(other) => {
                         if let Some(pt) = geometry::line_line_intersection(
                             line.start,
                             line.end,
@@ -61,7 +61,7 @@ impl Command for TrimCommand {
                             intersections.push(pt);
                         }
                     }
-                    Entity::Circle(circle) => {
+                    Shape::Circle(circle) => {
                         let pts = geometry::line_circle_intersection(
                             line.start,
                             line.end,
@@ -70,7 +70,7 @@ impl Command for TrimCommand {
                         );
                         intersections.extend(pts);
                     }
-                    Entity::Rectangle(rect) => {
+                    Shape::Rectangle(rect) => {
                         let corners = [
                             rect.min,
                             Vector2::new(rect.max.x, rect.min.y),
@@ -87,14 +87,14 @@ impl Command for TrimCommand {
                             }
                         }
                     }
-                    Entity::Arc(arc) => {
+                    Shape::Arc(arc) => {
                         let pts = geometry::line_circle_intersection(
                             line.start, line.end, arc.center, arc.radius,
                         );
                         intersections.extend(pts);
                     }
-                    Entity::Text(_) | Entity::Composite { .. } => {
-                        // Text/Composite don't contribute to intersections
+                    _ => {
+                        // Text/None don't contribute to intersections
                     }
                 }
             }
@@ -141,7 +141,7 @@ impl Command for TrimCommand {
             }
 
             // Modify the line based on which side to trim
-            if let Entity::Line(ref mut line_entity) = ctx.model.entities[line_idx] {
+            if let Shape::Line(ref mut line_entity) = ctx.model.entities[line_idx].shape {
                 match (left_intersection, right_intersection) {
                     (Some(left), Some(_right)) => {
                         line_entity.end = left;

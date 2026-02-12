@@ -1,6 +1,6 @@
 use crate::commands::preview;
 use crate::commands::{Command, CommandContext, PointResult};
-use crate::model::{Entity, Rectangle, Vector2};
+use crate::model::{Entity, Vector2};
 
 define_command!(RectangleCommand);
 
@@ -22,7 +22,7 @@ impl Command for RectangleCommand {
             let min = Vector2::new(p1.x.min(p2.x), p1.y.min(p2.y));
             let max = Vector2::new(p1.x.max(p2.x), p1.y.max(p2.y));
             ctx.model
-                .add_entity(Entity::Rectangle(Rectangle::new(min, max, ctx.filled_mode)));
+                .add_entity(Entity::rectangle(min, max, ctx.filled_mode));
             PointResult::Complete
         } else {
             PointResult::NeedMore {

@@ -1,6 +1,6 @@
 use super::vector::Vector2;
 use crate::model::CadModel;
-use crate::model::Entity;
+use crate::model::Shape;
 use std::f32::consts::PI;
 
 // Removed DirectedEdge struct as it's no longer used.
@@ -43,9 +43,9 @@ pub fn find_closed_region(model: &CadModel, p: Vector2) -> Option<(Vec<usize>, V
     };
 
     for (i, entity) in model.entities.iter().enumerate() {
-        let (start, end) = match entity {
-            Entity::Line(l) => (l.start, l.end),
-            Entity::Arc(a) => {
+        let (start, end) = match &entity.shape {
+            Shape::Line(l) => (l.start, l.end),
+            Shape::Arc(a) => {
                 let s = Vector2::new(
                     a.center.x + a.radius * a.start_angle.cos(),
                     a.center.y + a.radius * a.start_angle.sin(),
@@ -74,23 +74,23 @@ pub fn find_closed_region(model: &CadModel, p: Vector2) -> Option<(Vec<usize>, V
         adj[u].push(EdgeInfo {
             entity_idx: i,
             target: v,
-            is_arc: matches!(entity, Entity::Arc(_)),
+            is_arc: matches!(&entity.shape, Shape::Arc(_)),
         });
         adj[v].push(EdgeInfo {
             entity_idx: i,
             target: u,
-            is_arc: matches!(entity, Entity::Arc(_)),
+            is_arc: matches!(&entity.shape, Shape::Arc(_)),
         });
     }
 
     // 3. Determine Start Direction
     let start_entity = &model.entities[start_entity_idx];
-    let (p_a, p_b) = match start_entity {
-        Entity::Line(l) => (l.start, l.end),
+    let (p_a, p_b) = match &start_entity.shape {
+        Shape::Line(l) => (l.start, l.end),
         // Basic arc handling: Treat as chord for direction check?
         // For exact check, we need tangent at intersection.
         // Assume Line for MVP logic or approximate.
-        Entity::Arc(a) => {
+        Shape::Arc(a) => {
             // Approximation: use start/end chord
             let s = Vector2::new(
                 a.center.x + a.radius * a.start_angle.cos(),
@@ -287,9 +287,13 @@ struct EdgeInfo {
     is_arc: bool, // Reserved for potential arc-specific traversal logic
 }
 
-fn intersect_ray_entity(origin: Vector2, dir: Vector2, entity: &Entity) -> Option<Vector2> {
-    match entity {
-        Entity::Line(line) => {
+fn intersect_ray_entity(
+    origin: Vector2,
+    dir: Vector2,
+    entity: &crate::model::Entity,
+) -> Option<Vector2> {
+    match &entity.shape {
+        Shape::Line(line) => {
             let p1 = line.start;
             let p2 = line.end;
             let v1 = origin - p1;
@@ -307,7 +311,7 @@ fn intersect_ray_entity(origin: Vector2, dir: Vector2, entity: &Entity) -> Optio
             }
             None
         }
-        Entity::Arc(arc) => {
+        Shape::Arc(arc) => {
             // Check arc intersection
             // Simple approach: Check circle intersection, then angle range.
             // Ray P + t*D.

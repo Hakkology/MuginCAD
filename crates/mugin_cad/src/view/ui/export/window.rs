@@ -1,6 +1,6 @@
 use crate::export::pdf::PdfExporter;
 use crate::export::settings::{ExportSettings, ExportSource, PageOrientation, PageSize, ScaleType};
-use crate::model::{CadModel, Entity, Vector2};
+use crate::model::{CadModel, Shape, Vector2};
 use eframe::egui;
 
 pub struct ExportWindow {
@@ -236,8 +236,8 @@ impl ExportWindow {
         let mut shapes = Vec::new();
 
         for entity in &model.entities {
-            match entity {
-                Entity::Text(text) => {
+            match &entity.shape {
+                Shape::Text(text) => {
                     let p = transform_point(text.position);
                     painter.text(
                         p,

@@ -1,4 +1,4 @@
-use crate::model::Entity;
+use crate::model::Shape;
 use crate::model::shapes::{
     annotation::TextAnnotation, arc::Arc, circle::Circle, line::Line, rectangle::Rectangle,
 };
@@ -183,20 +183,22 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
             ui.label(egui::RichText::new(entity.type_name()).size(18.0).strong());
             ui.add_space(5.0);
 
-            match entity {
-                Entity::Line(line) => inspect_line(ui, line),
-                Entity::Circle(circle) => inspect_circle(ui, circle),
-                Entity::Rectangle(rect) => inspect_rectangle(ui, rect),
-                Entity::Arc(arc) => inspect_arc(ui, arc),
-                Entity::Text(text) => inspect_text(ui, text),
-                Entity::Composite { label, children } => {
-                    properties::section(ui, label, |ui| {
-                        ui.label(format!("Children: {}", children.len()));
-                        for (i, child) in children.iter().enumerate() {
-                            ui.label(format!("  {}. {}", i + 1, child.type_name()));
-                        }
-                    });
-                }
+            match &mut entity.shape {
+                Shape::Line(line) => inspect_line(ui, line),
+                Shape::Circle(circle) => inspect_circle(ui, circle),
+                Shape::Rectangle(rect) => inspect_rectangle(ui, rect),
+                Shape::Arc(arc) => inspect_arc(ui, arc),
+                Shape::Text(text) => inspect_text(ui, text),
+                Shape::None => {}
+            }
+
+            if !entity.children.is_empty() {
+                properties::section(ui, "Children", |ui| {
+                    ui.label(format!("Children: {}", entity.children.len()));
+                    for (i, child) in entity.children.iter().enumerate() {
+                        ui.label(format!("  {}. {}", i + 1, child.type_name()));
+                    }
+                });
             }
 
             ui.add_space(20.0);

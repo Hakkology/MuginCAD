@@ -1,5 +1,5 @@
 use super::settings::{ExportSettings, ExportSource, PageOrientation, ScaleType};
-use crate::model::{CadModel, Entity, Vector2};
+use crate::model::{CadModel, Shape, Vector2};
 use printpdf::*;
 use std::fs::File;
 use std::io::BufWriter;
@@ -73,8 +73,8 @@ impl PdfExporter {
         current_layer.set_outline_thickness(0.5);
 
         for entity in &model.entities {
-            match entity {
-                Entity::Text(text) => {
+            match &entity.shape {
+                Shape::Text(text) => {
                     let pos = transform(text.position);
                     let font = doc.add_builtin_font(BuiltinFont::Helvetica).unwrap();
                     current_layer.use_text(text.text.clone(), 10.0, Mm(pos.0), Mm(pos.1), &font);

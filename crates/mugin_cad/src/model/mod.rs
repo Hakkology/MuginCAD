@@ -4,7 +4,8 @@
 //! It aims to be pure data and logic, independent of the view or specific UI frameworks.
 //!
 //! Key components:
-//! - `Entity`: The primitive shapes (Line, Circle, etc.).
+//! - `Entity`: A node in the scene hierarchy (id, name, shape, children).
+//! - `Shape`: The geometric primitive (Line, Circle, etc.) or `None` for containers.
 //! - `CadModel`: The container for all entities in a project.
 //! - `AxisManager`: Architectural grid system.
 //! - `Vector2`: Basic math primitives.
@@ -22,6 +23,7 @@ pub use tools::snap;
 pub use tools::undo;
 
 use serde::{Deserialize, Serialize};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 pub use shapes::annotation::TextAnnotation;
 pub use shapes::arc::Arc;
@@ -30,98 +32,174 @@ pub use shapes::line::Line;
 pub use shapes::rectangle::Rectangle;
 pub use vector::Vector2;
 
+/// Global atomic counter for unique entity IDs.
+static NEXT_ENTITY_ID: AtomicU64 = AtomicU64::new(1);
+
+fn next_id() -> u64 {
+    NEXT_ENTITY_ID.fetch_add(1, Ordering::Relaxed)
+}
+
+// ─── Shape ──────────────────────────────────────────────────────
+
+/// The geometric primitive of an entity, or `None` for empty containers.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum Entity {
+pub enum Shape {
+    /// Empty container — has no geometry, only used as a hierarchy parent.
+    None,
     Line(Line),
     Circle(Circle),
     Rectangle(Rectangle),
     Arc(Arc),
     Text(TextAnnotation),
-    /// A compound entity composed of multiple children (e.g. column, beam).
-    Composite {
-        label: String,
-        children: Vec<Entity>,
-    },
+}
+
+impl Shape {
+    pub fn type_name(&self) -> &'static str {
+        match self {
+            Shape::None => "Empty",
+            Shape::Line(_) => "Line",
+            Shape::Circle(_) => "Circle",
+            Shape::Rectangle(_) => "Rectangle",
+            Shape::Arc(_) => "Arc",
+            Shape::Text(_) => "Text",
+        }
+    }
+}
+
+// ─── Entity ─────────────────────────────────────────────────────
+
+/// A node in the scene hierarchy.
+///
+/// Every entity has a unique `id`, a display `name`, an optional geometric
+/// `shape` (may be `Shape::None` for pure containers), and recursive `children`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Entity {
+    pub id: u64,
+    pub name: String,
+    pub shape: Shape,
+    pub children: Vec<Entity>,
 }
 
 impl Entity {
+    // ── Constructors ────────────────────────────────────────
+
+    /// Create an entity with the given shape. Name defaults to the shape type.
+    pub fn new(shape: Shape) -> Self {
+        let name = shape.type_name().to_string();
+        Self {
+            id: next_id(),
+            name,
+            shape,
+            children: Vec::new(),
+        }
+    }
+
+    /// Create an empty container entity.
+    pub fn empty(name: impl Into<String>) -> Self {
+        Self {
+            id: next_id(),
+            name: name.into(),
+            shape: Shape::None,
+            children: Vec::new(),
+        }
+    }
+
+    // ── Factory helpers ─────────────────────────────────────
+
+    pub fn line(start: Vector2, end: Vector2) -> Self {
+        Self::new(Shape::Line(Line::new(start, end)))
+    }
+
+    pub fn circle(center: Vector2, radius: f32, filled: bool) -> Self {
+        Self::new(Shape::Circle(Circle::new(center, radius, filled)))
+    }
+
+    pub fn rectangle(min: Vector2, max: Vector2, filled: bool) -> Self {
+        Self::new(Shape::Rectangle(Rectangle::new(min, max, filled)))
+    }
+
+    pub fn arc(arc: Arc) -> Self {
+        Self::new(Shape::Arc(arc))
+    }
+
+    pub fn text(annotation: TextAnnotation) -> Self {
+        Self::new(Shape::Text(annotation))
+    }
+
+    // ── Queries ─────────────────────────────────────────────
+
+    pub fn type_name(&self) -> &str {
+        self.shape.type_name()
+    }
+
     pub fn hit_test(&self, pos: Vector2, tolerance: f32) -> bool {
-        match self {
-            Entity::Line(line) => line.hit_test(pos, tolerance),
-            Entity::Circle(circle) => circle.hit_test(pos, tolerance),
-            Entity::Rectangle(rect) => rect.hit_test(pos, tolerance),
-            Entity::Arc(arc) => arc.hit_test(pos, tolerance),
-            Entity::Text(text) => text.hit_test(pos, tolerance),
-            Entity::Composite { children, .. } => {
-                children.iter().any(|c| c.hit_test(pos, tolerance))
-            }
+        // Check own shape
+        let self_hit = match &self.shape {
+            Shape::None => false,
+            Shape::Line(line) => line.hit_test(pos, tolerance),
+            Shape::Circle(circle) => circle.hit_test(pos, tolerance),
+            Shape::Rectangle(rect) => rect.hit_test(pos, tolerance),
+            Shape::Arc(arc) => arc.hit_test(pos, tolerance),
+            Shape::Text(text) => text.hit_test(pos, tolerance),
+        };
+        if self_hit {
+            return true;
         }
+        // Check children
+        self.children.iter().any(|c| c.hit_test(pos, tolerance))
     }
 
-    pub fn type_name(&self) -> &'static str {
-        match self {
-            Entity::Line(_) => "Line",
-            Entity::Circle(_) => "Circle",
-            Entity::Rectangle(_) => "Rectangle",
-            Entity::Arc(_) => "Arc",
-            Entity::Text(_) => "Text",
-            Entity::Composite { .. } => "Composite",
-        }
-    }
-
-    /// Get the center point of the entity
     pub fn center(&self) -> Vector2 {
-        match self {
-            Entity::Line(line) => Vector2::new(
+        match &self.shape {
+            Shape::Line(line) => Vector2::new(
                 (line.start.x + line.end.x) / 2.0,
                 (line.start.y + line.end.y) / 2.0,
             ),
-            Entity::Circle(circle) => circle.center,
-            Entity::Rectangle(rect) => Vector2::new(
+            Shape::Circle(circle) => circle.center,
+            Shape::Rectangle(rect) => Vector2::new(
                 (rect.min.x + rect.max.x) / 2.0,
                 (rect.min.y + rect.max.y) / 2.0,
             ),
-            Entity::Arc(arc) => arc.center,
-            Entity::Text(text) => text.position,
-            Entity::Composite { .. } => {
+            Shape::Arc(arc) => arc.center,
+            Shape::Text(text) => text.position,
+            Shape::None => {
                 let (min, max) = self.bounding_box();
                 Vector2::new((min.x + max.x) / 2.0, (min.y + max.y) / 2.0)
             }
         }
     }
 
-    /// Translate (move) the entity by a delta
+    // ── Transforms ──────────────────────────────────────────
+
     pub fn translate(&mut self, delta: Vector2) {
-        match self {
-            Entity::Line(line) => {
+        match &mut self.shape {
+            Shape::Line(line) => {
                 line.start = line.start + delta;
                 line.end = line.end + delta;
             }
-            Entity::Circle(circle) => {
+            Shape::Circle(circle) => {
                 circle.center = circle.center + delta;
             }
-            Entity::Rectangle(rect) => {
+            Shape::Rectangle(rect) => {
                 rect.min = rect.min + delta;
                 rect.max = rect.max + delta;
             }
-            Entity::Arc(arc) => {
+            Shape::Arc(arc) => {
                 arc.center = arc.center + delta;
             }
-            Entity::Text(text) => {
+            Shape::Text(text) => {
                 text.position = text.position + delta;
                 for pt in &mut text.anchor_points {
                     *pt = *pt + delta;
                 }
             }
-            Entity::Composite { children, .. } => {
-                for child in children {
-                    child.translate(delta);
-                }
-            }
+            Shape::None => {}
+        }
+        for child in &mut self.children {
+            child.translate(delta);
         }
     }
 
-    /// Rotate the entity around a pivot point by angle (radians)
     pub fn rotate(&mut self, pivot: Vector2, angle: f32) {
         let cos_a = angle.cos();
         let sin_a = angle.sin();
@@ -135,15 +213,15 @@ impl Entity {
             )
         };
 
-        match self {
-            Entity::Line(line) => {
+        match &mut self.shape {
+            Shape::Line(line) => {
                 line.start = rotate_point(line.start);
                 line.end = rotate_point(line.end);
             }
-            Entity::Circle(circle) => {
+            Shape::Circle(circle) => {
                 circle.center = rotate_point(circle.center);
             }
-            Entity::Rectangle(rect) => {
+            Shape::Rectangle(rect) => {
                 let p1 = rotate_point(rect.min);
                 let p2 = rotate_point(Vector2::new(rect.max.x, rect.min.y));
                 let p3 = rotate_point(rect.max);
@@ -158,26 +236,24 @@ impl Entity {
                     p1.y.max(p2.y).max(p3.y).max(p4.y),
                 );
             }
-            Entity::Arc(arc) => {
+            Shape::Arc(arc) => {
                 arc.center = rotate_point(arc.center);
                 arc.start_angle += angle;
                 arc.end_angle += angle;
             }
-            Entity::Text(text) => {
+            Shape::Text(text) => {
                 text.position = rotate_point(text.position);
                 for pt in &mut text.anchor_points {
                     *pt = rotate_point(*pt);
                 }
             }
-            Entity::Composite { children, .. } => {
-                for child in children {
-                    child.rotate(pivot, angle);
-                }
-            }
+            Shape::None => {}
+        }
+        for child in &mut self.children {
+            child.rotate(pivot, angle);
         }
     }
 
-    /// Scale the entity from a base point by a factor
     pub fn scale(&mut self, base: Vector2, factor: f32) {
         let scale_point = |p: Vector2| -> Vector2 {
             Vector2::new(
@@ -186,82 +262,89 @@ impl Entity {
             )
         };
 
-        match self {
-            Entity::Line(line) => {
+        match &mut self.shape {
+            Shape::Line(line) => {
                 line.start = scale_point(line.start);
                 line.end = scale_point(line.end);
             }
-            Entity::Circle(circle) => {
+            Shape::Circle(circle) => {
                 circle.center = scale_point(circle.center);
                 circle.radius *= factor;
             }
-            Entity::Rectangle(rect) => {
+            Shape::Rectangle(rect) => {
                 rect.min = scale_point(rect.min);
                 rect.max = scale_point(rect.max);
             }
-            Entity::Arc(arc) => {
+            Shape::Arc(arc) => {
                 arc.center = scale_point(arc.center);
                 arc.radius *= factor;
             }
-            Entity::Text(text) => {
+            Shape::Text(text) => {
                 text.position = scale_point(text.position);
                 for pt in &mut text.anchor_points {
                     *pt = scale_point(*pt);
                 }
                 text.style.font_size *= factor;
             }
-            Entity::Composite { children, .. } => {
-                for child in children {
-                    child.scale(base, factor);
-                }
-            }
+            Shape::None => {}
+        }
+        for child in &mut self.children {
+            child.scale(base, factor);
         }
     }
+
+    // ── Geometry helpers ────────────────────────────────────
 
     /// Returns the axis-aligned bounding box as `(min, max)`.
     pub fn bounding_box(&self) -> (Vector2, Vector2) {
-        match self {
-            Entity::Line(l) => (
+        let shape_bb = match &self.shape {
+            Shape::Line(l) => Some((
                 Vector2::new(l.start.x.min(l.end.x), l.start.y.min(l.end.y)),
                 Vector2::new(l.start.x.max(l.end.x), l.start.y.max(l.end.y)),
-            ),
-            Entity::Circle(c) => (
+            )),
+            Shape::Circle(c) => Some((
                 Vector2::new(c.center.x - c.radius, c.center.y - c.radius),
                 Vector2::new(c.center.x + c.radius, c.center.y + c.radius),
-            ),
-            Entity::Arc(a) => (
+            )),
+            Shape::Arc(a) => Some((
                 Vector2::new(a.center.x - a.radius, a.center.y - a.radius),
                 Vector2::new(a.center.x + a.radius, a.center.y + a.radius),
-            ),
-            Entity::Rectangle(r) => (
+            )),
+            Shape::Rectangle(r) => Some((
                 Vector2::new(r.min.x.min(r.max.x), r.min.y.min(r.max.y)),
                 Vector2::new(r.min.x.max(r.max.x), r.min.y.max(r.max.y)),
-            ),
-            Entity::Text(t) => (t.position, t.position),
-            Entity::Composite { children, .. } => {
-                let mut min_b = Vector2::new(f32::MAX, f32::MAX);
-                let mut max_b = Vector2::new(f32::MIN, f32::MIN);
-                for child in children {
-                    let (c_min, c_max) = child.bounding_box();
-                    min_b.x = min_b.x.min(c_min.x);
-                    min_b.y = min_b.y.min(c_min.y);
-                    max_b.x = max_b.x.max(c_max.x);
-                    max_b.y = max_b.y.max(c_max.y);
-                }
-                (min_b, max_b)
-            }
+            )),
+            Shape::Text(t) => Some((t.position, t.position)),
+            Shape::None => None,
+        };
+
+        let mut min_b;
+        let mut max_b;
+
+        if let Some((s_min, s_max)) = shape_bb {
+            min_b = s_min;
+            max_b = s_max;
+        } else {
+            min_b = Vector2::new(f32::MAX, f32::MAX);
+            max_b = Vector2::new(f32::MIN, f32::MIN);
         }
+
+        for child in &self.children {
+            let (c_min, c_max) = child.bounding_box();
+            min_b.x = min_b.x.min(c_min.x);
+            min_b.y = min_b.y.min(c_min.y);
+            max_b.x = max_b.x.max(c_max.x);
+            max_b.y = max_b.y.max(c_max.y);
+        }
+
+        (min_b, max_b)
     }
 
     /// Convert the entity to a polyline (list of points).
-    ///
-    /// Circles and arcs are approximated with line segments.
-    /// Returns the vertices in order; for closed shapes the last
-    /// point equals the first.
     pub fn as_polyline(&self) -> Vec<Vector2> {
-        match self {
-            Entity::Line(l) => vec![l.start, l.end],
-            Entity::Circle(c) => {
+        let mut pts = match &self.shape {
+            Shape::Line(l) => vec![l.start, l.end],
+            Shape::Circle(c) => {
                 let segments = 32;
                 (0..=segments)
                     .map(|i| {
@@ -273,7 +356,7 @@ impl Entity {
                     })
                     .collect()
             }
-            Entity::Arc(a) => {
+            Shape::Arc(a) => {
                 let segments = 24;
                 let start_angle = a.start_angle;
                 let mut end_angle = a.end_angle;
@@ -291,57 +374,69 @@ impl Entity {
                     })
                     .collect()
             }
-            Entity::Rectangle(r) => {
+            Shape::Rectangle(r) => {
                 vec![
                     r.min,
                     Vector2::new(r.max.x, r.min.y),
                     r.max,
                     Vector2::new(r.min.x, r.max.y),
-                    r.min, // close
+                    r.min,
                 ]
             }
-            Entity::Text(t) => vec![t.position],
-            Entity::Composite { children, .. } => {
-                children.iter().flat_map(|c| c.as_polyline()).collect()
-            }
+            Shape::Text(t) => vec![t.position],
+            Shape::None => Vec::new(),
+        };
+        for child in &self.children {
+            pts.extend(child.as_polyline());
         }
+        pts
     }
 
     /// Whether this entity represents a closed shape.
     pub fn is_closed(&self) -> bool {
-        matches!(
-            self,
-            Entity::Circle(_) | Entity::Rectangle(_) | Entity::Composite { .. }
-        )
+        matches!(self.shape, Shape::Circle(_) | Shape::Rectangle(_)) || !self.children.is_empty()
     }
 
     /// Whether this entity has a fill.
     pub fn is_filled(&self) -> bool {
-        match self {
-            Entity::Circle(c) => c.filled,
-            Entity::Rectangle(r) => r.filled,
-            Entity::Arc(a) => a.filled,
-            Entity::Composite { children, .. } => children.iter().any(|c| c.is_filled()),
-            _ => false,
+        match &self.shape {
+            Shape::Circle(c) => c.filled,
+            Shape::Rectangle(r) => r.filled,
+            Shape::Arc(a) => a.filled,
+            _ => self.children.iter().any(|c| c.is_filled()),
         }
     }
 
-    /// Get the label for composite entities.
-    pub fn composite_label(&self) -> Option<&str> {
-        match self {
-            Entity::Composite { label, .. } => Some(label),
-            _ => None,
+    // ── Hierarchy helpers ───────────────────────────────────
+
+    /// Find a descendant entity by id (recursive).
+    pub fn find_by_id(&self, target_id: u64) -> Option<&Entity> {
+        if self.id == target_id {
+            return Some(self);
         }
+        for child in &self.children {
+            if let Some(found) = child.find_by_id(target_id) {
+                return Some(found);
+            }
+        }
+        None
     }
 
-    /// Get children for composite entities.
-    pub fn children(&self) -> Option<&[Entity]> {
-        match self {
-            Entity::Composite { children, .. } => Some(children),
-            _ => None,
+    /// Find a descendant entity by id (mutable, recursive).
+    pub fn find_by_id_mut(&mut self, target_id: u64) -> Option<&mut Entity> {
+        if self.id == target_id {
+            return Some(self);
         }
+        for child in &mut self.children {
+            if let Some(found) = child.find_by_id_mut(target_id) {
+                return Some(found);
+            }
+        }
+        None
     }
 }
+
+// ─── CadModel ───────────────────────────────────────────────────
 
 pub struct CadModel {
     pub entities: Vec<Entity>,
@@ -362,11 +457,6 @@ impl CadModel {
         self.entities.push(entity);
     }
 
-    /// Add a composite entity from multiple children.
-    pub fn add_composite(&mut self, label: String, children: Vec<Entity>) {
-        self.entities.push(Entity::Composite { label, children });
-    }
-
     pub fn pick_entity(&self, pos: Vector2, tolerance: f32) -> Option<usize> {
         self.entities
             .iter()
@@ -376,9 +466,27 @@ impl CadModel {
             .map(|(i, _)| i)
     }
 
+    /// Find entity by id across the whole tree.
+    pub fn find_by_id(&self, id: u64) -> Option<&Entity> {
+        for entity in &self.entities {
+            if let Some(found) = entity.find_by_id(id) {
+                return Some(found);
+            }
+        }
+        None
+    }
+
+    /// Find entity by id (mutable) across the whole tree.
+    pub fn find_by_id_mut(&mut self, id: u64) -> Option<&mut Entity> {
+        for entity in &mut self.entities {
+            if let Some(found) = entity.find_by_id_mut(id) {
+                return Some(found);
+            }
+        }
+        None
+    }
+
     /// Compute the bounding box of all entities.
-    ///
-    /// Returns `(min, max)` corners. If empty, returns a default 100×100 region.
     pub fn bounds(&self) -> (Vector2, Vector2) {
         if self.entities.is_empty() {
             return (Vector2::new(0.0, 0.0), Vector2::new(100.0, 100.0));
@@ -395,7 +503,6 @@ impl CadModel {
             max_b.y = max_b.y.max(e_max.y);
         }
 
-        // Avoid zero-size bounds
         if (max_b.x - min_b.x).abs() < 1.0 {
             max_b.x = min_b.x + 1.0;
         }

@@ -1,4 +1,4 @@
-use crate::model::{CadModel, Entity, Vector2};
+use crate::model::{CadModel, Entity, Shape, Vector2};
 
 /// Types of snap points
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -159,8 +159,8 @@ impl SnapSystem {
     fn get_entity_snap_points(&self, entity: &Entity) -> Vec<SnapPoint> {
         let mut points = Vec::new();
 
-        match entity {
-            Entity::Line(line) => {
+        match &entity.shape {
+            Shape::Line(line) => {
                 // Endpoints
                 points.push(SnapPoint::new(line.start, SnapPointType::Endpoint));
                 points.push(SnapPoint::new(line.end, SnapPointType::Endpoint));
@@ -171,7 +171,7 @@ impl SnapSystem {
                 );
                 points.push(SnapPoint::new(mid, SnapPointType::Midpoint));
             }
-            Entity::Circle(circle) => {
+            Shape::Circle(circle) => {
                 // Center
                 points.push(SnapPoint::new(circle.center, SnapPointType::Center));
                 // Quadrant points (N, S, E, W)
@@ -192,7 +192,7 @@ impl SnapSystem {
                     SnapPointType::Endpoint,
                 ));
             }
-            Entity::Rectangle(rect) => {
+            Shape::Rectangle(rect) => {
                 // Four corners
                 points.push(SnapPoint::new(rect.min, SnapPointType::Corner));
                 points.push(SnapPoint::new(rect.max, SnapPointType::Corner));
@@ -211,14 +211,14 @@ impl SnapSystem {
                 );
                 points.push(SnapPoint::new(center, SnapPointType::Center));
             }
-            Entity::Arc(arc) => {
+            Shape::Arc(arc) => {
                 // Center
                 points.push(SnapPoint::new(arc.center, SnapPointType::Center));
                 // Start and end points
                 points.push(SnapPoint::new(arc.start_point(), SnapPointType::Endpoint));
                 points.push(SnapPoint::new(arc.end_point(), SnapPointType::Endpoint));
             }
-            Entity::Text(text) => {
+            Shape::Text(text) => {
                 // Text position
                 points.push(SnapPoint::new(text.position, SnapPointType::Center));
                 // Anchor points for measurements
@@ -226,11 +226,12 @@ impl SnapSystem {
                     points.push(SnapPoint::new(*pt, SnapPointType::Endpoint));
                 }
             }
-            Entity::Composite { children, .. } => {
-                for child in children {
-                    points.extend(self.get_entity_snap_points(child));
-                }
-            }
+            Shape::None => {}
+        }
+
+        // Also process children recursively
+        for child in &entity.children {
+            points.extend(self.get_entity_snap_points(child));
         }
 
         points
@@ -240,14 +241,14 @@ impl SnapSystem {
     fn find_intersections(&self, a: &Entity, b: &Entity) -> Vec<Vector2> {
         let mut intersections = Vec::new();
 
-        match (a, b) {
-            (Entity::Line(l1), Entity::Line(l2)) => {
+        match (&a.shape, &b.shape) {
+            (Shape::Line(l1), Shape::Line(l2)) => {
                 if let Some(pt) = self.line_line_intersection(l1.start, l1.end, l2.start, l2.end) {
                     intersections.push(pt);
                 }
             }
-            (Entity::Line(line), Entity::Circle(circle))
-            | (Entity::Circle(circle), Entity::Line(line)) => {
+            (Shape::Line(line), Shape::Circle(circle))
+            | (Shape::Circle(circle), Shape::Line(line)) => {
                 intersections.extend(self.line_circle_intersection(
                     line.start,
                     line.end,
@@ -255,8 +256,8 @@ impl SnapSystem {
                     circle.radius,
                 ));
             }
-            (Entity::Line(line), Entity::Rectangle(rect))
-            | (Entity::Rectangle(rect), Entity::Line(line)) => {
+            (Shape::Line(line), Shape::Rectangle(rect))
+            | (Shape::Rectangle(rect), Shape::Line(line)) => {
                 // Check intersection with all 4 edges
                 let corners = [
                     (rect.min, Vector2::new(rect.max.x, rect.min.y)),
@@ -270,7 +271,7 @@ impl SnapSystem {
                     }
                 }
             }
-            (Entity::Circle(c1), Entity::Circle(c2)) => {
+            (Shape::Circle(c1), Shape::Circle(c2)) => {
                 intersections.extend(
                     self.circle_circle_intersection(c1.center, c1.radius, c2.center, c2.radius),
                 );
