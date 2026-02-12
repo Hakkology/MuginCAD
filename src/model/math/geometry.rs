@@ -371,6 +371,114 @@ fn intersect_ray_entity(origin: Vector2, dir: Vector2, entity: &Entity) -> Optio
     }
 }
 
+// ─── Geometry Helpers (extracted from trim.rs) ───────────────────────────
+
+/// Calculate distance from a point to a line segment
+pub fn point_to_line_distance(p: Vector2, a: Vector2, b: Vector2) -> f32 {
+    let ab = b - a;
+    let ap = p - a;
+    let len_sq = ab.x * ab.x + ab.y * ab.y;
+
+    if len_sq == 0.0 {
+        return ((p.x - a.x).powi(2) + (p.y - a.y).powi(2)).sqrt();
+    }
+
+    let t = ((ap.x * ab.x + ap.y * ab.y) / len_sq).clamp(0.0, 1.0);
+    let closest = Vector2::new(a.x + t * ab.x, a.y + t * ab.y);
+    ((p.x - closest.x).powi(2) + (p.y - closest.y).powi(2)).sqrt()
+}
+
+/// Project point onto line and return parameter t (0 = start, 1 = end)
+pub fn project_point_on_line(p: Vector2, a: Vector2, b: Vector2) -> f32 {
+    let ab = b - a;
+    let ap = p - a;
+    let len_sq = ab.x * ab.x + ab.y * ab.y;
+    if len_sq == 0.0 {
+        return 0.0;
+    }
+    (ap.x * ab.x + ap.y * ab.y) / len_sq
+}
+
+/// Line-line intersection (returns None if parallel or no intersection within segments)
+pub fn line_line_intersection(
+    a1: Vector2,
+    a2: Vector2,
+    b1: Vector2,
+    b2: Vector2,
+) -> Option<Vector2> {
+    let d1 = a2 - a1;
+    let d2 = b2 - b1;
+    let cross = d1.x * d2.y - d1.y * d2.x;
+
+    if cross.abs() < 1e-10 {
+        return None; // Parallel
+    }
+
+    let d = b1 - a1;
+    let t = (d.x * d2.y - d.y * d2.x) / cross;
+    let u = (d.x * d1.y - d.y * d1.x) / cross;
+
+    // Check if intersection is within both line segments
+    if t >= 0.0 && t <= 1.0 && u >= 0.0 && u <= 1.0 {
+        Some(Vector2::new(a1.x + t * d1.x, a1.y + t * d1.y))
+    } else {
+        None
+    }
+}
+
+/// Line-circle intersection (returns 0, 1, or 2 points)
+pub fn line_circle_intersection(
+    p1: Vector2,
+    p2: Vector2,
+    center: Vector2,
+    radius: f32,
+) -> Vec<Vector2> {
+    let d = p2 - p1;
+    let f = p1 - center;
+
+    let a = d.x * d.x + d.y * d.y;
+    let b = 2.0 * (f.x * d.x + f.y * d.y);
+    let c = f.x * f.x + f.y * f.y - radius * radius;
+
+    let discriminant = b * b - 4.0 * a * c;
+
+    if discriminant < 0.0 {
+        return Vec::new();
+    }
+
+    let mut results = Vec::new();
+    let sqrt_disc = discriminant.sqrt();
+
+    let t1 = (-b - sqrt_disc) / (2.0 * a);
+    let t2 = (-b + sqrt_disc) / (2.0 * a);
+
+    if t1 >= 0.0 && t1 <= 1.0 {
+        results.push(Vector2::new(p1.x + t1 * d.x, p1.y + t1 * d.y));
+    }
+    if t2 >= 0.0 && t2 <= 1.0 && (t2 - t1).abs() > 1e-6 {
+        results.push(Vector2::new(p1.x + t2 * d.x, p1.y + t2 * d.y));
+    }
+
+    results
+}
+
+/// Calculate centroid of a polygon
+pub fn calculate_centroid(vertices: &[Vector2]) -> Vector2 {
+    if vertices.is_empty() {
+        return Vector2::new(0.0, 0.0);
+    }
+    let inv_len = 1.0 / vertices.len() as f32;
+    let mut cx = 0.0;
+    let mut cy = 0.0;
+    for v in vertices {
+        cx += v.x;
+        cy += v.y;
+    }
+    Vector2::new(cx * inv_len, cy * inv_len)
+}
+
+// ─── Area / Perimeter ────────────────────────────────────────────────────
+
 pub fn calculate_polygon_area(points: &[Vector2]) -> f32 {
     let mut area = 0.0;
     for i in 0..points.len() {

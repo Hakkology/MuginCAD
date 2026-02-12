@@ -1,16 +1,8 @@
+use crate::commands::preview;
 use crate::commands::{Command, CommandContext, PointResult};
 use crate::model::{Entity, Rectangle, Vector2};
 
-#[derive(Debug, Clone)]
-pub struct RectangleCommand {
-    points: Vec<Vector2>,
-}
-
-impl RectangleCommand {
-    pub fn new() -> Self {
-        Self { points: Vec::new() }
-    }
-}
+define_command!(RectangleCommand);
 
 impl Command for RectangleCommand {
     fn name(&self) -> &'static str {
@@ -39,10 +31,6 @@ impl Command for RectangleCommand {
         }
     }
 
-    fn get_points(&self) -> &[Vector2] {
-        &self.points
-    }
-
     fn draw_preview(
         &self,
         ctx: &crate::view::rendering::context::DrawContext,
@@ -50,10 +38,6 @@ impl Command for RectangleCommand {
         current_cad: Vector2,
     ) {
         use eframe::egui;
-        let preview_stroke = egui::Stroke::new(
-            1.0,
-            egui::Color32::from_rgba_unmultiplied(255, 255, 255, 128),
-        );
 
         if let Some(&start) = points.first() {
             let min = Vector2::new(start.x.min(current_cad.x), start.y.min(current_cad.y));
@@ -62,34 +46,27 @@ impl Command for RectangleCommand {
                 ctx.to_screen(Vector2::new(min.x, max.y)),
                 ctx.to_screen(Vector2::new(max.x, min.y)),
             );
-            ctx.painter.rect_stroke(rect_screen, 0.0, preview_stroke);
+            ctx.painter
+                .rect_stroke(rect_screen, 0.0, preview::preview_stroke());
 
             let width = (max.x - min.x).abs();
             let height = (max.y - min.y).abs();
-            let dim_color = egui::Color32::from_rgb(255, 200, 100);
-            let dim_font = egui::FontId::proportional(11.0);
 
             let bottom_mid = ctx.to_screen(Vector2::new((min.x + max.x) / 2.0, min.y));
-            ctx.painter.text(
+            preview::draw_dimension_text(
+                ctx,
                 egui::pos2(bottom_mid.x, bottom_mid.y + 14.0),
-                egui::Align2::CENTER_CENTER,
                 format!("W: {:.2}", width),
-                dim_font.clone(),
-                dim_color,
             );
 
             let right_mid = ctx.to_screen(Vector2::new(max.x, (min.y + max.y) / 2.0));
-            ctx.painter.text(
+            preview::draw_dimension_text(
+                ctx,
                 egui::pos2(right_mid.x + 30.0, right_mid.y),
-                egui::Align2::CENTER_CENTER,
                 format!("H: {:.2}", height),
-                dim_font.clone(),
-                dim_color,
             );
         }
     }
 
-    fn clone_box(&self) -> Box<dyn Command> {
-        Box::new(self.clone())
-    }
+    impl_command_common!(RectangleCommand);
 }

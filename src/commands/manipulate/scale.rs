@@ -1,22 +1,10 @@
+use crate::commands::preview;
 use crate::commands::{
     Command, CommandCategory, CommandContext, InputResult, PointResult, parse_point,
 };
 use crate::model::Vector2;
 
-#[derive(Debug, Clone)]
-pub struct ScaleCommand {
-    points: Vec<Vector2>,
-    entity_indices: Vec<usize>,
-}
-
-impl ScaleCommand {
-    pub fn new() -> Self {
-        Self {
-            points: Vec::new(),
-            entity_indices: Vec::new(),
-        }
-    }
-}
+define_manipulation_command!(ScaleCommand);
 
 impl Command for ScaleCommand {
     fn name(&self) -> &'static str {
@@ -52,8 +40,6 @@ impl Command for ScaleCommand {
             let to = pos;
 
             if !self.entity_indices.is_empty() {
-                // Use the first entity to calculate the scale factor
-                // This provides a consistent feel based on the first selected item
                 let first_idx = self.entity_indices[0];
                 let scale_factor = if let Some(entity) = ctx.model.entities.get(first_idx) {
                     let center = entity.center();
@@ -72,7 +58,6 @@ impl Command for ScaleCommand {
                 if let Some(factor) = scale_factor {
                     for &idx in &self.entity_indices {
                         if let Some(entity) = ctx.model.entities.get_mut(idx) {
-                            // Scale each entity around its own center
                             let center = entity.center();
                             entity.scale(center, factor);
                         }
@@ -98,7 +83,6 @@ impl Command for ScaleCommand {
 
                     for &idx in &self.entity_indices {
                         if let Some(entity) = ctx.model.entities.get_mut(idx) {
-                            // Scale around the base point specified by user
                             entity.scale(base, factor);
                         }
                     }
@@ -113,10 +97,6 @@ impl Command for ScaleCommand {
         }
     }
 
-    fn get_points(&self) -> &[Vector2] {
-        &self.points
-    }
-
     fn draw_preview(
         &self,
         ctx: &crate::view::rendering::context::DrawContext,
@@ -124,15 +104,8 @@ impl Command for ScaleCommand {
         current_cad: Vector2,
     ) {
         use eframe::egui;
-        let preview_stroke = egui::Stroke::new(
-            1.0,
-            egui::Color32::from_rgba_unmultiplied(255, 255, 255, 128),
-        );
         if let Some(&base) = points.first() {
-            ctx.painter.line_segment(
-                [ctx.to_screen(base), ctx.to_screen(current_cad)],
-                preview_stroke,
-            );
+            preview::draw_line_to_cursor(ctx, base, current_cad);
             // Draw base marker (filled square)
             let base_screen = ctx.to_screen(base);
             let size = 4.0;
@@ -144,7 +117,5 @@ impl Command for ScaleCommand {
         }
     }
 
-    fn clone_box(&self) -> Box<dyn Command> {
-        Box::new(self.clone())
-    }
+    impl_command_common!(ScaleCommand);
 }

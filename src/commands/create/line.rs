@@ -1,16 +1,8 @@
+use crate::commands::preview;
 use crate::commands::{Command, CommandContext, PointResult};
 use crate::model::{Entity, Line, Vector2};
 
-#[derive(Debug, Clone)]
-pub struct LineCommand {
-    points: Vec<Vector2>,
-}
-
-impl LineCommand {
-    pub fn new() -> Self {
-        Self { points: Vec::new() }
-    }
-}
+define_command!(LineCommand);
 
 impl Command for LineCommand {
     fn name(&self) -> &'static str {
@@ -35,19 +27,11 @@ impl Command for LineCommand {
             let start = self.points[self.points.len() - 2];
             let end = self.points[self.points.len() - 1];
             ctx.model.add_entity(Entity::Line(Line::new(start, end)));
-
-            PointResult::NeedMore {
-                prompt: "Specify next point (Shift for ortho):".to_string(),
-            }
-        } else {
-            PointResult::NeedMore {
-                prompt: "Specify next point (Shift for ortho):".to_string(),
-            }
         }
-    }
 
-    fn get_points(&self) -> &[Vector2] {
-        &self.points
+        PointResult::NeedMore {
+            prompt: "Specify next point (Shift for ortho):".to_string(),
+        }
     }
 
     fn draw_preview(
@@ -56,20 +40,10 @@ impl Command for LineCommand {
         points: &[Vector2],
         current_cad: Vector2,
     ) {
-        use eframe::egui;
-        let preview_stroke = egui::Stroke::new(
-            1.0,
-            egui::Color32::from_rgba_unmultiplied(255, 255, 255, 128),
-        );
         if let Some(&last_point) = points.last() {
-            ctx.painter.line_segment(
-                [ctx.to_screen(last_point), ctx.to_screen(current_cad)],
-                preview_stroke,
-            );
+            preview::draw_line_to_cursor(ctx, last_point, current_cad);
         }
     }
 
-    fn clone_box(&self) -> Box<dyn Command> {
-        Box::new(self.clone())
-    }
+    impl_command_common!(LineCommand);
 }

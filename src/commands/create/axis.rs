@@ -2,20 +2,9 @@ use crate::commands::{Command, CommandCategory, CommandContext, InputResult, Poi
 use crate::model::Vector2;
 use crate::model::axis::AxisOrientation;
 
-#[derive(Debug, Clone)]
-pub struct AxisCommand {
-    orientation: Option<AxisOrientation>,
-    points: Vec<Vector2>,
-}
-
-impl AxisCommand {
-    pub fn new() -> Self {
-        Self {
-            orientation: None,
-            points: Vec::new(),
-        }
-    }
-}
+define_command!(AxisCommand,
+    orientation: Option<AxisOrientation> = None
+);
 
 impl Command for AxisCommand {
     fn name(&self) -> &'static str {
@@ -126,11 +115,5 @@ impl Command for AxisCommand {
         }
     }
 
-    fn get_points(&self) -> &[Vector2] {
-        &self.points
-    }
-
-    fn clone_box(&self) -> Box<dyn Command> {
-        Box::new(self.clone())
-    }
+    impl_command_common!(AxisCommand);
 }

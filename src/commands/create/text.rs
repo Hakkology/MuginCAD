@@ -2,17 +2,7 @@ use crate::commands::{Command, CommandCategory, CommandContext, InputResult, Poi
 use crate::model::shapes::annotation::TextAnnotation;
 use crate::model::{Entity, Vector2};
 
-/// Text command - places custom text annotation
-#[derive(Debug, Clone)]
-pub struct TextCommand {
-    points: Vec<Vector2>,
-}
-
-impl TextCommand {
-    pub fn new() -> Self {
-        Self { points: Vec::new() }
-    }
-}
+define_command!(TextCommand);
 
 impl Command for TextCommand {
     fn name(&self) -> &'static str {
@@ -64,11 +54,5 @@ impl Command for TextCommand {
         InputResult::Point(PointResult::Complete)
     }
 
-    fn get_points(&self) -> &[Vector2] {
-        &self.points
-    }
-
-    fn clone_box(&self) -> Box<dyn Command> {
-        Box::new(self.clone())
-    }
+    impl_command_common!(TextCommand);
 }

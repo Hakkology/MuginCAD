@@ -1,25 +1,14 @@
+use crate::commands::preview;
 use crate::commands::{Command, CommandCategory, CommandContext, InputResult, PointResult};
 use crate::model::shapes::arc::Arc;
 use crate::model::{Entity, Vector2};
 
-/// Arc command - draws an arc from 3 points: center, start point, end point
-#[derive(Debug, Clone)]
-pub struct ArcCommand {
-    points: Vec<Vector2>,
-    filled: bool,
-    /// If true, arc goes clockwise (CW), otherwise counter-clockwise (CCW)
-    pub clockwise: bool,
-}
+define_command!(ArcCommand,
+    filled: bool = false,
+    clockwise: bool = false
+);
 
 impl ArcCommand {
-    pub fn new() -> Self {
-        Self {
-            points: Vec::new(),
-            filled: false,
-            clockwise: false, // Default to CCW
-        }
-    }
-
     /// Toggle the arc direction between CW and CCW
     pub fn toggle_direction(&mut self) {
         self.clockwise = !self.clockwise;
@@ -95,10 +84,6 @@ impl Command for ArcCommand {
         }
     }
 
-    fn get_points(&self) -> &[Vector2] {
-        &self.points
-    }
-
     fn draw_preview(
         &self,
         ctx: &crate::view::rendering::context::DrawContext,
@@ -106,23 +91,12 @@ impl Command for ArcCommand {
         current_cad: Vector2,
     ) {
         use eframe::egui;
-        let preview_stroke = egui::Stroke::new(
-            1.0,
-            egui::Color32::from_rgba_unmultiplied(255, 255, 255, 128),
-        );
 
         match points.len() {
             1 => {
                 let center = points[0];
-                ctx.painter.line_segment(
-                    [ctx.to_screen(center), ctx.to_screen(current_cad)],
-                    preview_stroke,
-                );
-                ctx.painter.circle_stroke(
-                    ctx.to_screen(center),
-                    4.0,
-                    egui::Stroke::new(1.5, egui::Color32::YELLOW),
-                );
+                preview::draw_line_to_cursor(ctx, center, current_cad);
+                preview::draw_center_marker(ctx, center);
                 let radius = center.dist(current_cad) * ctx.zoom;
                 ctx.painter.circle_stroke(
                     ctx.to_screen(center),
@@ -157,7 +131,7 @@ impl Command for ArcCommand {
                 };
 
                 let angle_step = angle_range / segments as f32;
-                let radius = center.dist(start); // Should match start point distance
+                let radius = center.dist(start);
 
                 let mut arc_points = Vec::with_capacity(segments + 1);
                 for i in 0..=segments {
@@ -169,30 +143,24 @@ impl Command for ArcCommand {
                     arc_points.push(ctx.to_screen(pt));
                 }
 
+                let stroke = preview::preview_stroke();
                 for i in 0..arc_points.len() - 1 {
                     ctx.painter
-                        .line_segment([arc_points[i], arc_points[i + 1]], preview_stroke);
+                        .line_segment([arc_points[i], arc_points[i + 1]], stroke);
                 }
 
                 // Center and start markers
-                ctx.painter
-                    .circle_filled(ctx.to_screen(center), 3.0, egui::Color32::YELLOW);
-                ctx.painter
-                    .circle_filled(ctx.to_screen(start), 3.0, egui::Color32::GREEN);
-                ctx.painter.line_segment(
-                    [ctx.to_screen(center), ctx.to_screen(current_cad)],
-                    preview_stroke,
-                );
+                preview::draw_point_marker(ctx, center, egui::Color32::YELLOW);
+                preview::draw_point_marker(ctx, start, egui::Color32::GREEN);
+                preview::draw_line_to_cursor(ctx, center, current_cad);
             }
             _ => {}
         }
     }
 
-    fn clone_box(&self) -> Box<dyn Command> {
-        Box::new(self.clone())
-    }
-
     fn as_any_mut(&mut self) -> Option<&mut dyn std::any::Any> {
         Some(self)
     }
+
+    impl_command_common!(ArcCommand);
 }

@@ -1,21 +1,9 @@
+use crate::commands::preview;
 use crate::commands::{Command, CommandCategory, CommandContext, PointResult};
 use crate::model::Vector2;
 use std::f32::consts::PI;
 
-#[derive(Debug, Clone)]
-pub struct RotateCommand {
-    points: Vec<Vector2>,
-    entity_indices: Vec<usize>,
-}
-
-impl RotateCommand {
-    pub fn new() -> Self {
-        Self {
-            points: Vec::new(),
-            entity_indices: Vec::new(),
-        }
-    }
-}
+define_manipulation_command!(RotateCommand);
 
 impl Command for RotateCommand {
     fn name(&self) -> &'static str {
@@ -70,10 +58,6 @@ impl Command for RotateCommand {
         }
     }
 
-    fn get_points(&self) -> &[Vector2] {
-        &self.points
-    }
-
     fn draw_preview(
         &self,
         ctx: &crate::view::rendering::context::DrawContext,
@@ -81,10 +65,6 @@ impl Command for RotateCommand {
         current_cad: Vector2,
     ) {
         use eframe::egui;
-        let preview_stroke = egui::Stroke::new(
-            1.0,
-            egui::Color32::from_rgba_unmultiplied(255, 255, 255, 128),
-        );
 
         if let Some(&pivot) = points.first() {
             let pivot_screen = ctx.to_screen(pivot);
@@ -93,16 +73,14 @@ impl Command for RotateCommand {
             let dx = current_cad.x - pivot.x;
             let dy = current_cad.y - pivot.y;
             let angle = dy.atan2(dx);
-            // Correctly use zoom from context
             let radius = (dx * dx + dy * dy).sqrt() * ctx.zoom;
 
             // Draw arc from 0 to current angle
-            let arc_radius = radius.min(80.0); // Cap arc size for visibility
+            let arc_radius = radius.min(80.0);
             let num_segments = 32;
             let start_angle = 0.0_f32;
             let end_angle = angle;
 
-            // Generate arc points
             let mut arc_points = Vec::new();
             for i in 0..=num_segments {
                 let t = i as f32 / num_segments as f32;
@@ -112,17 +90,14 @@ impl Command for RotateCommand {
                 arc_points.push(egui::pos2(px, py));
             }
 
-            // Draw arc as line segments
+            let angle_stroke = egui::Stroke::new(2.0, egui::Color32::from_rgb(255, 200, 100));
             for i in 0..arc_points.len().saturating_sub(1) {
-                ctx.painter.line_segment(
-                    [arc_points[i], arc_points[i + 1]],
-                    egui::Stroke::new(2.0, egui::Color32::from_rgb(255, 200, 100)),
-                );
+                ctx.painter
+                    .line_segment([arc_points[i], arc_points[i + 1]], angle_stroke);
             }
 
             // Draw radius line from pivot to mouse
-            ctx.painter
-                .line_segment([pivot_screen, ctx.to_screen(current_cad)], preview_stroke);
+            preview::draw_line_to_cursor(ctx, pivot, current_cad);
 
             // Draw reference line (horizontal from pivot)
             let ref_end = egui::pos2(pivot_screen.x + arc_radius, pivot_screen.y);
@@ -143,7 +118,5 @@ impl Command for RotateCommand {
         }
     }
 
-    fn clone_box(&self) -> Box<dyn Command> {
-        Box::new(self.clone())
-    }
+    impl_command_common!(RotateCommand);
 }

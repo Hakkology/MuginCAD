@@ -1,20 +1,8 @@
+use crate::commands::preview;
 use crate::commands::{Command, CommandCategory, CommandContext, PointResult};
 use crate::model::Vector2;
 
-#[derive(Debug, Clone)]
-pub struct MoveCommand {
-    points: Vec<Vector2>,
-    entity_indices: Vec<usize>,
-}
-
-impl MoveCommand {
-    pub fn new() -> Self {
-        Self {
-            points: Vec::new(),
-            entity_indices: Vec::new(),
-        }
-    }
-}
+define_manipulation_command!(MoveCommand);
 
 impl Command for MoveCommand {
     fn name(&self) -> &'static str {
@@ -24,8 +12,6 @@ impl Command for MoveCommand {
     fn category(&self) -> CommandCategory {
         CommandCategory::Manipulation
     }
-
-    // Rely on default implementation for can_execute
 
     fn cannot_execute_message(&self) -> String {
         "No entities selected. Select entities first.".to_string()
@@ -71,10 +57,6 @@ impl Command for MoveCommand {
         }
     }
 
-    fn get_points(&self) -> &[Vector2] {
-        &self.points
-    }
-
     fn draw_preview(
         &self,
         ctx: &crate::view::rendering::context::DrawContext,
@@ -82,23 +64,13 @@ impl Command for MoveCommand {
         current_cad: Vector2,
     ) {
         use eframe::egui;
-        let preview_stroke = egui::Stroke::new(
-            1.0,
-            egui::Color32::from_rgba_unmultiplied(255, 255, 255, 128),
-        );
         if let Some(&base) = points.first() {
-            ctx.painter.line_segment(
-                [ctx.to_screen(base), ctx.to_screen(current_cad)],
-                preview_stroke,
-            );
+            preview::draw_line_to_cursor(ctx, base, current_cad);
             ctx.painter
-                .circle_stroke(ctx.to_screen(base), 4.0, preview_stroke);
-            ctx.painter
-                .circle_filled(ctx.to_screen(current_cad), 3.0, egui::Color32::WHITE);
+                .circle_stroke(ctx.to_screen(base), 4.0, preview::preview_stroke());
+            preview::draw_point_marker(ctx, current_cad, egui::Color32::WHITE);
         }
     }
 
-    fn clone_box(&self) -> Box<dyn Command> {
-        Box::new(self.clone())
-    }
+    impl_command_common!(MoveCommand);
 }

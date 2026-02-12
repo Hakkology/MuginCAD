@@ -1,24 +1,12 @@
 use crate::commands::{Command, CommandCategory, CommandContext, InputResult, PointResult};
 use crate::model::{Entity, Line, Vector2};
 
-#[derive(Debug, Clone)]
-pub struct OffsetCommand {
-    points: Vec<Vector2>,
-    entity_indices: Vec<usize>,
-    selected_lines: Vec<(usize, Line)>,
-    offset_distance: Option<f32>,
-}
+define_manipulation_command!(OffsetCommand,
+    selected_lines: Vec<(usize, Line)> = Vec::new(),
+    offset_distance: Option<f32> = None
+);
 
 impl OffsetCommand {
-    pub fn new() -> Self {
-        Self {
-            points: Vec::new(),
-            entity_indices: Vec::new(),
-            selected_lines: Vec::new(),
-            offset_distance: None,
-        }
-    }
-
     /// Calculate perpendicular offset for a line
     fn offset_line(&self, line: &Line, distance: f32, side_point: Vector2) -> Line {
         let dx = line.end.x - line.start.x;
@@ -141,11 +129,5 @@ impl Command for OffsetCommand {
         }
     }
 
-    fn get_points(&self) -> &[Vector2] {
-        &self.points
-    }
-
-    fn clone_box(&self) -> Box<dyn Command> {
-        Box::new(self.clone())
-    }
+    impl_command_common!(OffsetCommand);
 }
