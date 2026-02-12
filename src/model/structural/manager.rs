@@ -9,6 +9,12 @@ pub struct StructuralTypeManager {
     pub beam_types: HashMap<String, BeamType>,
     pub floor_types: HashMap<String, FloorType>,
 
+    // Currently selected types for placement
+    #[serde(default)]
+    pub active_column_type_id: Option<String>,
+    #[serde(default)]
+    pub active_beam_type_id: Option<String>,
+
     // Auto-increment counters per type
     #[serde(default)]
     column_counters: HashMap<String, u32>,
@@ -87,5 +93,40 @@ impl StructuralTypeManager {
     /// Get count of instances for a beam type
     pub fn beam_instance_count(&self, type_id: &str) -> u32 {
         *self.beam_counters.get(type_id).unwrap_or(&0)
+    }
+
+    /// Get the active column type's dimensions (width, depth), or default 50x50
+    pub fn get_active_column_dimensions(&self) -> (f32, f32) {
+        if let Some(ref id) = self.active_column_type_id {
+            if let Some(col_type) = self.column_types.get(id) {
+                return (col_type.width, col_type.depth);
+            }
+        }
+        // Default dimensions
+        (50.0, 50.0)
+    }
+
+    /// Get the active column type ID, or default
+    pub fn get_active_column_type(&self) -> String {
+        self.active_column_type_id
+            .clone()
+            .unwrap_or_else(|| "50x50".to_string())
+    }
+
+    /// Get the active beam type's dimensions (width, height), or default 25x40
+    pub fn get_active_beam_dimensions(&self) -> (f32, f32) {
+        if let Some(ref id) = self.active_beam_type_id {
+            if let Some(beam_type) = self.beam_types.get(id) {
+                return (beam_type.width, beam_type.height);
+            }
+        }
+        (25.0, 40.0)
+    }
+
+    /// Get the active beam type ID, or default
+    pub fn get_active_beam_type(&self) -> String {
+        self.active_beam_type_id
+            .clone()
+            .unwrap_or_else(|| "25x40".to_string())
     }
 }

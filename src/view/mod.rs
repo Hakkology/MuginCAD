@@ -60,6 +60,39 @@ impl eframe::App for CadApp {
             }
         }
 
+        // Render Structural Type Window if open
+        {
+            let CadViewModel {
+                structural_type_window,
+                tabs,
+                active_tab_index,
+                ..
+            } = &mut self.view_model;
+            if *active_tab_index < tabs.len() {
+                let tab = &mut tabs[*active_tab_index];
+
+                // Track previous active type before rendering window
+                let prev_column_type = tab.model.structural_types.active_column_type_id.clone();
+                let prev_beam_type = tab.model.structural_types.active_beam_type_id.clone();
+
+                // Show the window (this may modify active types)
+                structural_type_window.show(ctx, &mut tab.model.structural_types);
+
+                // Check if active type changed
+                let column_changed =
+                    prev_column_type != tab.model.structural_types.active_column_type_id;
+                let beam_changed = prev_beam_type != tab.model.structural_types.active_beam_type_id;
+
+                // If user changed active type, refresh the running command to use new dimensions
+                if column_changed || beam_changed {
+                    tab.executor.refresh_structural_command(
+                        &mut tab.model,
+                        &tab.selection_manager.selected_indices,
+                    );
+                }
+            }
+        }
+
         // Top Menu
         topmenu::render_top_menu(ctx, &mut self.view_model);
 
@@ -110,6 +143,9 @@ impl eframe::App for CadApp {
 
         // Left Toolbar Panel
         toolbar::render_toolbar(ctx, &mut self.view_model);
+
+        // Structure type selector bar (shows when structural command is active)
+        toolbar::render_structure_type_bar(ctx, &mut self.view_model);
 
         // Inspector Panel Logic
 

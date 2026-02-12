@@ -51,6 +51,7 @@ pub struct CadViewModel {
     #[allow(dead_code)]
     pub clipboard: Clipboard,
     pub export_window: crate::view::ui::export::window::ExportWindow,
+    pub structural_type_window: crate::view::ui::structural_types::StructuralTypeWindow,
 }
 
 impl CadViewModel {
@@ -68,6 +69,8 @@ impl CadViewModel {
             tab_renaming_index: None,
             clipboard: Clipboard::default(),
             export_window: crate::view::ui::export::window::ExportWindow::default(),
+            structural_type_window:
+                crate::view::ui::structural_types::StructuralTypeWindow::default(),
         }
     }
 

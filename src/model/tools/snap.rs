@@ -13,7 +13,8 @@ pub enum SnapPointType {
     Intersection,
     /// Midpoint of a line
     Midpoint,
-    /// Point on an axis line
+    /// Point on an axis line (reserved for future use)
+    #[allow(dead_code)]
     AxisLine,
     /// Grid intersection point
     Grid,
@@ -83,7 +84,7 @@ impl SnapSystem {
         }
 
         // 3. Axis Snaps (Akslar)
-        // Check intersections between axes (Axis Intersections)
+        // Check intersections between axes (Axis-Axis Intersections)
         for (i, axis_a) in model.axis_manager.axes.iter().enumerate() {
             for axis_b in model.axis_manager.axes.iter().skip(i + 1) {
                 // If one is vertical and other horizontal, they intersect
@@ -107,27 +108,13 @@ impl SnapSystem {
                 }
             }
 
-            // Snap to axis line itself (projection)
-            match axis_a.orientation {
-                crate::model::axis::AxisOrientation::Vertical => {
-                    if (pos.x - axis_a.position).abs() <= tolerance {
-                        let snap_point = SnapPoint::new(
-                            Vector2::new(axis_a.position, pos.y),
-                            SnapPointType::AxisLine,
-                        );
-                        let dist = (pos.x - axis_a.position).abs();
-                        if nearest.is_none() || dist < nearest.unwrap().1 {
-                            nearest = Some((snap_point, dist));
-                        }
-                    }
-                }
-                crate::model::axis::AxisOrientation::Horizontal => {
-                    if (pos.y - axis_a.position).abs() <= tolerance {
-                        let snap_point = SnapPoint::new(
-                            Vector2::new(pos.x, axis_a.position),
-                            SnapPointType::AxisLine,
-                        );
-                        let dist = (pos.y - axis_a.position).abs();
+            // Axis-Entity intersections (virtual intersection points)
+            for entity in &model.entities {
+                let intersections = self.find_axis_entity_intersection(axis_a, entity);
+                for intersection in intersections {
+                    let dist = pos.dist(intersection);
+                    if dist <= tolerance {
+                        let snap_point = SnapPoint::new(intersection, SnapPointType::Intersection);
                         if nearest.is_none() || dist < nearest.unwrap().1 {
                             nearest = Some((snap_point, dist));
                         }
@@ -399,5 +386,134 @@ impl SnapSystem {
         }
 
         result
+    }
+
+    /// Find intersections between an axis and an entity
+    fn find_axis_entity_intersection(
+        &self,
+        axis: &crate::model::axis::Axis,
+        entity: &Entity,
+    ) -> Vec<Vector2> {
+        use crate::model::axis::AxisOrientation;
+
+        let mut intersections = Vec::new();
+
+        match entity {
+            Entity::Line(line) => {
+                // For vertical axis: check if line crosses the axis X position
+                // For horizontal axis: check if line crosses the axis Y position
+                match axis.orientation {
+                    AxisOrientation::Vertical => {
+                        let ax = axis.position;
+                        // Check if line crosses x = ax
+                        if (line.start.x - ax) * (line.end.x - ax) <= 0.0 {
+                            // Line crosses the axis
+                            let dx = line.end.x - line.start.x;
+                            if dx.abs() > 1e-10 {
+                                let t = (ax - line.start.x) / dx;
+                                if t >= 0.0 && t <= 1.0 {
+                                    let y = line.start.y + t * (line.end.y - line.start.y);
+                                    intersections.push(Vector2::new(ax, y));
+                                }
+                            }
+                        }
+                    }
+                    AxisOrientation::Horizontal => {
+                        let ay = axis.position;
+                        // Check if line crosses y = ay
+                        if (line.start.y - ay) * (line.end.y - ay) <= 0.0 {
+                            let dy = line.end.y - line.start.y;
+                            if dy.abs() > 1e-10 {
+                                let t = (ay - line.start.y) / dy;
+                                if t >= 0.0 && t <= 1.0 {
+                                    let x = line.start.x + t * (line.end.x - line.start.x);
+                                    intersections.push(Vector2::new(x, ay));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Entity::Circle(circle) => {
+                // Circle intersects axis at 2 points (if axis passes through)
+                match axis.orientation {
+                    AxisOrientation::Vertical => {
+                        let ax = axis.position;
+                        let dx = ax - circle.center.x;
+                        if dx.abs() <= circle.radius {
+                            let dy = (circle.radius * circle.radius - dx * dx).sqrt();
+                            intersections.push(Vector2::new(ax, circle.center.y + dy));
+                            if dy > 1e-10 {
+                                intersections.push(Vector2::new(ax, circle.center.y - dy));
+                            }
+                        }
+                    }
+                    AxisOrientation::Horizontal => {
+                        let ay = axis.position;
+                        let dy = ay - circle.center.y;
+                        if dy.abs() <= circle.radius {
+                            let dx = (circle.radius * circle.radius - dy * dy).sqrt();
+                            intersections.push(Vector2::new(circle.center.x + dx, ay));
+                            if dx > 1e-10 {
+                                intersections.push(Vector2::new(circle.center.x - dx, ay));
+                            }
+                        }
+                    }
+                }
+            }
+            Entity::Rectangle(rect) => {
+                // Rectangle has 4 edges - check each
+                let corners = [
+                    (rect.min, Vector2::new(rect.max.x, rect.min.y)),
+                    (Vector2::new(rect.max.x, rect.min.y), rect.max),
+                    (rect.max, Vector2::new(rect.min.x, rect.max.y)),
+                    (Vector2::new(rect.min.x, rect.max.y), rect.min),
+                ];
+
+                for (start, end) in corners {
+                    let fake_line = crate::model::Line::new(start, end);
+                    let line_intersections =
+                        self.find_axis_entity_intersection(axis, &Entity::Line(fake_line));
+                    intersections.extend(line_intersections);
+                }
+            }
+            Entity::Arc(arc) => {
+                // Circle-like intersection, simplified for arcs (doesn't check angle range)
+                match axis.orientation {
+                    AxisOrientation::Vertical => {
+                        let ax = axis.position;
+                        let dx = ax - arc.center.x;
+                        if dx.abs() <= arc.radius {
+                            let dy = (arc.radius * arc.radius - dx * dx).sqrt();
+                            // Add both potential intersection points
+                            intersections.push(Vector2::new(ax, arc.center.y + dy));
+                            if dy > 1e-10 {
+                                intersections.push(Vector2::new(ax, arc.center.y - dy));
+                            }
+                        }
+                    }
+                    AxisOrientation::Horizontal => {
+                        let ay = axis.position;
+                        let dy = ay - arc.center.y;
+                        if dy.abs() <= arc.radius {
+                            let dx = (arc.radius * arc.radius - dy * dy).sqrt();
+                            intersections.push(Vector2::new(arc.center.x + dx, ay));
+                            if dx > 1e-10 {
+                                intersections.push(Vector2::new(arc.center.x - dx, ay));
+                            }
+                        }
+                    }
+                }
+            }
+            // Text and structural elements don't create virtual intersections with axes
+            Entity::Text(_)
+            | Entity::Column(_)
+            | Entity::Beam(_)
+            | Entity::Flooring(_)
+            | Entity::Door(_)
+            | Entity::Window(_) => {}
+        }
+
+        intersections
     }
 }

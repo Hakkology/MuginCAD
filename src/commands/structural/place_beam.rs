@@ -7,13 +7,18 @@ use crate::model::{Entity, Vector2};
 pub struct PlaceBeamCommand {
     type_id: String,
     points: Vec<Vector2>,
+    /// Dimensions from selected type
+    width: f32,
+    height: f32,
 }
 
 impl PlaceBeamCommand {
-    pub fn new(type_id: String) -> Self {
+    pub fn new(type_id: String, width: f32, height: f32) -> Self {
         Self {
             type_id,
             points: Vec::new(),
+            width,
+            height,
         }
     }
 }
@@ -28,7 +33,10 @@ impl Command for PlaceBeamCommand {
     }
 
     fn initial_prompt(&self) -> String {
-        format!("BEAM [{}] Click first point:", self.type_id)
+        format!(
+            "BEAM [{}] ({}x{}) Click first point:",
+            self.type_id, self.width, self.height
+        )
     }
 
     fn push_point(&mut self, pos: Vector2, ctx: &mut CommandContext) -> PointResult {
@@ -79,14 +87,44 @@ impl Command for PlaceBeamCommand {
         use eframe::egui;
 
         if let Some(&start) = points.first() {
-            // Draw preview line
-            let preview_stroke = egui::Stroke::new(
-                2.0,
-                egui::Color32::from_rgba_unmultiplied(100, 100, 100, 180),
-            );
+            // Draw beam preview with width
+            let dx = current_cad.x - start.x;
+            let dy = current_cad.y - start.y;
+            let length = (dx * dx + dy * dy).sqrt();
+
+            if length > 0.01 {
+                // Calculate perpendicular offset for beam width
+                let nx = -dy / length;
+                let ny = dx / length;
+                let half_w = self.width / 2.0;
+
+                let corners = [
+                    Vector2::new(start.x + nx * half_w, start.y + ny * half_w),
+                    Vector2::new(start.x - nx * half_w, start.y - ny * half_w),
+                    Vector2::new(current_cad.x - nx * half_w, current_cad.y - ny * half_w),
+                    Vector2::new(current_cad.x + nx * half_w, current_cad.y + ny * half_w),
+                ];
+
+                let screen_corners: Vec<egui::Pos2> =
+                    corners.iter().map(|c| ctx.to_screen(*c)).collect();
+
+                ctx.painter.add(egui::Shape::convex_polygon(
+                    screen_corners,
+                    egui::Color32::from_rgba_unmultiplied(100, 100, 100, 80),
+                    egui::Stroke::new(
+                        1.0,
+                        egui::Color32::from_rgba_unmultiplied(255, 255, 255, 150),
+                    ),
+                ));
+            }
+
+            // Draw center line
             ctx.painter.line_segment(
                 [ctx.to_screen(start), ctx.to_screen(current_cad)],
-                preview_stroke,
+                egui::Stroke::new(
+                    1.0,
+                    egui::Color32::from_rgba_unmultiplied(200, 200, 200, 200),
+                ),
             );
 
             // Draw start point

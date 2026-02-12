@@ -210,6 +210,14 @@ pub fn render_top_menu(ctx: &egui::Context, vm: &mut CadViewModel) {
                     return;
                 }
 
+                // Type Manager button - opens window
+                if ui.button("📐 Type Manager...").clicked() {
+                    vm.structural_type_window.open = true;
+                    ui.close_menu();
+                }
+
+                ui.separator();
+
                 let tab = vm.active_tab_mut();
 
                 // Structural elements section

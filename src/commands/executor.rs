@@ -91,17 +91,8 @@ impl CommandRegistry {
             Box::new(crate::commands::io::export_region::SelectExportRegionCommand::new())
         });
 
-        // Register structural commands
-        registry.register("column", || {
-            Box::new(PlaceColumnCommand::new("50x50".to_string()))
-        });
-        registry.register("col", || {
-            Box::new(PlaceColumnCommand::new("50x50".to_string()))
-        });
-        registry.register("beam", || {
-            Box::new(PlaceBeamCommand::new("25x40".to_string()))
-        });
-        registry.register("b", || Box::new(PlaceBeamCommand::new("25x40".to_string())));
+        // Note: column/beam commands are handled specially in start_command()
+        // to fetch active type dimensions from model
 
         registry
     }
@@ -147,7 +138,22 @@ impl CommandExecutor {
         model: &mut CadModel,
         selected_indices: &HashSet<usize>,
     ) -> bool {
-        if let Some(mut cmd) = self.registry.create(name) {
+        // Special handling for structural commands - use active type dimensions
+        let mut cmd: Option<Box<dyn Command>> = match name {
+            "column" | "col" => {
+                let type_id = model.structural_types.get_active_column_type();
+                let (width, depth) = model.structural_types.get_active_column_dimensions();
+                Some(Box::new(PlaceColumnCommand::new(type_id, width, depth)))
+            }
+            "beam" | "b" => {
+                let type_id = model.structural_types.get_active_beam_type();
+                let (width, height) = model.structural_types.get_active_beam_dimensions();
+                Some(Box::new(PlaceBeamCommand::new(type_id, width, height)))
+            }
+            _ => self.registry.create(name),
+        };
+
+        if let Some(ref mut cmd_ref) = cmd {
             // Check if command can execute in current context
             let ctx = CommandContext {
                 model,
@@ -156,16 +162,16 @@ impl CommandExecutor {
                 modifiers: self.modifiers,
             };
 
-            if !cmd.can_execute(&ctx) {
-                self.status_message = cmd.cannot_execute_message();
+            if !cmd_ref.can_execute(&ctx) {
+                self.status_message = cmd_ref.cannot_execute_message();
                 return false;
             }
 
             // Call on_start for commands that need initial setup
-            cmd.on_start(&ctx);
+            cmd_ref.on_start(&ctx);
 
-            self.status_message = cmd.initial_prompt();
-            self.active_command = Some(cmd);
+            self.status_message = cmd_ref.initial_prompt();
+            self.active_command = cmd;
             true
         } else {
             false
@@ -181,6 +187,27 @@ impl CommandExecutor {
     /// Check if a command is active
     pub fn is_active(&self) -> bool {
         self.active_command.is_some()
+    }
+
+    /// Refresh the active column/beam command with updated type dimensions from model
+    /// Call this when the user changes the active type in the Type Manager
+    pub fn refresh_structural_command(
+        &mut self,
+        model: &mut CadModel,
+        selected_indices: &HashSet<usize>,
+    ) {
+        if let Some(ref cmd) = self.active_command {
+            let cmd_name = cmd.name();
+            if cmd_name == "COLUMN" || cmd_name == "BEAM" {
+                // Restart the command with updated type info
+                let name = if cmd_name == "COLUMN" {
+                    "column"
+                } else {
+                    "beam"
+                };
+                self.start_command(name, model, selected_indices);
+            }
+        }
     }
 
     /// Process a click/point input

@@ -1,6 +1,7 @@
 pub mod export;
 pub mod inspector;
 pub mod settings;
+pub mod structural_types;
 pub mod tab_bar;
 pub mod terminal;
 pub mod toolbar;

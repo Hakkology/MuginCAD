@@ -8,17 +8,23 @@ pub struct PlaceColumnCommand {
     type_id: String,
     orientation: Orientation,
     points: Vec<Vector2>,
+    /// Dimensions from selected type
+    width: f32,
+    depth: f32,
 }
 
 impl PlaceColumnCommand {
-    pub fn new(type_id: String) -> Self {
+    pub fn new(type_id: String, width: f32, depth: f32) -> Self {
         Self {
             type_id,
             orientation: Orientation::Horizontal,
             points: Vec::new(),
+            width,
+            depth,
         }
     }
 
+    #[allow(dead_code)]
     pub fn toggle_orientation(&mut self) {
         self.orientation = match self.orientation {
             Orientation::Horizontal => Orientation::Vertical,
@@ -38,8 +44,8 @@ impl Command for PlaceColumnCommand {
 
     fn initial_prompt(&self) -> String {
         format!(
-            "COLUMN [{}] Click to place (H/V to toggle orientation):",
-            self.type_id
+            "COLUMN [{}] ({}x{}) Click to place (H/V to toggle):",
+            self.type_id, self.width, self.depth
         )
     }
 
@@ -115,12 +121,10 @@ impl Command for PlaceColumnCommand {
     ) {
         use eframe::egui;
 
-        // Draw column preview at cursor position
-        let w = 50.0; // Default preview size
-        let h = 50.0;
+        // Use dimensions from selected type
         let (pw, ph) = match self.orientation {
-            Orientation::Horizontal => (w, h),
-            Orientation::Vertical => (h, w),
+            Orientation::Horizontal => (self.width, self.depth),
+            Orientation::Vertical => (self.depth, self.width),
         };
 
         let half_w = pw / 2.0;
@@ -143,8 +147,17 @@ impl Command for PlaceColumnCommand {
             ),
         ));
 
-        // Draw crosshair
+        // Draw dimension label
         let center = ctx.to_screen(current_cad);
+        ctx.painter.text(
+            egui::pos2(center.x, center.y - 20.0),
+            egui::Align2::CENTER_BOTTOM,
+            format!("{}x{}", self.width, self.depth),
+            egui::FontId::default(),
+            egui::Color32::from_rgba_unmultiplied(200, 200, 255, 200),
+        );
+
+        // Draw crosshair
         let size = 8.0;
         ctx.painter.line_segment(
             [
