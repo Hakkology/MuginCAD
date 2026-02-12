@@ -190,6 +190,95 @@ impl Entity {
             }
         }
     }
+
+    /// Returns the axis-aligned bounding box as `(min, max)`.
+    pub fn bounding_box(&self) -> (Vector2, Vector2) {
+        match self {
+            Entity::Line(l) => (
+                Vector2::new(l.start.x.min(l.end.x), l.start.y.min(l.end.y)),
+                Vector2::new(l.start.x.max(l.end.x), l.start.y.max(l.end.y)),
+            ),
+            Entity::Circle(c) => (
+                Vector2::new(c.center.x - c.radius, c.center.y - c.radius),
+                Vector2::new(c.center.x + c.radius, c.center.y + c.radius),
+            ),
+            Entity::Arc(a) => (
+                Vector2::new(a.center.x - a.radius, a.center.y - a.radius),
+                Vector2::new(a.center.x + a.radius, a.center.y + a.radius),
+            ),
+            Entity::Rectangle(r) => (
+                Vector2::new(r.min.x.min(r.max.x), r.min.y.min(r.max.y)),
+                Vector2::new(r.min.x.max(r.max.x), r.min.y.max(r.max.y)),
+            ),
+            Entity::Text(t) => (t.position, t.position),
+        }
+    }
+
+    /// Convert the entity to a polyline (list of points).
+    ///
+    /// Circles and arcs are approximated with line segments.
+    /// Returns the vertices in order; for closed shapes the last
+    /// point equals the first.
+    pub fn as_polyline(&self) -> Vec<Vector2> {
+        match self {
+            Entity::Line(l) => vec![l.start, l.end],
+            Entity::Circle(c) => {
+                let segments = 32;
+                (0..=segments)
+                    .map(|i| {
+                        let angle = (i as f32 / segments as f32) * std::f32::consts::PI * 2.0;
+                        Vector2::new(
+                            c.center.x + c.radius * angle.cos(),
+                            c.center.y + c.radius * angle.sin(),
+                        )
+                    })
+                    .collect()
+            }
+            Entity::Arc(a) => {
+                let segments = 24;
+                let start_angle = a.start_angle;
+                let mut end_angle = a.end_angle;
+                if end_angle < start_angle {
+                    end_angle += std::f32::consts::PI * 2.0;
+                }
+                (0..=segments)
+                    .map(|i| {
+                        let t = i as f32 / segments as f32;
+                        let angle = start_angle + t * (end_angle - start_angle);
+                        Vector2::new(
+                            a.center.x + a.radius * angle.cos(),
+                            a.center.y + a.radius * angle.sin(),
+                        )
+                    })
+                    .collect()
+            }
+            Entity::Rectangle(r) => {
+                vec![
+                    r.min,
+                    Vector2::new(r.max.x, r.min.y),
+                    r.max,
+                    Vector2::new(r.min.x, r.max.y),
+                    r.min, // close
+                ]
+            }
+            Entity::Text(t) => vec![t.position],
+        }
+    }
+
+    /// Whether this entity represents a closed shape.
+    pub fn is_closed(&self) -> bool {
+        matches!(self, Entity::Circle(_) | Entity::Rectangle(_))
+    }
+
+    /// Whether this entity has a fill.
+    pub fn is_filled(&self) -> bool {
+        match self {
+            Entity::Circle(c) => c.filled,
+            Entity::Rectangle(r) => r.filled,
+            Entity::Arc(a) => a.filled,
+            _ => false,
+        }
+    }
 }
 
 pub struct CadModel {
@@ -218,5 +307,35 @@ impl CadModel {
             .rev()
             .find(|(_, e)| e.hit_test(pos, tolerance))
             .map(|(i, _)| i)
+    }
+
+    /// Compute the bounding box of all entities.
+    ///
+    /// Returns `(min, max)` corners. If empty, returns a default 100×100 region.
+    pub fn bounds(&self) -> (Vector2, Vector2) {
+        if self.entities.is_empty() {
+            return (Vector2::new(0.0, 0.0), Vector2::new(100.0, 100.0));
+        }
+
+        let mut min_b = Vector2::new(f32::MAX, f32::MAX);
+        let mut max_b = Vector2::new(f32::MIN, f32::MIN);
+
+        for entity in &self.entities {
+            let (e_min, e_max) = entity.bounding_box();
+            min_b.x = min_b.x.min(e_min.x);
+            min_b.y = min_b.y.min(e_min.y);
+            max_b.x = max_b.x.max(e_max.x);
+            max_b.y = max_b.y.max(e_max.y);
+        }
+
+        // Avoid zero-size bounds
+        if (max_b.x - min_b.x).abs() < 1.0 {
+            max_b.x = min_b.x + 1.0;
+        }
+        if (max_b.y - min_b.y).abs() < 1.0 {
+            max_b.y = min_b.y + 1.0;
+        }
+
+        (min_b, max_b)
     }
 }

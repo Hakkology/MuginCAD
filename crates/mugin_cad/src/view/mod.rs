@@ -1,12 +1,9 @@
 pub mod canvas;
 pub mod rendering;
+pub mod shortcuts;
 pub mod ui;
 pub mod viewport;
 
-// Re-export for convenience if needed, or update call sites.
-// For now, let's keep them accessible via the new paths or re-export.
-// Ideally usage should be `view::ui::inspector`.
-// But to break less code initially, we can re-export.
 pub use ui::inspector;
 pub use ui::settings;
 pub use ui::tab_bar;
@@ -53,7 +50,6 @@ impl eframe::App for CadApp {
                 active_tab_index,
                 ..
             } = &mut self.view_model;
-            // Ensure index is valid
             if *active_tab_index < tabs.len() {
                 let model = &tabs[*active_tab_index].model;
                 export_window.show(ctx, model);
@@ -69,50 +65,12 @@ impl eframe::App for CadApp {
         });
 
         // Global shortcuts
-
-        if ctx.input(|i| i.key_pressed(egui::Key::Escape)) {
-            self.view_model.cancel_command();
-        }
-
-        // Reset viewport with End key
-        if ctx.input(|i| i.key_pressed(egui::Key::End)) {
-            if let Some(tab) = self
-                .view_model
-                .tabs
-                .get_mut(self.view_model.active_tab_index)
-            {
-                tab.viewport.reset();
-            }
-        }
-
-        // Delete selected entity with Delete key
-        if ctx.input(|i| i.key_pressed(egui::Key::Delete)) {
-            self.view_model.delete_selected();
-        }
-
-        // Copy with Ctrl+C
-        if ctx.input(|i| i.modifiers.ctrl && i.key_pressed(egui::Key::C)) {
-            let tab = self.view_model.active_tab_mut();
-            if !tab.selection_manager.selected_indices.is_empty() && !tab.executor.is_active() {
-                let indices = tab.selection_manager.selected_indices.clone();
-                tab.executor.start_command("copy", &mut tab.model, &indices);
-            }
-        }
-
-        // Cut with Ctrl+X
-        if ctx.input(|i| i.modifiers.ctrl && i.key_pressed(egui::Key::X)) {
-            let tab = self.view_model.active_tab_mut();
-            if !tab.selection_manager.selected_indices.is_empty() && !tab.executor.is_active() {
-                let indices = tab.selection_manager.selected_indices.clone();
-                tab.executor.start_command("cut", &mut tab.model, &indices);
-            }
-        }
+        shortcuts::handle(ctx, &mut self.view_model);
 
         // Left Toolbar Panel
         toolbar::render_toolbar(ctx, &mut self.view_model);
 
         // Inspector Panel Logic
-
         let show_inspector = self.view_model.config.gui_config.show_inspector_always
             || !self
                 .view_model
