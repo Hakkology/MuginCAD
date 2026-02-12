@@ -48,6 +48,8 @@ pub struct CadViewModel {
     pub config: AppConfig,
     pub show_settings_window: bool,
     pub tab_renaming_index: Option<usize>,
+    pub hierarchy_renaming: bool,
+    pub inspector_renaming: bool,
     #[allow(dead_code)]
     pub clipboard: Clipboard,
     pub export_window: crate::view::ui::export::window::ExportWindow,
@@ -66,6 +68,8 @@ impl CadViewModel {
             config: AppConfig::default(),
             show_settings_window: false,
             tab_renaming_index: None,
+            hierarchy_renaming: false,
+            inspector_renaming: false,
             clipboard: Clipboard::default(),
             export_window: crate::view::ui::export::window::ExportWindow::default(),
         }

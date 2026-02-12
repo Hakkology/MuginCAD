@@ -12,7 +12,7 @@ impl CadViewModel {
         let (tab, history) = self.active_tab_mut_and_history();
         if let Some(previous_state) = tab.undo_manager.undo(&tab.model.entities) {
             tab.model.entities = previous_state;
-            tab.selection_manager.selected_indices.clear();
+            tab.selection_manager.selected_ids.clear();
             history.push("Undo".to_string());
             tab.executor.status_message = "Undo".to_string();
             true
@@ -27,7 +27,7 @@ impl CadViewModel {
         let (tab, history) = self.active_tab_mut_and_history();
         if let Some(redo_state) = tab.undo_manager.redo(&tab.model.entities) {
             tab.model.entities = redo_state;
-            tab.selection_manager.selected_indices.clear();
+            tab.selection_manager.selected_ids.clear();
             history.push("Redo".to_string());
             tab.executor.status_message = "Redo".to_string();
             true

@@ -1,4 +1,5 @@
 pub mod export;
+pub mod hierarchy;
 pub mod inspector;
 pub mod settings;
 pub mod tab_bar;

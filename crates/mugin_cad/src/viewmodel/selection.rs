@@ -1,9 +1,9 @@
 use crate::model::{CadModel, Vector2};
 use std::collections::HashSet;
 
-#[derive(Default)]
+#[derive(Clone, Debug)]
 pub struct SelectionManager {
-    pub selected_indices: HashSet<usize>,
+    pub selected_ids: HashSet<u64>,
     pub selection_rect_start: Option<Vector2>,
     pub selection_rect_current: Option<Vector2>,
 }
@@ -11,18 +11,18 @@ pub struct SelectionManager {
 impl SelectionManager {
     pub fn new() -> Self {
         Self {
-            selected_indices: HashSet::new(),
+            selected_ids: HashSet::new(),
             selection_rect_start: None,
             selection_rect_current: None,
         }
     }
 
     pub fn clear(&mut self) {
-        self.selected_indices.clear();
+        self.selected_ids.clear();
     }
 
     pub fn is_empty(&self) -> bool {
-        self.selected_indices.is_empty()
+        self.selected_ids.is_empty()
     }
 
     /// Handle click selection logic
@@ -36,29 +36,29 @@ impl SelectionManager {
         ctrl: bool,
     ) -> String {
         // Selection mode - single click selection
-        let picked_idx = model.pick_entity(pos, tolerance);
+        let picked_id = model.pick_entity_id(pos, tolerance);
 
-        if let Some(idx) = picked_idx {
+        if let Some(id) = picked_id {
             if shift || ctrl {
                 // Toggle selection
-                if self.selected_indices.contains(&idx) {
-                    self.selected_indices.remove(&idx);
+                if self.selected_ids.contains(&id) {
+                    self.selected_ids.remove(&id);
                 } else {
-                    self.selected_indices.insert(idx);
+                    self.selected_ids.insert(id);
                 }
             } else {
                 // Single selection
-                self.selected_indices.clear();
-                self.selected_indices.insert(idx);
+                self.selected_ids.clear();
+                self.selected_ids.insert(id);
             }
-            format!("Selected {} items", self.selected_indices.len())
+            format!("Selected {} items", self.selected_ids.len())
         } else {
             if !shift && !ctrl {
-                self.selected_indices.clear();
+                self.selected_ids.clear();
                 "Selection cleared".to_string()
             } else {
                 // Maintained selection
-                format!("Selected {} items", self.selected_indices.len())
+                format!("Selected {} items", self.selected_ids.len())
             }
         }
     }
@@ -83,12 +83,12 @@ impl SelectionManager {
             let max = Vector2::new(start.x.max(end.x), start.y.max(end.y));
 
             // Find entities in rect
-            for (i, entity) in model.entities.iter().enumerate() {
+            for entity in &model.entities {
                 let (e_min, e_max) = entity.bounding_box();
 
                 // Check if entity is fully inside selection rect
                 if e_min.x >= min.x && e_max.x <= max.x && e_min.y >= min.y && e_max.y <= max.y {
-                    self.selected_indices.insert(i);
+                    self.selected_ids.insert(entity.id);
                 }
             }
         }
@@ -96,25 +96,15 @@ impl SelectionManager {
         self.selection_rect_start = None;
         self.selection_rect_current = None;
 
-        format!("Selected {} items", self.selected_indices.len())
+        format!("Selected {} items", self.selected_ids.len())
     }
 
     /// Delete selected entities from the model
     /// Returns status message and the number of items deleted
     pub fn delete_selected(&mut self, model: &mut CadModel) -> (String, usize) {
-        if !self.selected_indices.is_empty() {
-            // Delete indices in descending order to avoid index shifting problems
-            let mut sorted_indices: Vec<usize> = self.selected_indices.iter().cloned().collect();
-            sorted_indices.sort_by(|a, b| b.cmp(a));
-
-            for idx in sorted_indices {
-                if idx < model.entities.len() {
-                    model.entities.remove(idx);
-                }
-            }
-
-            let count = self.selected_indices.len();
-            self.selected_indices.clear();
+        if !self.selected_ids.is_empty() {
+            let count = model.remove_entities_by_ids(&self.selected_ids);
+            self.selected_ids.clear();
             (format!("Deleted {} items", count), count)
         } else {
             ("Nothing selected to delete".to_string(), 0)

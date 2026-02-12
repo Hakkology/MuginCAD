@@ -163,12 +163,12 @@ pub fn render_canvas(ui: &mut egui::Ui, vm: &mut CadViewModel) {
     }
 
     // Hover detection - access tab
-    let mut hovered_entity_idx = None;
+    let mut hovered_entity_id = None;
     if let Some(mouse_pos) = hover_pos {
         if !is_panning {
             let cad_mouse = ctx.to_cad(mouse_pos);
             let tolerance = 5.0 / viewport_zoom;
-            hovered_entity_idx = tab.model.pick_entity(cad_mouse, tolerance);
+            hovered_entity_id = tab.model.pick_entity_id(cad_mouse, tolerance);
         }
     }
 
@@ -192,11 +192,12 @@ pub fn render_canvas(ui: &mut egui::Ui, vm: &mut CadViewModel) {
     }
 
     // Entities
+    // Entities
     renderer::render_entities(
         &ctx,
         &tab.model.entities,
-        &tab.selection_manager.selected_indices,
-        hovered_entity_idx,
+        &tab.selection_manager.selected_ids,
+        hovered_entity_id,
     );
 
     // Cursor and Preview

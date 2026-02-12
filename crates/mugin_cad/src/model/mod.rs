@@ -434,6 +434,23 @@ impl Entity {
         }
         None
     }
+    /// Pick an entity ID at the given position (recursive).
+    /// Returns the ID of the deepest child that was hit.
+    pub fn pick(&self, pos: Vector2, tolerance: f32) -> Option<u64> {
+        // Check children first (render order usually means children are on top)
+        for child in self.children.iter().rev() {
+            if let Some(id) = child.pick(pos, tolerance) {
+                return Some(id);
+            }
+        }
+
+        // Check self
+        if self.hit_test(pos, tolerance) {
+            return Some(self.id);
+        }
+
+        None
+    }
 }
 
 // ─── CadModel ───────────────────────────────────────────────────
@@ -457,13 +474,15 @@ impl CadModel {
         self.entities.push(entity);
     }
 
-    pub fn pick_entity(&self, pos: Vector2, tolerance: f32) -> Option<usize> {
-        self.entities
-            .iter()
-            .enumerate()
-            .rev()
-            .find(|(_, e)| e.hit_test(pos, tolerance))
-            .map(|(i, _)| i)
+    /// Find the top-most entity ID under the cursor (recursive).
+    pub fn pick_entity_id(&self, pos: Vector2, tolerance: f32) -> Option<u64> {
+        // Iterate reversely (top-most rendered first)
+        for entity in self.entities.iter().rev() {
+            if let Some(id) = entity.pick(pos, tolerance) {
+                return Some(id);
+            }
+        }
+        None
     }
 
     /// Find entity by id across the whole tree.
@@ -511,5 +530,58 @@ impl CadModel {
         }
 
         (min_b, max_b)
+    }
+
+    /// Remove entities by a set of IDs (recursive).
+    /// Returns the number of entities removed.
+    pub fn remove_entities_by_ids(&mut self, ids: &std::collections::HashSet<u64>) -> usize {
+        let mut count = 0;
+        count += Self::remove_recursive(&mut self.entities, ids);
+        count
+    }
+
+    fn remove_recursive(entities: &mut Vec<Entity>, ids: &std::collections::HashSet<u64>) -> usize {
+        let mut count = 0;
+
+        // 1. Remove from current level
+        let initial_len = entities.len();
+        entities.retain(|e| !ids.contains(&e.id));
+        count += initial_len - entities.len();
+
+        // 2. Recurse into remaining children
+        for entity in entities.iter_mut() {
+            count += Self::remove_recursive(&mut entity.children, ids);
+        }
+
+        count
+    }
+
+    /// Find the set of selected IDs that do not have an ancestor also selected.
+    /// This prevents double-transformations when a parent and child are both selected.
+    pub fn get_top_level_selected_ids(
+        &self,
+        selected_ids: &std::collections::HashSet<u64>,
+    ) -> Vec<u64> {
+        let mut top_level = Vec::new();
+        for entity in &self.entities {
+            Self::collect_top_level(entity, selected_ids, &mut top_level);
+        }
+        top_level
+    }
+
+    fn collect_top_level(
+        entity: &Entity,
+        selected_ids: &std::collections::HashSet<u64>,
+        acc: &mut Vec<u64>,
+    ) {
+        if selected_ids.contains(&entity.id) {
+            acc.push(entity.id);
+            // Stop recursion: this entity handles itself and all its children
+            return;
+        }
+
+        for child in &entity.children {
+            Self::collect_top_level(child, selected_ids, acc);
+        }
     }
 }

@@ -39,7 +39,7 @@ pub struct InputModifiers {
 /// Context passed to commands for execution
 pub struct CommandContext<'a> {
     pub model: &'a mut CadModel,
-    pub selected_indices: &'a HashSet<usize>,
+    pub selected_ids: &'a HashSet<u64>,
     pub filled_mode: bool,
     pub modifiers: InputModifiers,
 }
@@ -87,7 +87,7 @@ pub trait Command: std::fmt::Debug {
     fn can_execute(&self, ctx: &CommandContext) -> bool {
         match self.category() {
             CommandCategory::Creation => true,
-            CommandCategory::Manipulation => !ctx.selected_indices.is_empty(),
+            CommandCategory::Manipulation => !ctx.selected_ids.is_empty(),
             CommandCategory::Utility => true,
         }
     }

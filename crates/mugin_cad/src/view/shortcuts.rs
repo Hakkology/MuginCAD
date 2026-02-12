@@ -7,7 +7,13 @@ use eframe::egui;
 pub fn handle(ctx: &egui::Context, vm: &mut CadViewModel) {
     // Escape — cancel active command
     if ctx.input(|i| i.key_pressed(egui::Key::Escape)) {
-        vm.cancel_command();
+        if !vm.command_input.is_empty() {
+            vm.command_input.clear();
+        } else if vm.active_tab().executor.is_active() {
+            vm.cancel_command();
+        } else if !vm.active_tab().selection_manager.selected_ids.is_empty() {
+            vm.active_tab_mut().selection_manager.selected_ids.clear();
+        }
     }
 
     // End — reset viewport
@@ -19,24 +25,27 @@ pub fn handle(ctx: &egui::Context, vm: &mut CadViewModel) {
 
     // Delete — delete selected entities
     if ctx.input(|i| i.key_pressed(egui::Key::Delete)) {
-        vm.delete_selected();
+        if !vm.active_tab().selection_manager.selected_ids.is_empty() {
+            vm.command_input = "delete".to_string();
+            vm.process_command();
+        }
     }
 
     // Ctrl+C — copy
     if ctx.input(|i| i.modifiers.ctrl && i.key_pressed(egui::Key::C)) {
         let tab = vm.active_tab_mut();
-        if !tab.selection_manager.selected_indices.is_empty() && !tab.executor.is_active() {
-            let indices = tab.selection_manager.selected_indices.clone();
-            tab.executor.start_command("copy", &mut tab.model, &indices);
+        if !tab.selection_manager.selected_ids.is_empty() && !tab.executor.is_active() {
+            let ids = tab.selection_manager.selected_ids.clone();
+            tab.executor.start_command("copy", &mut tab.model, &ids);
         }
     }
 
     // Ctrl+X — cut
     if ctx.input(|i| i.modifiers.ctrl && i.key_pressed(egui::Key::X)) {
         let tab = vm.active_tab_mut();
-        if !tab.selection_manager.selected_indices.is_empty() && !tab.executor.is_active() {
-            let indices = tab.selection_manager.selected_indices.clone();
-            tab.executor.start_command("cut", &mut tab.model, &indices);
+        if !tab.selection_manager.selected_ids.is_empty() && !tab.executor.is_active() {
+            let ids = tab.selection_manager.selected_ids.clone();
+            tab.executor.start_command("cut", &mut tab.model, &ids);
         }
     }
 }

@@ -132,13 +132,13 @@ impl CommandExecutor {
         &mut self,
         name: &str,
         model: &mut CadModel,
-        selected_indices: &HashSet<usize>,
+        selected_ids: &HashSet<u64>,
     ) -> bool {
         if let Some(mut cmd) = self.registry.create(name) {
             // Check if command can execute in current context
             let ctx = CommandContext {
                 model,
-                selected_indices,
+                selected_ids,
                 filled_mode: self.filled_mode,
                 modifiers: self.modifiers,
             };
@@ -171,16 +171,11 @@ impl CommandExecutor {
     }
 
     /// Process a click/point input
-    pub fn push_point(
-        &mut self,
-        pos: Vector2,
-        model: &mut CadModel,
-        selected_indices: &HashSet<usize>,
-    ) {
+    pub fn push_point(&mut self, pos: Vector2, model: &mut CadModel, selected_ids: &HashSet<u64>) {
         if let Some(cmd) = &mut self.active_command {
             let mut ctx = CommandContext {
                 model,
-                selected_indices,
+                selected_ids,
                 filled_mode: self.filled_mode,
                 modifiers: self.modifiers,
             };
@@ -205,11 +200,11 @@ impl CommandExecutor {
         &mut self,
         input: &str,
         model: &mut CadModel,
-        selected_indices: &HashSet<usize>,
+        selected_ids: &HashSet<u64>,
     ) {
         // First, check if it's a new command
         let clean = input.trim().to_lowercase();
-        if self.start_command(&clean, model, selected_indices) {
+        if self.start_command(&clean, model, selected_ids) {
             return;
         }
 
@@ -223,7 +218,7 @@ impl CommandExecutor {
         if let Some(cmd) = &mut self.active_command {
             let mut ctx = CommandContext {
                 model,
-                selected_indices,
+                selected_ids,
                 filled_mode: self.filled_mode,
                 modifiers: self.modifiers,
             };

@@ -4,6 +4,7 @@ pub mod shortcuts;
 pub mod ui;
 pub mod viewport;
 
+pub use ui::hierarchy;
 pub use ui::inspector;
 pub use ui::settings;
 pub use ui::tab_bar;
@@ -70,13 +71,26 @@ impl eframe::App for CadApp {
         // Left Toolbar Panel
         toolbar::render_toolbar(ctx, &mut self.view_model);
 
+        // Hierarchy Panel (left side, after toolbar)
+        egui::SidePanel::left("hierarchy")
+            .resizable(true)
+            .default_width(200.0)
+            .frame(
+                egui::Frame::none()
+                    .fill(egui::Color32::from_rgb(25, 25, 25))
+                    .inner_margin(8.0),
+            )
+            .show(ctx, |ui| {
+                hierarchy::render_hierarchy(ui, &mut self.view_model);
+            });
+
         // Inspector Panel Logic
         let show_inspector = self.view_model.config.gui_config.show_inspector_always
             || !self
                 .view_model
                 .active_tab()
                 .selection_manager
-                .selected_indices
+                .selected_ids
                 .is_empty();
 
         if show_inspector {

@@ -37,9 +37,21 @@ pub fn render_terminal(ui: &mut egui::Ui, vm: &mut CadViewModel) {
 
             let response = ui.add(text_edit);
 
-            // Always keep focus on terminal unless a modal (like rename) is open
-            if vm.tab_renaming_index.is_none() && !response.has_focus() {
-                response.request_focus();
+            // Only grab focus if no rename or text editing is happening elsewhere.
+            // tab_renaming_index covers tab rename, hierarchy_renaming covers hierarchy.
+            // For inspector, we simply check if the terminal already lost focus to
+            // another widget — if so, don't steal it back this frame.
+            // Only grab focus if no rename or text editing is happening elsewhere.
+            let text_edit_elsewhere =
+                vm.tab_renaming_index.is_some() || vm.hierarchy_renaming || vm.inspector_renaming;
+
+            // Only request focus if we don't have it and nothing else needs it
+            if !text_edit_elsewhere {
+                if !response.has_focus() && !response.lost_focus() {
+                    // Check if we should auto-focus (e.g. not interacting with other widgets)
+                    // For now, we keep it aggressive but respect the flags
+                    response.request_focus();
+                }
             }
 
             // Handle Arrow keys for history navigation

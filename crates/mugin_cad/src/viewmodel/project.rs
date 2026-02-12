@@ -70,7 +70,7 @@ impl CadViewModel {
 
                     // Reset transient state
                     tab.undo_manager = UndoManager::new(50);
-                    tab.selection_manager.selected_indices.clear();
+                    tab.selection_manager.selected_ids.clear();
                     tab.current_snap = None;
                     tab.executor.cancel();
 

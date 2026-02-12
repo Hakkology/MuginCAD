@@ -64,13 +64,13 @@ impl CadViewModel {
                 let (tab, history) = self.active_tab_mut_and_history();
                 tab.model.entities.clear();
                 history.clear();
-                tab.selection_manager.selected_indices.clear();
+                tab.selection_manager.selected_ids.clear();
                 tab.executor.cancel();
                 return;
             }
             "d" | "delete" => {
                 let (tab, history) = self.active_tab_mut_and_history();
-                if !tab.selection_manager.selected_indices.is_empty() {
+                if !tab.selection_manager.selected_ids.is_empty() {
                     tab.pending_delete_confirmation = true;
                     tab.executor.status_message =
                         "Are you sure you want to delete? (Y/N)".to_string();
@@ -91,7 +91,7 @@ impl CadViewModel {
         tab.executor.process_input(
             &input_text,
             &mut tab.model,
-            &tab.selection_manager.selected_indices,
+            &tab.selection_manager.selected_ids,
         );
     }
 

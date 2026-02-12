@@ -10,7 +10,7 @@ impl CopyCommand {
     pub fn new_cut() -> Self {
         Self {
             points: Vec::new(),
-            entity_indices: Vec::new(),
+            entity_ids: Vec::new(),
             copied_entities: Vec::new(),
             is_cut: true,
         }
@@ -39,10 +39,10 @@ impl Command for CopyCommand {
     }
 
     fn on_start(&mut self, ctx: &CommandContext) {
-        self.entity_indices = ctx.selected_indices.iter().cloned().collect();
+        self.entity_ids = ctx.model.get_top_level_selected_ids(&ctx.selected_ids);
         // Clone the selected entities
-        for &idx in &self.entity_indices {
-            if let Some(entity) = ctx.model.entities.get(idx) {
+        for &id in &self.entity_ids {
+            if let Some(entity) = ctx.model.find_by_id(id) {
                 self.copied_entities.push(entity.clone());
             }
         }
@@ -69,14 +69,9 @@ impl Command for CopyCommand {
 
             // If cut, delete the originals
             if self.is_cut {
-                let mut sorted_indices = self.entity_indices.clone();
-                sorted_indices.sort_by(|a, b| b.cmp(a));
-
-                for idx in sorted_indices {
-                    if idx < ctx.model.entities.len() {
-                        ctx.model.entities.remove(idx);
-                    }
-                }
+                let ids_set: std::collections::HashSet<u64> =
+                    self.entity_ids.iter().cloned().collect();
+                ctx.model.remove_entities_by_ids(&ids_set);
             }
 
             PointResult::Complete

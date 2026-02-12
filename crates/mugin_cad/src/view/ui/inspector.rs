@@ -14,26 +14,21 @@ pub fn render_selection_status(ui: &mut egui::Ui, vm: &mut CadViewModel) {
     let tab = vm.active_tab();
     ui.horizontal(|ui| {
         ui.label(egui::RichText::new("Selection:").strong());
-        if tab.selection_manager.selected_indices.len() == 1 {
-            let idx = *tab
-                .selection_manager
-                .selected_indices
-                .iter()
-                .next()
-                .unwrap();
-            if let Some(entity) = tab.model.entities.get(idx) {
+        if tab.selection_manager.selected_ids.len() == 1 {
+            let id = *tab.selection_manager.selected_ids.iter().next().unwrap();
+            if let Some(entity) = tab.model.find_by_id(id) {
                 ui.label(
                     egui::RichText::new(entity.type_name())
                         .color(egui::Color32::GOLD)
                         .strong(),
                 );
-                ui.label(format!("(Index: {})", idx));
+                ui.label(format!("(ID: {})", id));
             }
-        } else if !tab.selection_manager.selected_indices.is_empty() {
+        } else if !tab.selection_manager.selected_ids.is_empty() {
             ui.label(
                 egui::RichText::new(format!(
                     "{} items selected",
-                    tab.selection_manager.selected_indices.len()
+                    tab.selection_manager.selected_ids.len()
                 ))
                 .color(egui::Color32::GOLD)
                 .strong(),
@@ -99,11 +94,7 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
     // ── Transform Tools ──────────────────────────────────────
     properties::section(ui, "Transform Tools", |ui| {
         ui.horizontal(|ui| {
-            let has_selection = !vm
-                .active_tab()
-                .selection_manager
-                .selected_indices
-                .is_empty();
+            let has_selection = !vm.active_tab().selection_manager.selected_ids.is_empty();
 
             ui.add_enabled_ui(has_selection, |ui| {
                 if ui
@@ -112,11 +103,8 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                     .clicked()
                 {
                     let tab = vm.active_tab_mut();
-                    tab.executor.process_input(
-                        "move",
-                        &mut tab.model,
-                        &tab.selection_manager.selected_indices,
-                    );
+                    let ids = tab.selection_manager.selected_ids.clone();
+                    tab.executor.process_input("move", &mut tab.model, &ids);
                 }
             });
 
@@ -127,11 +115,8 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                     .clicked()
                 {
                     let tab = vm.active_tab_mut();
-                    tab.executor.process_input(
-                        "rotate",
-                        &mut tab.model,
-                        &tab.selection_manager.selected_indices,
-                    );
+                    let ids = tab.selection_manager.selected_ids.clone();
+                    tab.executor.process_input("rotate", &mut tab.model, &ids);
                 }
             });
 
@@ -142,21 +127,13 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                     .clicked()
                 {
                     let tab = vm.active_tab_mut();
-                    tab.executor.process_input(
-                        "scale",
-                        &mut tab.model,
-                        &tab.selection_manager.selected_indices,
-                    );
+                    let ids = tab.selection_manager.selected_ids.clone();
+                    tab.executor.process_input("scale", &mut tab.model, &ids);
                 }
             });
         });
 
-        if vm
-            .active_tab()
-            .selection_manager
-            .selected_indices
-            .is_empty()
-        {
+        if vm.active_tab().selection_manager.selected_ids.is_empty() {
             ui.label(
                 egui::RichText::new("Select entities to use transform tools")
                     .small()
@@ -170,74 +147,91 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
     ui.add_space(10.0);
 
     // ── Entity Inspector ─────────────────────────────────────
-    let tab = vm.active_tab_mut();
+    let mut is_renaming = false;
 
-    if tab.selection_manager.selected_indices.len() == 1 {
-        let idx = *tab
-            .selection_manager
-            .selected_indices
-            .iter()
-            .next()
-            .unwrap();
-        if let Some(entity) = tab.model.entities.get_mut(idx) {
-            ui.label(egui::RichText::new(entity.type_name()).size(18.0).strong());
-            ui.add_space(5.0);
+    {
+        let tab = vm.active_tab_mut();
 
-            match &mut entity.shape {
-                Shape::Line(line) => inspect_line(ui, line),
-                Shape::Circle(circle) => inspect_circle(ui, circle),
-                Shape::Rectangle(rect) => inspect_rectangle(ui, rect),
-                Shape::Arc(arc) => inspect_arc(ui, arc),
-                Shape::Text(text) => inspect_text(ui, text),
-                Shape::None => {}
-            }
+        if tab.selection_manager.selected_ids.len() == 1 {
+            let id = *tab.selection_manager.selected_ids.iter().next().unwrap();
 
-            if !entity.children.is_empty() {
-                properties::section(ui, "Children", |ui| {
-                    ui.label(format!("Children: {}", entity.children.len()));
-                    for (i, child) in entity.children.iter().enumerate() {
-                        ui.label(format!("  {}. {}", i + 1, child.type_name()));
+            if let Some(entity) = tab.model.find_by_id_mut(id) {
+                // Entity name (editable)
+                ui.horizontal(|ui| {
+                    ui.label("Name:");
+                    let response = ui.text_edit_singleline(&mut entity.name);
+                    if response.has_focus() || response.clicked() {
+                        is_renaming = true;
                     }
                 });
-            }
+                ui.add_space(3.0);
+                ui.label(
+                    egui::RichText::new(entity.type_name())
+                        .size(14.0)
+                        .color(egui::Color32::GRAY),
+                );
+                ui.add_space(5.0);
 
-            ui.add_space(20.0);
-            if ui
-                .button(egui::RichText::new("Delete Entity").color(egui::Color32::RED))
-                .clicked()
-            {
-                // Delete action deferred due to borrow conflict
+                match &mut entity.shape {
+                    Shape::Line(line) => inspect_line(ui, line),
+                    Shape::Circle(circle) => inspect_circle(ui, circle),
+                    Shape::Rectangle(rect) => inspect_rectangle(ui, rect),
+                    Shape::Arc(arc) => inspect_arc(ui, arc),
+                    Shape::Text(text) => inspect_text(ui, text),
+                    Shape::None => {}
+                }
+
+                if !entity.children.is_empty() {
+                    properties::section(ui, "Children", |ui| {
+                        ui.label(format!("Children: {}", entity.children.len()));
+                        for (i, child) in entity.children.iter().enumerate() {
+                            ui.label(format!("  {}. {}", i + 1, child.type_name()));
+                        }
+                    });
+                }
+
+                ui.add_space(20.0);
+                if ui
+                    .button(egui::RichText::new("Delete Entity").color(egui::Color32::RED))
+                    .clicked()
+                {
+                    // Delete action deferred due to borrow conflict
+                    // We can't delete here because we have a mutable reference to entity
+                    // Need to signal deletion another way or handle outside this block
+                }
             }
+        } else if !tab.selection_manager.selected_ids.is_empty() {
+            ui.vertical_centered(|ui| {
+                ui.add_space(20.0);
+                ui.label(
+                    egui::RichText::new(format!(
+                        "{} items selected",
+                        tab.selection_manager.selected_ids.len()
+                    ))
+                    .strong(),
+                );
+                ui.add_space(10.0);
+                if ui
+                    .button(egui::RichText::new("Delete Selected Items").color(egui::Color32::RED))
+                    .clicked()
+                {
+                    // Delete action deferred
+                }
+            });
+        } else {
+            ui.vertical_centered(|ui| {
+                ui.add_space(50.0);
+                ui.label(egui::RichText::new("No entity selected").weak());
+                ui.label(
+                    egui::RichText::new("Click objects in the viewport to inspect/select them")
+                        .small()
+                        .weak(),
+                );
+            });
         }
-    } else if !tab.selection_manager.selected_indices.is_empty() {
-        ui.vertical_centered(|ui| {
-            ui.add_space(20.0);
-            ui.label(
-                egui::RichText::new(format!(
-                    "{} items selected",
-                    tab.selection_manager.selected_indices.len()
-                ))
-                .strong(),
-            );
-            ui.add_space(10.0);
-            if ui
-                .button(egui::RichText::new("Delete Selected Items").color(egui::Color32::RED))
-                .clicked()
-            {
-                // Delete action deferred
-            }
-        });
-    } else {
-        ui.vertical_centered(|ui| {
-            ui.add_space(50.0);
-            ui.label(egui::RichText::new("No entity selected").weak());
-            ui.label(
-                egui::RichText::new("Click objects in the viewport to inspect/select them")
-                    .small()
-                    .weak(),
-            );
-        });
     }
+
+    vm.inspector_renaming = is_renaming;
 }
 
 fn inspect_line(ui: &mut egui::Ui, line: &mut Line) {

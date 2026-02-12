@@ -18,7 +18,7 @@ impl CadViewModel {
             tab.executor.push_point(
                 effective_pos,
                 &mut tab.model,
-                &tab.selection_manager.selected_indices,
+                &tab.selection_manager.selected_ids,
             );
             self.command_history.push(format!(
                 "Point: {:.2}, {:.2}",
@@ -75,11 +75,12 @@ impl CadViewModel {
                 tab.executor.status_message = "Dragging label...".to_string();
 
                 // Also select the line if not selected
-                if !tab.selection_manager.selected_indices.contains(&i) {
+                let entity_id = tab.model.entities[i].id;
+                if !tab.selection_manager.selected_ids.contains(&entity_id) {
                     if !modifiers.shift && !modifiers.ctrl {
                         tab.selection_manager.clear();
                     }
-                    tab.selection_manager.selected_indices.insert(i);
+                    tab.selection_manager.selected_ids.insert(entity_id);
                 }
                 return; // Found a label to drag, skip selection rect
             }

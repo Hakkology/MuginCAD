@@ -24,7 +24,7 @@ impl Command for ScaleCommand {
     }
 
     fn on_start(&mut self, ctx: &CommandContext) {
-        self.entity_indices = ctx.selected_indices.iter().cloned().collect();
+        self.entity_ids = ctx.model.get_top_level_selected_ids(&ctx.selected_ids);
     }
 
     fn push_point(&mut self, pos: Vector2, ctx: &mut CommandContext) -> PointResult {
@@ -39,9 +39,9 @@ impl Command for ScaleCommand {
             let base = self.points[0];
             let to = pos;
 
-            if !self.entity_indices.is_empty() {
-                let first_idx = self.entity_indices[0];
-                let scale_factor = if let Some(entity) = ctx.model.entities.get(first_idx) {
+            if !self.entity_ids.is_empty() {
+                let first_id = self.entity_ids[0];
+                let scale_factor = if let Some(entity) = ctx.model.find_by_id(first_id) {
                     let center = entity.center();
                     let base_dist = base.dist(center);
                     let to_dist = to.dist(center);
@@ -56,8 +56,8 @@ impl Command for ScaleCommand {
                 };
 
                 if let Some(factor) = scale_factor {
-                    for &idx in &self.entity_indices {
-                        if let Some(entity) = ctx.model.entities.get_mut(idx) {
+                    for &id in &self.entity_ids {
+                        if let Some(entity) = ctx.model.find_by_id_mut(id) {
                             let center = entity.center();
                             entity.scale(center, factor);
                         }
@@ -81,8 +81,8 @@ impl Command for ScaleCommand {
                 if factor > 0.0 {
                     let base = self.points[0];
 
-                    for &idx in &self.entity_indices {
-                        if let Some(entity) = ctx.model.entities.get_mut(idx) {
+                    for &id in &self.entity_ids {
+                        if let Some(entity) = ctx.model.find_by_id_mut(id) {
                             entity.scale(base, factor);
                         }
                     }

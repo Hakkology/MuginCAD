@@ -2,7 +2,7 @@ use crate::commands::{Command, CommandCategory, CommandContext, InputResult, Poi
 use crate::model::{Entity, Line, Shape, Vector2};
 
 define_manipulation_command!(OffsetCommand,
-    selected_lines: Vec<(usize, Line)> = Vec::new(),
+    selected_lines: Vec<(u64, Line)> = Vec::new(),
     offset_distance: Option<f32> = None
 );
 
@@ -57,12 +57,12 @@ impl Command for OffsetCommand {
     }
 
     fn on_start(&mut self, ctx: &CommandContext) {
-        self.entity_indices = ctx.selected_indices.iter().cloned().collect();
+        self.entity_ids = ctx.selected_ids.iter().cloned().collect();
         // Only collect lines from selected entities
-        for &idx in &self.entity_indices {
-            if let Some(entity) = ctx.model.entities.get(idx) {
+        for &id in &self.entity_ids {
+            if let Some(entity) = ctx.model.find_by_id(id) {
                 if let Shape::Line(line) = &entity.shape {
-                    self.selected_lines.push((idx, line.clone()));
+                    self.selected_lines.push((id, line.clone()));
                 }
             }
         }
@@ -70,9 +70,9 @@ impl Command for OffsetCommand {
 
     fn can_execute(&self, ctx: &CommandContext) -> bool {
         // Check if there's at least one line in the selection
-        ctx.selected_indices.iter().any(|&idx| {
+        ctx.selected_ids.iter().any(|&id| {
             matches!(
-                ctx.model.entities.get(idx).map(|e| &e.shape),
+                ctx.model.find_by_id(id).map(|e| &e.shape),
                 Some(Shape::Line(_))
             )
         })

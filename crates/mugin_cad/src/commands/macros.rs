@@ -43,13 +43,13 @@ macro_rules! define_manipulation_command {
         #[derive(Debug, Clone)]
         pub struct $name {
             points: Vec<crate::model::Vector2>,
-            entity_indices: Vec<usize>,
+            entity_ids: Vec<u64>,
         }
         impl $name {
             pub fn new() -> Self {
                 Self {
                     points: Vec::new(),
-                    entity_indices: Vec::new(),
+                    entity_ids: Vec::new(),
                 }
             }
         }
@@ -58,14 +58,14 @@ macro_rules! define_manipulation_command {
         #[derive(Debug, Clone)]
         pub struct $name {
             points: Vec<crate::model::Vector2>,
-            entity_indices: Vec<usize>,
+            entity_ids: Vec<u64>,
             $(pub $field: $ty,)+
         }
         impl $name {
             pub fn new() -> Self {
                 Self {
                     points: Vec::new(),
-                    entity_indices: Vec::new(),
+                    entity_ids: Vec::new(),
                     $($field: $default,)+
                 }
             }

@@ -361,9 +361,35 @@ impl Renderable for Entity {
             Shape::Text(e) => e.render(ctx, is_selected, is_hovered),
             Shape::None => {}
         }
-        // Render children recursively
+        // Basic render propagates selection (legacy behavior)
         for child in &self.children {
             child.render(ctx, is_selected, is_hovered);
+        }
+    }
+}
+
+impl Entity {
+    /// Render self and children with ID-based selection check
+    pub fn render_recursive(
+        &self,
+        ctx: &DrawContext,
+        selected_ids: &std::collections::HashSet<u64>,
+        hovered_id: Option<u64>,
+    ) {
+        let is_self_selected = selected_ids.contains(&self.id);
+        let is_self_hovered = hovered_id == Some(self.id);
+
+        match &self.shape {
+            Shape::Line(e) => e.render(ctx, is_self_selected, is_self_hovered),
+            Shape::Circle(e) => e.render(ctx, is_self_selected, is_self_hovered),
+            Shape::Rectangle(e) => e.render(ctx, is_self_selected, is_self_hovered),
+            Shape::Arc(e) => e.render(ctx, is_self_selected, is_self_hovered),
+            Shape::Text(e) => e.render(ctx, is_self_selected, is_self_hovered),
+            Shape::None => {}
+        }
+
+        for child in &self.children {
+            child.render_recursive(ctx, selected_ids, hovered_id);
         }
     }
 }

@@ -25,6 +25,7 @@
 //! });
 //! ```
 
+pub mod hierarchy;
 pub mod properties;
 pub mod toolbar;
 pub mod window;

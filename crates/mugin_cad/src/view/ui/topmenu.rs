@@ -47,113 +47,77 @@ pub fn render_top_menu(ctx: &egui::Context, vm: &mut CadViewModel) {
                 }
 
                 let tab = vm.active_tab_mut();
-                let has_sel = !tab.selection_manager.selected_indices.is_empty();
+                let has_sel = !tab.selection_manager.selected_ids.is_empty();
 
                 // Shapes
                 toolbar::menu_section(ui, "Shapes");
                 if toolbar::menu_action(ui, "Line (L)") {
-                    tab.executor.start_command(
-                        "line",
-                        &mut tab.model,
-                        &tab.selection_manager.selected_indices,
-                    );
+                    let ids = tab.selection_manager.selected_ids.clone();
+                    tab.executor.start_command("line", &mut tab.model, &ids);
                 }
                 if toolbar::menu_action(ui, "Circle (C)") {
-                    tab.executor.start_command(
-                        "circle",
-                        &mut tab.model,
-                        &tab.selection_manager.selected_indices,
-                    );
+                    let ids = tab.selection_manager.selected_ids.clone();
+                    tab.executor.start_command("circle", &mut tab.model, &ids);
                 }
                 if toolbar::menu_action(ui, "Rectangle") {
-                    tab.executor.start_command(
-                        "rect",
-                        &mut tab.model,
-                        &tab.selection_manager.selected_indices,
-                    );
+                    let ids = tab.selection_manager.selected_ids.clone();
+                    tab.executor.start_command("rect", &mut tab.model, &ids);
                 }
                 if toolbar::menu_action(ui, "Arc") {
-                    tab.executor.start_command(
-                        "arc",
-                        &mut tab.model,
-                        &tab.selection_manager.selected_indices,
-                    );
+                    let ids = tab.selection_manager.selected_ids.clone();
+                    tab.executor.start_command("arc", &mut tab.model, &ids);
                 }
 
                 // Transform
                 toolbar::menu_section(ui, "Transform");
                 if toolbar::menu_item(ui, "Move (W)", has_sel) {
-                    tab.executor.start_command(
-                        "move",
-                        &mut tab.model,
-                        &tab.selection_manager.selected_indices,
-                    );
+                    let ids = tab.selection_manager.selected_ids.clone();
+                    tab.executor.start_command("move", &mut tab.model, &ids);
                 }
                 if toolbar::menu_item(ui, "Rotate (E)", has_sel) {
-                    tab.executor.start_command(
-                        "rotate",
-                        &mut tab.model,
-                        &tab.selection_manager.selected_indices,
-                    );
+                    let ids = tab.selection_manager.selected_ids.clone();
+                    tab.executor.start_command("rotate", &mut tab.model, &ids);
                 }
                 if toolbar::menu_item(ui, "Scale (R)", has_sel) {
-                    tab.executor.start_command(
-                        "scale",
-                        &mut tab.model,
-                        &tab.selection_manager.selected_indices,
-                    );
+                    let ids = tab.selection_manager.selected_ids.clone();
+                    tab.executor.start_command("scale", &mut tab.model, &ids);
                 }
 
                 // Clipboard
                 toolbar::menu_section(ui, "Clipboard");
                 if toolbar::menu_item(ui, "Copy (Ctrl+C)", has_sel) {
-                    let indices = tab.selection_manager.selected_indices.clone();
-                    tab.executor.start_command("copy", &mut tab.model, &indices);
+                    let ids = tab.selection_manager.selected_ids.clone();
+                    tab.executor.start_command("copy", &mut tab.model, &ids);
                 }
                 if toolbar::menu_item(ui, "Cut (Ctrl+X)", has_sel) {
-                    let indices = tab.selection_manager.selected_indices.clone();
-                    tab.executor.start_command("cut", &mut tab.model, &indices);
+                    let ids = tab.selection_manager.selected_ids.clone();
+                    tab.executor.start_command("cut", &mut tab.model, &ids);
                 }
 
                 // Construction
                 toolbar::menu_section(ui, "Construction");
                 if toolbar::menu_action(ui, "Axis (A)") {
-                    tab.executor.start_command(
-                        "axis",
-                        &mut tab.model,
-                        &tab.selection_manager.selected_indices,
-                    );
+                    let ids = tab.selection_manager.selected_ids.clone();
+                    tab.executor.start_command("axis", &mut tab.model, &ids);
                 }
                 if toolbar::menu_action(ui, "Trim (T)") {
-                    tab.executor.start_command(
-                        "trim",
-                        &mut tab.model,
-                        &tab.selection_manager.selected_indices,
-                    );
+                    let ids = tab.selection_manager.selected_ids.clone();
+                    tab.executor.start_command("trim", &mut tab.model, &ids);
                 }
                 if toolbar::menu_item(ui, "Offset (O)", has_sel) {
-                    tab.executor.start_command(
-                        "offset",
-                        &mut tab.model,
-                        &tab.selection_manager.selected_indices,
-                    );
+                    let ids = tab.selection_manager.selected_ids.clone();
+                    tab.executor.start_command("offset", &mut tab.model, &ids);
                 }
 
                 // Annotation
                 toolbar::menu_section(ui, "Annotation");
                 if toolbar::menu_action(ui, "Text") {
-                    tab.executor.start_command(
-                        "text",
-                        &mut tab.model,
-                        &tab.selection_manager.selected_indices,
-                    );
+                    let ids = tab.selection_manager.selected_ids.clone();
+                    tab.executor.start_command("text", &mut tab.model, &ids);
                 }
                 if toolbar::menu_action(ui, "Distance") {
-                    tab.executor.start_command(
-                        "distance",
-                        &mut tab.model,
-                        &tab.selection_manager.selected_indices,
-                    );
+                    let ids = tab.selection_manager.selected_ids.clone();
+                    tab.executor.start_command("distance", &mut tab.model, &ids);
                 }
             });
 

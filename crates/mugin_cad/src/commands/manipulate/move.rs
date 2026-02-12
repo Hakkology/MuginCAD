@@ -22,7 +22,7 @@ impl Command for MoveCommand {
     }
 
     fn on_start(&mut self, ctx: &CommandContext) {
-        self.entity_indices = ctx.selected_indices.iter().cloned().collect();
+        self.entity_ids = ctx.model.get_top_level_selected_ids(&ctx.selected_ids);
     }
 
     fn push_point(&mut self, pos: Vector2, ctx: &mut CommandContext) -> PointResult {
@@ -47,8 +47,8 @@ impl Command for MoveCommand {
                 }
             }
 
-            for &idx in &self.entity_indices {
-                if let Some(entity) = ctx.model.entities.get_mut(idx) {
+            for &id in &self.entity_ids {
+                if let Some(entity) = ctx.model.find_by_id_mut(id) {
                     entity.translate(delta);
                 }
             }

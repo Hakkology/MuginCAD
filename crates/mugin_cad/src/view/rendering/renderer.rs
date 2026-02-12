@@ -5,12 +5,10 @@ use crate::view::rendering::renderable::Renderable;
 pub fn render_entities(
     ctx: &DrawContext,
     entities: &[Entity],
-    selected_indices: &std::collections::HashSet<usize>,
-    hovered_entity_idx: Option<usize>,
+    selected_ids: &std::collections::HashSet<u64>,
+    hovered_entity_id: Option<u64>,
 ) {
-    for (i, entity) in entities.iter().enumerate() {
-        let is_selected = selected_indices.contains(&i);
-        let is_hovered = Some(i) == hovered_entity_idx;
-        entity.render(ctx, is_selected, is_hovered);
+    for entity in entities {
+        entity.render_recursive(ctx, selected_ids, hovered_entity_id);
     }
 }
