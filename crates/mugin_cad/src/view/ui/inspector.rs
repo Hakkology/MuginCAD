@@ -148,6 +148,8 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
 
     // ── Entity Inspector ─────────────────────────────────────
     let mut is_renaming = false;
+    let mut delete_id = None;
+    let mut delete_selection = false;
 
     {
         let tab = vm.active_tab_mut();
@@ -195,9 +197,7 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                     .button(egui::RichText::new("Delete Entity").color(egui::Color32::RED))
                     .clicked()
                 {
-                    // Delete action deferred due to borrow conflict
-                    // We can't delete here because we have a mutable reference to entity
-                    // Need to signal deletion another way or handle outside this block
+                    delete_id = Some(id);
                 }
             }
         } else if !tab.selection_manager.selected_ids.is_empty() {
@@ -215,7 +215,7 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                     .button(egui::RichText::new("Delete Selected Items").color(egui::Color32::RED))
                     .clicked()
                 {
-                    // Delete action deferred
+                    delete_selection = true;
                 }
             });
         } else {
@@ -232,6 +232,23 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
     }
 
     vm.inspector_renaming = is_renaming;
+
+    // Handle deferred deletion
+    if let Some(id_to_delete) = delete_id {
+        let tab = vm.active_tab_mut();
+        tab.model
+            .remove_entities_by_ids(&std::collections::HashSet::from([id_to_delete]));
+        tab.selection_manager.selected_ids.remove(&id_to_delete);
+    }
+
+    if delete_selection {
+        let tab = vm.active_tab_mut();
+        let ids = tab.selection_manager.selected_ids.clone();
+        if !ids.is_empty() {
+            tab.model.remove_entities_by_ids(&ids);
+            tab.selection_manager.selected_ids.clear();
+        }
+    }
 }
 
 fn inspect_line(ui: &mut egui::Ui, line: &mut Line) {

@@ -8,8 +8,6 @@ use std::collections::HashSet;
 
 // ─── Data ────────────────────────────────────────────────────────────────
 
-// ─── Data ────────────────────────────────────────────────────────────────
-
 /// A single node in the tree.
 #[derive(Debug, Clone)]
 pub struct TreeNode {
@@ -24,13 +22,14 @@ pub struct TreeNode {
 pub struct TreeResponse {
     pub clicked_id: Option<u64>,
     pub renamed: Option<(u64, String)>,
-    /// (dragged_id, target_id) — None target = move to root.
-    pub reparent: Option<(u64, Option<u64>)>,
+    /// (dragged_ids, target_id) — None target = move to root.
+    pub reparent: Option<(Vec<u64>, Option<u64>)>,
     pub is_renaming: bool,
 }
 
-/// Persistent key for the node id being dragged.
-const DRAG_KEY: &str = "tree_drag_id"; // Now stores (u64, String)
+/// Persistent key for the node ids being dragged.
+/// Payload: (ids: Vec<u64>, label: String)
+const DRAG_KEY: &str = "tree_drag_ids";
 
 // ─── Widget ──────────────────────────────────────────────────────────────
 
@@ -46,11 +45,11 @@ pub fn tree_view(
     }
 
     // Retrieve drag state
-    let drag_state = ui.data(|d| d.get_temp::<(u64, String)>(egui::Id::new(DRAG_KEY)));
-    let drag_id = drag_state.as_ref().map(|(id, _)| *id);
+    let drag_state = ui.data(|d| d.get_temp::<(Vec<u64>, String)>(egui::Id::new(DRAG_KEY)));
+    let drag_ids = drag_state.as_ref().map(|(ids, _)| ids.clone());
 
     // Root-level drop zone
-    if drag_id.is_some() {
+    if drag_ids.is_some() {
         let (_, rect) = ui.allocate_space(egui::vec2(ui.available_width(), 14.0));
         let hovered = ui.rect_contains_pointer(rect);
 
@@ -70,8 +69,8 @@ pub fn tree_view(
         }
 
         if hovered && ui.input(|i| i.pointer.any_released()) {
-            if let Some(id) = drag_id {
-                response.reparent = Some((id, None));
+            if let Some(ids) = drag_ids {
+                response.reparent = Some((ids, None));
             }
         }
     }
@@ -108,7 +107,7 @@ pub fn tree_view(
 
     // Clear drag state on pointer release
     if ui.input(|i| i.pointer.any_released()) {
-        ui.data_mut(|d| d.remove_temp::<(u64, String)>(egui::Id::new(DRAG_KEY)));
+        ui.data_mut(|d| d.remove_temp::<(Vec<u64>, String)>(egui::Id::new(DRAG_KEY)));
     }
 
     response
@@ -145,9 +144,15 @@ fn render_node(
 
     // Drag state
     let drag_key = egui::Id::new(DRAG_KEY);
-    let drag_state = ui.data(|d| d.get_temp::<(u64, String)>(drag_key));
-    let dragged_id = drag_state.as_ref().map(|(id, _)| *id);
-    let is_me_dragged = dragged_id == Some(node.id);
+    let drag_state = ui.data(|d| d.get_temp::<(Vec<u64>, String)>(drag_key));
+    let drag_ids = drag_state.as_ref().map(|(ids, _)| ids.clone()); // Check if ANY of drag_ids contains node.id
+
+    // Check if this node is being dragged
+    let is_me_dragged = if let Some(ids) = &drag_ids {
+        ids.contains(&node.id)
+    } else {
+        false
+    };
 
     // ── Row ──────────────────────────────────────────────────────────
     ui.horizontal(|ui| {
@@ -164,7 +169,8 @@ fn render_node(
         }
 
         // Drop target highlight
-        let is_drop_target = dragged_id.is_some()
+        // Only valid if I am NOT one of the dragged items
+        let is_drop_target = drag_ids.is_some()
             && !is_me_dragged
             && ui.rect_contains_pointer(ui.available_rect_before_wrap());
 
@@ -257,6 +263,9 @@ fn render_node(
             let r = ui.add(egui::Label::new(text).sense(egui::Sense::click_and_drag()));
 
             if r.clicked() {
+                // Determine modifier state
+                // This logic is actually handled in the parent, but we return clicked_id.
+                // However, we need to know if we are starting a drag of the SELECTION or just this item.
                 response.clicked_id = Some(node.id);
             }
             if r.double_clicked() {
@@ -264,18 +273,41 @@ fn render_node(
                 let buf_key = ui.make_persistent_id(format!("ren_buf_{}", node.id));
                 ui.data_mut(|d| d.insert_temp(buf_key, node.label.clone()));
             }
+
             // Start drag
             if r.drag_started() {
-                ui.data_mut(|d| d.insert_temp(drag_key, (node.id, node.label.clone())));
+                // Logic:
+                // 1. If 'node.id' is in 'selected_ids', then we drag ALL selected ids.
+                // 2. If 'node.id' is NOT in 'selected_ids', we drag JUST 'node.id'.
+
+                let (ids_to_drag, label) = if selected_ids.contains(&node.id) {
+                    let mut list: Vec<u64> = selected_ids.iter().cloned().collect();
+                    // Sort or ensure order? Iter order is random for HashSet.
+                    // Ideally we'd respect visual order, but that's hard here.
+                    // Just collecting is fine for now.
+                    // Ensure node.id is present (it is by definition).
+
+                    let label = if list.len() > 1 {
+                        format!("{} items", list.len())
+                    } else {
+                        node.label.clone()
+                    };
+                    (list, label)
+                } else {
+                    (vec![node.id], node.label.clone())
+                };
+
+                ui.data_mut(|d| d.insert_temp(drag_key, (ids_to_drag, label)));
             }
         }
 
         // Drop on this node
         if is_drop_target && ui.input(|i| i.pointer.any_released()) {
-            if let Some(did) = dragged_id {
-                if did != node.id {
-                    response.reparent = Some((did, Some(node.id)));
-                    ui.data_mut(|d| d.remove_temp::<(u64, String)>(drag_key));
+            if let Some(dids) = drag_ids {
+                // Don't drop 'node' onto itself
+                if !dids.contains(&node.id) {
+                    response.reparent = Some((dids, Some(node.id)));
+                    ui.data_mut(|d| d.remove_temp::<(Vec<u64>, String)>(drag_key));
                 }
             }
         }

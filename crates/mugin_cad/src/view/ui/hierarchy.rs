@@ -91,36 +91,53 @@ pub fn render_hierarchy(ui: &mut egui::Ui, vm: &mut CadViewModel) {
         }
     }
 
-    // Handle reparenting — move entity under another entity (or to root)
-    if let Some((dragged_id, target_id)) = response.reparent {
+    // Handle reparenting — move entities under another entity (or to root)
+    if let Some((dragged_ids, target_id)) = response.reparent {
         let tab = &mut vm.tabs[vm.active_tab_index];
 
-        // 1. Remove the dragged entity from wherever it is
-        if let Some(removed) = remove_entity_by_id(&mut tab.model.entities, dragged_id) {
-            match target_id {
-                Some(target) => {
-                    // Move under target
-                    if let Some(parent) = find_entity_mut(&mut tab.model.entities, target) {
-                        parent.children.push(removed);
-                    } else {
-                        // Target not found, put back at root
-                        tab.model.entities.push(removed);
-                    }
-                }
-                None => {
-                    // Move to root
-                    tab.model.entities.push(removed);
+        // Collect entities to move
+        // We need to be careful: if we remove an entity, indices might shift if using indices.
+        // But we are using a recursive remover by ID, so it should be fine.
+        // However, if we remove a parent, its children are gone too.
+        // If we select parent and child, we should only process parent?
+        // Or drag logic handled that?
+        // "get_top_level_selected_ids" is useful here too!
+
+        let ids_set: HashSet<u64> = dragged_ids.iter().cloned().collect();
+        // Use helper from model/mod.rs logic to get top level?
+        // Or just move them all. If I move parent, child moves with it.
+        // If I try to move child separately, but it's already moving with parent, it's fine.
+        // BUT if I allow moving child OUT of parent while parent moves... complex.
+        // Be safe: Filter top-level of dragged items.
+
+        let top_level_ids = tab.model.get_top_level_selected_ids(&ids_set);
+
+        // Remove them all first
+        let mut moved_entities = Vec::new();
+        for id in &top_level_ids {
+            if let Some(e) = remove_entity_by_id(&mut tab.model.entities, *id) {
+                moved_entities.push(e);
+            }
+        }
+
+        // Insert them at target
+        match target_id {
+            Some(target) => {
+                if let Some(parent) = find_entity_mut(&mut tab.model.entities, target) {
+                    parent.children.extend(moved_entities);
+                } else {
+                    // Target not found (maybe it was dragged?), put back at root
+                    tab.model.entities.extend(moved_entities);
                 }
             }
-
-            // Clear selection since indices changed
-            // Clear selection since indices changed (actually IDs don't change, but let's clear for safety or keep?)
-            // If we keep IDs, the selection follows variables!
-            // But if we moved them, they are still same entities.
-            // Let's NOT clear selection, so user can keep dragging?
-            // Original code cleared it. Let's clear it to be safe.
-            tab.selection_manager.selected_ids.clear();
+            None => {
+                // Move to root
+                tab.model.entities.extend(moved_entities);
+            }
         }
+
+        // Keep selection?
+        // tab.selection_manager.selected_ids.clear();
     }
 }
 

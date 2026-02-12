@@ -1,6 +1,5 @@
 use crate::model::Entity;
 use crate::view::context::DrawContext;
-use crate::view::rendering::renderable::Renderable;
 
 pub fn render_entities(
     ctx: &DrawContext,
