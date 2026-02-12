@@ -1,3 +1,4 @@
+use crate::model::structure::column_type::ColumnType;
 use crate::model::structure::material::Material;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -7,7 +8,7 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StructureDefinitions {
     pub materials: HashMap<u64, Material>,
-    // Future: column_types: HashMap<u64, ColumnType>,
+    pub column_types: HashMap<u64, ColumnType>,
 
     // Counter for generic IDs within definitions
     next_id: u64,
@@ -15,16 +16,11 @@ pub struct StructureDefinitions {
 
 impl StructureDefinitions {
     pub fn new() -> Self {
-        let mut defs = Self {
+        Self {
             materials: HashMap::new(),
+            column_types: HashMap::new(),
             next_id: 1,
-        };
-
-        // Add default materials
-        defs.add_material(Material::new_concrete(0, "C20/25 Concrete", "C20"));
-        defs.add_material(Material::new_steel(0, "S420 Steel", "S420", Some(12.0)));
-
-        defs
+        }
     }
 
     pub fn next_id(&mut self) -> u64 {
@@ -32,6 +28,8 @@ impl StructureDefinitions {
         self.next_id += 1;
         id
     }
+
+    // --- Materials ---
 
     pub fn add_material(&mut self, mut material: Material) -> u64 {
         if material.id == 0 {
@@ -52,5 +50,28 @@ impl StructureDefinitions {
 
     pub fn remove_material(&mut self, id: u64) {
         self.materials.remove(&id);
+    }
+
+    // --- Column Types ---
+
+    pub fn add_column_type(&mut self, mut col_type: ColumnType) -> u64 {
+        if col_type.id == 0 {
+            col_type.id = self.next_id();
+        }
+        let id = col_type.id;
+        self.column_types.insert(id, col_type);
+        id
+    }
+
+    pub fn get_column_type(&self, id: u64) -> Option<&ColumnType> {
+        self.column_types.get(&id)
+    }
+
+    pub fn get_column_type_mut(&mut self, id: u64) -> Option<&mut ColumnType> {
+        self.column_types.get_mut(&id)
+    }
+
+    pub fn remove_column_type(&mut self, id: u64) {
+        self.column_types.remove(&id);
     }
 }
