@@ -359,6 +359,11 @@ impl Renderable for Entity {
             Entity::Rectangle(e) => e.render(ctx, is_selected, is_hovered),
             Entity::Arc(e) => e.render(ctx, is_selected, is_hovered),
             Entity::Text(e) => e.render(ctx, is_selected, is_hovered),
+            Entity::Composite { children, .. } => {
+                for child in children {
+                    child.render(ctx, is_selected, is_hovered);
+                }
+            }
         }
     }
 }

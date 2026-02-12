@@ -189,6 +189,14 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                 Entity::Rectangle(rect) => inspect_rectangle(ui, rect),
                 Entity::Arc(arc) => inspect_arc(ui, arc),
                 Entity::Text(text) => inspect_text(ui, text),
+                Entity::Composite { label, children } => {
+                    properties::section(ui, label, |ui| {
+                        ui.label(format!("Children: {}", children.len()));
+                        for (i, child) in children.iter().enumerate() {
+                            ui.label(format!("  {}. {}", i + 1, child.type_name()));
+                        }
+                    });
+                }
             }
 
             ui.add_space(20.0);

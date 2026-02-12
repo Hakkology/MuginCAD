@@ -226,6 +226,11 @@ impl SnapSystem {
                     points.push(SnapPoint::new(*pt, SnapPointType::Endpoint));
                 }
             }
+            Entity::Composite { children, .. } => {
+                for child in children {
+                    points.extend(self.get_entity_snap_points(child));
+                }
+            }
         }
 
         points

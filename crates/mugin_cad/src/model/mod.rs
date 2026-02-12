@@ -37,6 +37,11 @@ pub enum Entity {
     Rectangle(Rectangle),
     Arc(Arc),
     Text(TextAnnotation),
+    /// A compound entity composed of multiple children (e.g. column, beam).
+    Composite {
+        label: String,
+        children: Vec<Entity>,
+    },
 }
 
 impl Entity {
@@ -47,6 +52,9 @@ impl Entity {
             Entity::Rectangle(rect) => rect.hit_test(pos, tolerance),
             Entity::Arc(arc) => arc.hit_test(pos, tolerance),
             Entity::Text(text) => text.hit_test(pos, tolerance),
+            Entity::Composite { children, .. } => {
+                children.iter().any(|c| c.hit_test(pos, tolerance))
+            }
         }
     }
 
@@ -57,6 +65,7 @@ impl Entity {
             Entity::Rectangle(_) => "Rectangle",
             Entity::Arc(_) => "Arc",
             Entity::Text(_) => "Text",
+            Entity::Composite { .. } => "Composite",
         }
     }
 
@@ -74,6 +83,10 @@ impl Entity {
             ),
             Entity::Arc(arc) => arc.center,
             Entity::Text(text) => text.position,
+            Entity::Composite { .. } => {
+                let (min, max) = self.bounding_box();
+                Vector2::new((min.x + max.x) / 2.0, (min.y + max.y) / 2.0)
+            }
         }
     }
 
@@ -98,6 +111,11 @@ impl Entity {
                 text.position = text.position + delta;
                 for pt in &mut text.anchor_points {
                     *pt = *pt + delta;
+                }
+            }
+            Entity::Composite { children, .. } => {
+                for child in children {
+                    child.translate(delta);
                 }
             }
         }
@@ -126,7 +144,6 @@ impl Entity {
                 circle.center = rotate_point(circle.center);
             }
             Entity::Rectangle(rect) => {
-                // For rectangle, rotate the corners and recalculate bounds
                 let p1 = rotate_point(rect.min);
                 let p2 = rotate_point(Vector2::new(rect.max.x, rect.min.y));
                 let p3 = rotate_point(rect.max);
@@ -150,6 +167,11 @@ impl Entity {
                 text.position = rotate_point(text.position);
                 for pt in &mut text.anchor_points {
                     *pt = rotate_point(*pt);
+                }
+            }
+            Entity::Composite { children, .. } => {
+                for child in children {
+                    child.rotate(pivot, angle);
                 }
             }
         }
@@ -188,6 +210,11 @@ impl Entity {
                 }
                 text.style.font_size *= factor;
             }
+            Entity::Composite { children, .. } => {
+                for child in children {
+                    child.scale(base, factor);
+                }
+            }
         }
     }
 
@@ -211,6 +238,18 @@ impl Entity {
                 Vector2::new(r.min.x.max(r.max.x), r.min.y.max(r.max.y)),
             ),
             Entity::Text(t) => (t.position, t.position),
+            Entity::Composite { children, .. } => {
+                let mut min_b = Vector2::new(f32::MAX, f32::MAX);
+                let mut max_b = Vector2::new(f32::MIN, f32::MIN);
+                for child in children {
+                    let (c_min, c_max) = child.bounding_box();
+                    min_b.x = min_b.x.min(c_min.x);
+                    min_b.y = min_b.y.min(c_min.y);
+                    max_b.x = max_b.x.max(c_max.x);
+                    max_b.y = max_b.y.max(c_max.y);
+                }
+                (min_b, max_b)
+            }
         }
     }
 
@@ -262,12 +301,18 @@ impl Entity {
                 ]
             }
             Entity::Text(t) => vec![t.position],
+            Entity::Composite { children, .. } => {
+                children.iter().flat_map(|c| c.as_polyline()).collect()
+            }
         }
     }
 
     /// Whether this entity represents a closed shape.
     pub fn is_closed(&self) -> bool {
-        matches!(self, Entity::Circle(_) | Entity::Rectangle(_))
+        matches!(
+            self,
+            Entity::Circle(_) | Entity::Rectangle(_) | Entity::Composite { .. }
+        )
     }
 
     /// Whether this entity has a fill.
@@ -276,7 +321,24 @@ impl Entity {
             Entity::Circle(c) => c.filled,
             Entity::Rectangle(r) => r.filled,
             Entity::Arc(a) => a.filled,
+            Entity::Composite { children, .. } => children.iter().any(|c| c.is_filled()),
             _ => false,
+        }
+    }
+
+    /// Get the label for composite entities.
+    pub fn composite_label(&self) -> Option<&str> {
+        match self {
+            Entity::Composite { label, .. } => Some(label),
+            _ => None,
+        }
+    }
+
+    /// Get children for composite entities.
+    pub fn children(&self) -> Option<&[Entity]> {
+        match self {
+            Entity::Composite { children, .. } => Some(children),
+            _ => None,
         }
     }
 }
@@ -298,6 +360,11 @@ impl CadModel {
 
     pub fn add_entity(&mut self, entity: Entity) {
         self.entities.push(entity);
+    }
+
+    /// Add a composite entity from multiple children.
+    pub fn add_composite(&mut self, label: String, children: Vec<Entity>) {
+        self.entities.push(Entity::Composite { label, children });
     }
 
     pub fn pick_entity(&self, pos: Vector2, tolerance: f32) -> Option<usize> {

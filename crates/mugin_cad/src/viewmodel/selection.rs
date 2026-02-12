@@ -1,4 +1,4 @@
-use crate::model::{CadModel, Entity, Vector2};
+use crate::model::{CadModel, Vector2};
 use std::collections::HashSet;
 
 #[derive(Default)]
@@ -84,20 +84,7 @@ impl SelectionManager {
 
             // Find entities in rect
             for (i, entity) in model.entities.iter().enumerate() {
-                let e_min = match entity {
-                    Entity::Line(l) => Vector2::new(l.start.x.min(l.end.x), l.start.y.min(l.end.y)),
-                    Entity::Circle(c) => Vector2::new(c.center.x - c.radius, c.center.y - c.radius),
-                    Entity::Rectangle(r) => r.min,
-                    Entity::Arc(a) => Vector2::new(a.center.x - a.radius, a.center.y - a.radius),
-                    Entity::Text(t) => t.position,
-                };
-                let e_max = match entity {
-                    Entity::Line(l) => Vector2::new(l.start.x.max(l.end.x), l.start.y.max(l.end.y)),
-                    Entity::Circle(c) => Vector2::new(c.center.x + c.radius, c.center.y + c.radius),
-                    Entity::Rectangle(r) => r.max,
-                    Entity::Arc(a) => Vector2::new(a.center.x + a.radius, a.center.y + a.radius),
-                    Entity::Text(t) => t.position,
-                };
+                let (e_min, e_max) = entity.bounding_box();
 
                 // Check if entity is fully inside selection rect
                 if e_min.x >= min.x && e_max.x <= max.x && e_min.y >= min.y && e_max.y <= max.y {

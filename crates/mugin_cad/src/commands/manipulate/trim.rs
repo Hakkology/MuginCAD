@@ -93,8 +93,8 @@ impl Command for TrimCommand {
                         );
                         intersections.extend(pts);
                     }
-                    Entity::Text(_) => {
-                        // Text annotations don't contribute to intersections
+                    Entity::Text(_) | Entity::Composite { .. } => {
+                        // Text/Composite don't contribute to intersections
                     }
                 }
             }
