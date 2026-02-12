@@ -1,134 +1,66 @@
-# OliveCAD
+# MuginCAD
 
-A professional-grade 2D CAD application built with Rust and egui.
+A lightweight, high-performance 2D CAD application built with **Rust** and **egui**. MuginCAD focuses on providing a precise and fluid drafting experience for engineering and architectural workflows.
 
 ![Rust](https://img.shields.io/badge/Rust-2024-orange)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
-## Features
+## Core Features
 
-### Drawing Tools
+### 🛠 Drawing & Manipulation
+* **Vector Tools**: Create precise `Lines`, `Circles`, `Arcs`, and `Rectangles`.
+* **Transformations**: Standard `Move`, `Rotate`, and `Scale` operations for all entities.
+* **Annotations**: Add and manage text labels directly on the canvas.
 
-| Tool | Description | Shortcut |
-|------|-------------|----------|
-| **Line** | Draw straight lines between two points | `L` |
-| **Circle** | Draw circles by center and radius | `C` |
-| **Arc** | Draw arcs (3-point: center, start, end) | `A` |
-| **Rectangle** | Draw rectangles by two corners | `R` |
-| **Text** | Add text annotations | `T` |
+### 📐 Engineering Utilities
+* **Architectural Grid**: Fully configurable horizontal and vertical axis system with visual labels.
+* **Smart Snapping**: High-precision snapping to endpoints, midpoints, intersections, and grid lines.
+* **Live Dimensions**: Automatic dimension and extension lines for real-time measurement feedback.
 
-### Manipulation Tools
+### 📂 Project & Export
+* **Multi-Tab Management**: Work on several projects simultaneously using a tabbed interface.
+* **Native Persistence**: Save and load projects via JSON-based `.mugincad` files.
+* **PDF Export**: Professional-grade PDF generation with configurable scales (1:50, 1:100), orientations, and region selection.
 
-| Tool | Description |
-|------|-------------|
-| **Move** | Translate selected entities |
-| **Rotate** | Rotate around a pivot point |
-| **Scale** | Resize from a base point |
-| **Delete** | Remove selected entities |
+---
 
-### Measurement Tools
+## Technical Architecture
 
-| Tool | Description |
-|------|-------------|
-| **Distance** | Measure distance between two points |
-| **Area** | Calculate area of closed regions |
-| **Perimeter** | Calculate perimeter of closed regions |
+The project follows a clean **MVVM (Model-View-ViewModel)** pattern to ensure separation of concerns:
 
-### Architectural Grid (Axis System)
+* **Model**: Core geometry logic, entity definitions, and undo/redo command history.
+* **ViewModel**: Input handling, selection logic, and the bridge between UI and data.
+* **View**: Hardware-accelerated rendering via `egui` and custom canvas logic.
 
-- Add horizontal (A, B, C...) and vertical (1, 2, 3...) axis lines
-- Configurable grid spacing
-- Snap to axis intersections
-- Visual grid labels
+---
 
-### Smart Features
+## Getting Started
 
-- **Snapping**: Snap to endpoints, midpoints, intersections, and grid
-- **Dimension Lines**: Automatic dimension display for lines
-- **Extension Lines**: AutoCAD-style dimension styling
-- **Entity Inspector**: View and edit entity properties
+### Prerequisites
+Ensure you have the latest stable [Rust](https://www.rust-lang.org/) toolchain installed.
 
-### Project Management
-
-- **Multi-Tab Interface**: Work on multiple projects simultaneously
-- **Save/Load**: JSON-based project files (`.olivecad`)
-- **Undo/Redo**: Full history support
-
-### Export
-
-- **PDF Export**: Export drawings to PDF with:
-  - Page size options (A4, A3)
-  - Orientation (Portrait/Landscape)
-  - Scale options (Fit to Page, 1:50, 1:100)
-  - Region selection for partial exports
-
-## Architecture
-
-```
-src/
-├── commands/          # Command pattern for all tools
-│   ├── create/        # Drawing commands (Line, Circle, etc.)
-│   ├── manipulate/    # Move, Rotate, Scale, Delete
-│   ├── measure/       # Distance, Area, Perimeter
-│   └── io/            # Export region selection
-├── export/            # PDF export logic
-│   ├── pdf.rs
-│   └── settings.rs
-├── model/             # Core data structures
-│   ├── shapes/        # Entity definitions
-│   ├── math/          # Vector, geometry utilities
-│   ├── system/        # Config, project
-│   └── tools/         # Snap, undo
-├── view/              # UI layer
-│   ├── rendering/     # Canvas, grid, entity rendering
-│   └── ui/            # Panels, menus, dialogs
-└── viewmodel/         # MVVM glue layer
-    ├── input.rs
-    ├── selection.rs
-    ├── history.rs
-    └── project.rs
-```
-
-## Building
-
+### Build & Run
 ```bash
-# Development build
+# Clone the repository
+git clone [https://github.com/Hakkology/MuginCAD.git](https://github.com/Hakkology/MuginCAD.git)
+
+# Run in development mode
 cargo run
 
-# Release build
+# Build optimized release version
 cargo build --release
 ```
 
-## Dependencies
-
-- `eframe` / `egui` - UI framework
-- `glam` - Vector math
-- `serde` / `serde_json` - Serialization
-- `printpdf` - PDF generation
-- `rfd` - File dialogs
-
-## Keyboard Shortcuts
-
-| Key | Action |
-|-----|--------|
-| `Escape` | Cancel current command |
-| `Delete` | Delete selected entities |
-| `Ctrl+Z` | Undo |
-| `Ctrl+Shift+Z` | Redo |
-| `Ctrl+S` | Save project |
-| `Ctrl+O` | Open project |
-| `Ctrl+N` | New project |
-
 ## Roadmap
 
-- [ ] **3D Visualization**: Cross-sections (X-Y, X-Z, Y-Z), 3D viewport
-- [ ] **Structural Elements**: Columns, Beams, Slabs, Walls
-- [ ] **Level System**: Multi-story building support
-- [ ] DXF Import/Export
-- [ ] Layer system
-- [ ] Block/Symbol library
-- [ ] Hatch patterns (fill patterns for materials: concrete, brick, wood, etc.)
+Future development focuses on expanding MuginCAD into a structural design environment:
+
+- [ ] **Layer System**: Comprehensive layer management with visibility and lock controls.
+- [ ] **DXF Integration**: Import/Export support for industry-standard CAD files.
+- [ ] **Structural Modules**: Dedicated tools for Columns, Beams, and Walls.
+- [ ] **BIM Features**: Level management and 3D cross-section visualization.
+- [ ] **Hatch Patterns**: Material-specific fill patterns (Concrete, Brick, Wood).
 
 ## License
 
-MIT License
+Distributed under the **MIT License**. See `LICENSE` for more information.
