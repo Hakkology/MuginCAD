@@ -1,4 +1,5 @@
 use crate::commands::InputModifiers;
+use crate::model::shapes::Geometry;
 use crate::model::{Shape, Vector2};
 use crate::viewmodel::CadViewModel;
 

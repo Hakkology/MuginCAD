@@ -25,6 +25,7 @@ pub use tools::undo;
 use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicU64, Ordering};
 
+pub use shapes::Geometry;
 pub use shapes::annotation::TextAnnotation;
 pub use shapes::arc::Arc;
 pub use shapes::circle::Circle;
@@ -62,6 +63,110 @@ impl Shape {
             Shape::Rectangle(_) => "Rectangle",
             Shape::Arc(_) => "Arc",
             Shape::Text(_) => "Text",
+        }
+    }
+}
+
+impl Geometry for Shape {
+    fn hit_test(&self, pos: Vector2, tolerance: f32) -> bool {
+        match self {
+            Shape::None => false,
+            Shape::Line(s) => s.hit_test(pos, tolerance),
+            Shape::Circle(s) => s.hit_test(pos, tolerance),
+            Shape::Rectangle(s) => s.hit_test(pos, tolerance),
+            Shape::Arc(s) => s.hit_test(pos, tolerance),
+            Shape::Text(s) => s.hit_test(pos, tolerance),
+        }
+    }
+
+    fn center(&self) -> Vector2 {
+        match self {
+            Shape::None => Vector2::new(0.0, 0.0), // Placeholder, Entity handles this
+            Shape::Line(s) => s.center(),
+            Shape::Circle(s) => s.center(),
+            Shape::Rectangle(s) => s.center(),
+            Shape::Arc(s) => s.center(),
+            Shape::Text(s) => s.center(),
+        }
+    }
+
+    fn bounding_box(&self) -> (Vector2, Vector2) {
+        match self {
+            Shape::None => (
+                Vector2::new(f32::MAX, f32::MAX),
+                Vector2::new(f32::MIN, f32::MIN),
+            ),
+            Shape::Line(s) => s.bounding_box(),
+            Shape::Circle(s) => s.bounding_box(),
+            Shape::Rectangle(s) => s.bounding_box(),
+            Shape::Arc(s) => s.bounding_box(),
+            Shape::Text(s) => s.bounding_box(),
+        }
+    }
+
+    fn as_polyline(&self) -> Vec<Vector2> {
+        match self {
+            Shape::None => Vec::new(),
+            Shape::Line(s) => s.as_polyline(),
+            Shape::Circle(s) => s.as_polyline(),
+            Shape::Rectangle(s) => s.as_polyline(),
+            Shape::Arc(s) => s.as_polyline(),
+            Shape::Text(s) => s.as_polyline(),
+        }
+    }
+
+    fn translate(&mut self, delta: Vector2) {
+        match self {
+            Shape::None => {}
+            Shape::Line(s) => s.translate(delta),
+            Shape::Circle(s) => s.translate(delta),
+            Shape::Rectangle(s) => s.translate(delta),
+            Shape::Arc(s) => s.translate(delta),
+            Shape::Text(s) => s.translate(delta),
+        }
+    }
+
+    fn rotate(&mut self, pivot: Vector2, angle: f32) {
+        match self {
+            Shape::None => {}
+            Shape::Line(s) => s.rotate(pivot, angle),
+            Shape::Circle(s) => s.rotate(pivot, angle),
+            Shape::Rectangle(s) => s.rotate(pivot, angle),
+            Shape::Arc(s) => s.rotate(pivot, angle),
+            Shape::Text(s) => s.rotate(pivot, angle),
+        }
+    }
+
+    fn scale(&mut self, base: Vector2, factor: f32) {
+        match self {
+            Shape::None => {}
+            Shape::Line(s) => s.scale(base, factor),
+            Shape::Circle(s) => s.scale(base, factor),
+            Shape::Rectangle(s) => s.scale(base, factor),
+            Shape::Arc(s) => s.scale(base, factor),
+            Shape::Text(s) => s.scale(base, factor),
+        }
+    }
+
+    fn is_closed(&self) -> bool {
+        match self {
+            Shape::None => false,
+            Shape::Line(s) => s.is_closed(),
+            Shape::Circle(s) => s.is_closed(),
+            Shape::Rectangle(s) => s.is_closed(),
+            Shape::Arc(s) => s.is_closed(),
+            Shape::Text(s) => s.is_closed(),
+        }
+    }
+
+    fn is_filled(&self) -> bool {
+        match self {
+            Shape::None => false,
+            Shape::Line(s) => s.is_filled(),
+            Shape::Circle(s) => s.is_filled(),
+            Shape::Rectangle(s) => s.is_filled(),
+            Shape::Arc(s) => s.is_filled(),
+            Shape::Text(s) => s.is_filled(),
         }
     }
 }
@@ -134,15 +239,7 @@ impl Entity {
 
     pub fn hit_test(&self, pos: Vector2, tolerance: f32) -> bool {
         // Check own shape
-        let self_hit = match &self.shape {
-            Shape::None => false,
-            Shape::Line(line) => line.hit_test(pos, tolerance),
-            Shape::Circle(circle) => circle.hit_test(pos, tolerance),
-            Shape::Rectangle(rect) => rect.hit_test(pos, tolerance),
-            Shape::Arc(arc) => arc.hit_test(pos, tolerance),
-            Shape::Text(text) => text.hit_test(pos, tolerance),
-        };
-        if self_hit {
+        if self.shape.hit_test(pos, tolerance) {
             return true;
         }
         // Check children
@@ -150,144 +247,31 @@ impl Entity {
     }
 
     pub fn center(&self) -> Vector2 {
-        match &self.shape {
-            Shape::Line(line) => Vector2::new(
-                (line.start.x + line.end.x) / 2.0,
-                (line.start.y + line.end.y) / 2.0,
-            ),
-            Shape::Circle(circle) => circle.center,
-            Shape::Rectangle(rect) => Vector2::new(
-                (rect.min.x + rect.max.x) / 2.0,
-                (rect.min.y + rect.max.y) / 2.0,
-            ),
-            Shape::Arc(arc) => arc.center,
-            Shape::Text(text) => text.position,
-            Shape::None => {
-                let (min, max) = self.bounding_box();
-                Vector2::new((min.x + max.x) / 2.0, (min.y + max.y) / 2.0)
-            }
+        if matches!(self.shape, Shape::None) {
+            let (min, max) = self.bounding_box();
+            return Vector2::new((min.x + max.x) / 2.0, (min.y + max.y) / 2.0);
         }
+        self.shape.center()
     }
 
     // ── Transforms ──────────────────────────────────────────
 
     pub fn translate(&mut self, delta: Vector2) {
-        match &mut self.shape {
-            Shape::Line(line) => {
-                line.start = line.start + delta;
-                line.end = line.end + delta;
-            }
-            Shape::Circle(circle) => {
-                circle.center = circle.center + delta;
-            }
-            Shape::Rectangle(rect) => {
-                rect.min = rect.min + delta;
-                rect.max = rect.max + delta;
-            }
-            Shape::Arc(arc) => {
-                arc.center = arc.center + delta;
-            }
-            Shape::Text(text) => {
-                text.position = text.position + delta;
-                for pt in &mut text.anchor_points {
-                    *pt = *pt + delta;
-                }
-            }
-            Shape::None => {}
-        }
+        self.shape.translate(delta);
         for child in &mut self.children {
             child.translate(delta);
         }
     }
 
     pub fn rotate(&mut self, pivot: Vector2, angle: f32) {
-        let cos_a = angle.cos();
-        let sin_a = angle.sin();
-
-        let rotate_point = |p: Vector2| -> Vector2 {
-            let dx = p.x - pivot.x;
-            let dy = p.y - pivot.y;
-            Vector2::new(
-                pivot.x + dx * cos_a - dy * sin_a,
-                pivot.y + dx * sin_a + dy * cos_a,
-            )
-        };
-
-        match &mut self.shape {
-            Shape::Line(line) => {
-                line.start = rotate_point(line.start);
-                line.end = rotate_point(line.end);
-            }
-            Shape::Circle(circle) => {
-                circle.center = rotate_point(circle.center);
-            }
-            Shape::Rectangle(rect) => {
-                let p1 = rotate_point(rect.min);
-                let p2 = rotate_point(Vector2::new(rect.max.x, rect.min.y));
-                let p3 = rotate_point(rect.max);
-                let p4 = rotate_point(Vector2::new(rect.min.x, rect.max.y));
-
-                rect.min = Vector2::new(
-                    p1.x.min(p2.x).min(p3.x).min(p4.x),
-                    p1.y.min(p2.y).min(p3.y).min(p4.y),
-                );
-                rect.max = Vector2::new(
-                    p1.x.max(p2.x).max(p3.x).max(p4.x),
-                    p1.y.max(p2.y).max(p3.y).max(p4.y),
-                );
-            }
-            Shape::Arc(arc) => {
-                arc.center = rotate_point(arc.center);
-                arc.start_angle += angle;
-                arc.end_angle += angle;
-            }
-            Shape::Text(text) => {
-                text.position = rotate_point(text.position);
-                for pt in &mut text.anchor_points {
-                    *pt = rotate_point(*pt);
-                }
-            }
-            Shape::None => {}
-        }
+        self.shape.rotate(pivot, angle);
         for child in &mut self.children {
             child.rotate(pivot, angle);
         }
     }
 
     pub fn scale(&mut self, base: Vector2, factor: f32) {
-        let scale_point = |p: Vector2| -> Vector2 {
-            Vector2::new(
-                base.x + (p.x - base.x) * factor,
-                base.y + (p.y - base.y) * factor,
-            )
-        };
-
-        match &mut self.shape {
-            Shape::Line(line) => {
-                line.start = scale_point(line.start);
-                line.end = scale_point(line.end);
-            }
-            Shape::Circle(circle) => {
-                circle.center = scale_point(circle.center);
-                circle.radius *= factor;
-            }
-            Shape::Rectangle(rect) => {
-                rect.min = scale_point(rect.min);
-                rect.max = scale_point(rect.max);
-            }
-            Shape::Arc(arc) => {
-                arc.center = scale_point(arc.center);
-                arc.radius *= factor;
-            }
-            Shape::Text(text) => {
-                text.position = scale_point(text.position);
-                for pt in &mut text.anchor_points {
-                    *pt = scale_point(*pt);
-                }
-                text.style.font_size *= factor;
-            }
-            Shape::None => {}
-        }
+        self.shape.scale(base, factor);
         for child in &mut self.children {
             child.scale(base, factor);
         }
@@ -297,37 +281,7 @@ impl Entity {
 
     /// Returns the axis-aligned bounding box as `(min, max)`.
     pub fn bounding_box(&self) -> (Vector2, Vector2) {
-        let shape_bb = match &self.shape {
-            Shape::Line(l) => Some((
-                Vector2::new(l.start.x.min(l.end.x), l.start.y.min(l.end.y)),
-                Vector2::new(l.start.x.max(l.end.x), l.start.y.max(l.end.y)),
-            )),
-            Shape::Circle(c) => Some((
-                Vector2::new(c.center.x - c.radius, c.center.y - c.radius),
-                Vector2::new(c.center.x + c.radius, c.center.y + c.radius),
-            )),
-            Shape::Arc(a) => Some((
-                Vector2::new(a.center.x - a.radius, a.center.y - a.radius),
-                Vector2::new(a.center.x + a.radius, a.center.y + a.radius),
-            )),
-            Shape::Rectangle(r) => Some((
-                Vector2::new(r.min.x.min(r.max.x), r.min.y.min(r.max.y)),
-                Vector2::new(r.min.x.max(r.max.x), r.min.y.max(r.max.y)),
-            )),
-            Shape::Text(t) => Some((t.position, t.position)),
-            Shape::None => None,
-        };
-
-        let mut min_b;
-        let mut max_b;
-
-        if let Some((s_min, s_max)) = shape_bb {
-            min_b = s_min;
-            max_b = s_max;
-        } else {
-            min_b = Vector2::new(f32::MAX, f32::MAX);
-            max_b = Vector2::new(f32::MIN, f32::MIN);
-        }
+        let (mut min_b, mut max_b) = self.shape.bounding_box();
 
         for child in &self.children {
             let (c_min, c_max) = child.bounding_box();
@@ -337,55 +291,16 @@ impl Entity {
             max_b.y = max_b.y.max(c_max.y);
         }
 
+        // Handle case where pure container has no children (reset to safe empty box or keep max/min inverted)
+        // If min_b > max_b (meaning initialized to MAX/MIN and never updated), we return that.
+        // It's up to caller to handle "infinite inverted box" or "default box".
+        // The old implementation returned (MAX, MIN) effectively.
         (min_b, max_b)
     }
 
     /// Convert the entity to a polyline (list of points).
     pub fn as_polyline(&self) -> Vec<Vector2> {
-        let mut pts = match &self.shape {
-            Shape::Line(l) => vec![l.start, l.end],
-            Shape::Circle(c) => {
-                let segments = 32;
-                (0..=segments)
-                    .map(|i| {
-                        let angle = (i as f32 / segments as f32) * std::f32::consts::PI * 2.0;
-                        Vector2::new(
-                            c.center.x + c.radius * angle.cos(),
-                            c.center.y + c.radius * angle.sin(),
-                        )
-                    })
-                    .collect()
-            }
-            Shape::Arc(a) => {
-                let segments = 24;
-                let start_angle = a.start_angle;
-                let mut end_angle = a.end_angle;
-                if end_angle < start_angle {
-                    end_angle += std::f32::consts::PI * 2.0;
-                }
-                (0..=segments)
-                    .map(|i| {
-                        let t = i as f32 / segments as f32;
-                        let angle = start_angle + t * (end_angle - start_angle);
-                        Vector2::new(
-                            a.center.x + a.radius * angle.cos(),
-                            a.center.y + a.radius * angle.sin(),
-                        )
-                    })
-                    .collect()
-            }
-            Shape::Rectangle(r) => {
-                vec![
-                    r.min,
-                    Vector2::new(r.max.x, r.min.y),
-                    r.max,
-                    Vector2::new(r.min.x, r.max.y),
-                    r.min,
-                ]
-            }
-            Shape::Text(t) => vec![t.position],
-            Shape::None => Vec::new(),
-        };
+        let mut pts = self.shape.as_polyline();
         for child in &self.children {
             pts.extend(child.as_polyline());
         }
@@ -394,17 +309,12 @@ impl Entity {
 
     /// Whether this entity represents a closed shape.
     pub fn is_closed(&self) -> bool {
-        matches!(self.shape, Shape::Circle(_) | Shape::Rectangle(_)) || !self.children.is_empty()
+        self.shape.is_closed() || !self.children.is_empty()
     }
 
     /// Whether this entity has a fill.
     pub fn is_filled(&self) -> bool {
-        match &self.shape {
-            Shape::Circle(c) => c.filled,
-            Shape::Rectangle(r) => r.filled,
-            Shape::Arc(a) => a.filled,
-            _ => self.children.iter().any(|c| c.is_filled()),
-        }
+        self.shape.is_filled() || self.children.iter().any(|c| c.is_filled())
     }
 
     // ── Hierarchy helpers ───────────────────────────────────

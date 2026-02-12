@@ -281,7 +281,7 @@ fn render_node(
                 // 2. If 'node.id' is NOT in 'selected_ids', we drag JUST 'node.id'.
 
                 let (ids_to_drag, label) = if selected_ids.contains(&node.id) {
-                    let mut list: Vec<u64> = selected_ids.iter().cloned().collect();
+                    let list: Vec<u64> = selected_ids.iter().cloned().collect();
                     // Sort or ensure order? Iter order is random for HashSet.
                     // Ideally we'd respect visual order, but that's hard here.
                     // Just collecting is fine for now.

@@ -1,3 +1,4 @@
+use super::Geometry;
 use crate::model::Vector2;
 use serde::{Deserialize, Serialize};
 
@@ -71,16 +72,6 @@ impl Line {
         dx < box_w / 2.0 + tolerance && dy < box_h / 2.0 + tolerance
     }
 
-    pub fn hit_test(&self, pos: Vector2, tolerance: f32) -> bool {
-        // Basic line hit test
-        if pos.dist_to_line(self.start, self.end) < tolerance {
-            return true;
-        }
-
-        // label hit test
-        self.hit_test_label(pos, tolerance)
-    }
-
     /// Get the length of the line
     pub fn length(&self) -> f32 {
         let dx = self.end.x - self.start.x;
@@ -94,5 +85,71 @@ impl Line {
             (self.start.x + self.end.x) / 2.0,
             (self.start.y + self.end.y) / 2.0,
         )
+    }
+}
+
+impl Geometry for Line {
+    fn hit_test(&self, pos: Vector2, tolerance: f32) -> bool {
+        // Basic line hit test
+        if pos.dist_to_line(self.start, self.end) < tolerance {
+            return true;
+        }
+
+        // label hit test
+        self.hit_test_label(pos, tolerance)
+    }
+
+    fn center(&self) -> Vector2 {
+        self.midpoint()
+    }
+
+    fn bounding_box(&self) -> (Vector2, Vector2) {
+        (
+            Vector2::new(self.start.x.min(self.end.x), self.start.y.min(self.end.y)),
+            Vector2::new(self.start.x.max(self.end.x), self.start.y.max(self.end.y)),
+        )
+    }
+
+    fn as_polyline(&self) -> Vec<Vector2> {
+        vec![self.start, self.end]
+    }
+
+    fn translate(&mut self, delta: Vector2) {
+        self.start = self.start + delta;
+        self.end = self.end + delta;
+    }
+
+    fn rotate(&mut self, pivot: Vector2, angle: f32) {
+        let cos_a = angle.cos();
+        let sin_a = angle.sin();
+        let rotate_point = |p: Vector2| -> Vector2 {
+            let dx = p.x - pivot.x;
+            let dy = p.y - pivot.y;
+            Vector2::new(
+                pivot.x + dx * cos_a - dy * sin_a,
+                pivot.y + dx * sin_a + dy * cos_a,
+            )
+        };
+        self.start = rotate_point(self.start);
+        self.end = rotate_point(self.end);
+    }
+
+    fn scale(&mut self, base: Vector2, factor: f32) {
+        let scale_point = |p: Vector2| -> Vector2 {
+            Vector2::new(
+                base.x + (p.x - base.x) * factor,
+                base.y + (p.y - base.y) * factor,
+            )
+        };
+        self.start = scale_point(self.start);
+        self.end = scale_point(self.end);
+    }
+
+    fn is_closed(&self) -> bool {
+        false
+    }
+
+    fn is_filled(&self) -> bool {
+        false
     }
 }
