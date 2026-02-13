@@ -3,3 +3,4 @@ pub mod grid;
 pub mod renderable;
 
 pub mod renderer;
+pub mod structure;

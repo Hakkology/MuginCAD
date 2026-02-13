@@ -76,6 +76,11 @@ impl eframe::App for CadApp {
             tab_bar::render_tab_bar(ui, &mut self.view_model);
         });
 
+        // Quick Access Toolbar (Structure)
+        egui::TopBottomPanel::top("quick_access").show(ctx, |ui| {
+            ui::structure::quick_access::render_quick_access(ui, &mut self.view_model);
+        });
+
         // Global shortcuts
         shortcuts::handle(ctx, &mut self.view_model);
 

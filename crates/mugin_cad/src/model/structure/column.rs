@@ -13,20 +13,26 @@ pub struct ColumnData {
     pub height: f32,
     /// Rotation in radians.
     pub rotation: f32,
-    /// ID of the material assigned to this column.
-    pub material_id: u64,
+    /// ID of the ColumnType definition this instance is based on.
+    pub column_type_id: u64,
     /// Text label displayed on the column (e.g., "S1").
     pub label: String,
 }
 
 impl ColumnData {
-    pub fn new(center: Vector2, width: f32, height: f32, material_id: u64, label: String) -> Self {
+    pub fn new(
+        center: Vector2,
+        width: f32,
+        height: f32,
+        column_type_id: u64,
+        label: String,
+    ) -> Self {
         Self {
             center,
             width,
             height,
             rotation: 0.0,
-            material_id,
+            column_type_id,
             label,
         }
     }

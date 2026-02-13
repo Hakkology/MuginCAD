@@ -52,6 +52,7 @@ pub struct CadViewModel {
     pub inspector_renaming: bool,
     pub materials_manager_open: bool,
     pub column_manager_open: bool,
+    pub active_column_type_id: Option<u64>,
     #[allow(dead_code)]
     pub clipboard: Clipboard,
     pub export_window: crate::view::ui::export::window::ExportWindow,
@@ -74,6 +75,7 @@ impl CadViewModel {
             inspector_renaming: false,
             materials_manager_open: false,
             column_manager_open: false,
+            active_column_type_id: None,
             clipboard: Clipboard::default(),
             export_window: crate::view::ui::export::window::ExportWindow::default(),
         }

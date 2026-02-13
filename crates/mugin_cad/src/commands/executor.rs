@@ -71,6 +71,9 @@ impl CommandRegistry {
 
         // Register annotation commands
         registry.register("text", || Box::new(TextCommand::new()));
+        registry.register("place_column", || {
+            Box::new(crate::commands::create::place_column::CmdPlaceColumn::new())
+        });
         registry.register("distance", || Box::new(DistanceCommand::new()));
         registry.register("dist", || Box::new(DistanceCommand::new()));
 
@@ -262,6 +265,38 @@ impl CommandExecutor {
                         let dir = if arc_cmd.clockwise { "CW" } else { "CCW" };
                         self.status_message =
                             format!("Specify end point [{}] (R to reverse):", dir);
+                        return true;
+                    }
+                }
+            }
+        }
+        false
+    }
+
+    pub fn cycle_placement_anchor(&mut self) -> bool {
+        if let Some(cmd) = &mut self.active_command {
+            if cmd.name() == "Place Column" {
+                if let Some(any) = cmd.as_any_mut() {
+                    if let Some(col_cmd) =
+                        any.downcast_mut::<crate::commands::create::place_column::CmdPlaceColumn>()
+                    {
+                        col_cmd.cycle_anchor();
+                        return true;
+                    }
+                }
+            }
+        }
+        false
+    }
+
+    pub fn rotate_placement(&mut self) -> bool {
+        if let Some(cmd) = &mut self.active_command {
+            if cmd.name() == "Place Column" {
+                if let Some(any) = cmd.as_any_mut() {
+                    if let Some(col_cmd) =
+                        any.downcast_mut::<crate::commands::create::place_column::CmdPlaceColumn>()
+                    {
+                        col_cmd.rotate_cw();
                         return true;
                     }
                 }

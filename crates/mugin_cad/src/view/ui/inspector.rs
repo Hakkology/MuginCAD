@@ -325,5 +325,5 @@ fn inspect_column(ui: &mut egui::Ui, col: &mut ColumnData) {
     });
 
     // Future: Material selection via ComboBox
-    ui.label(egui::RichText::new(format!("Material ID: {}", col.material_id)).weak());
+    ui.label(egui::RichText::new(format!("Type ID: {}", col.column_type_id)).weak());
 }

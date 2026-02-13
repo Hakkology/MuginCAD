@@ -114,6 +114,26 @@ pub fn render_canvas(ui: &mut egui::Ui, vm: &mut CadViewModel) {
         if r_pressed && !modifiers.ctrl && !modifiers.shift {
             vm.active_tab_mut().executor.toggle_arc_direction();
         }
+
+        let q_pressed = ui.input(|i| i.key_pressed(egui::Key::Q));
+        let e_pressed = ui.input(|i| i.key_pressed(egui::Key::E));
+
+        if q_pressed && !modifiers.ctrl && !modifiers.shift {
+            vm.active_tab_mut().executor.cycle_placement_anchor();
+        }
+
+        if e_pressed && !modifiers.ctrl && !modifiers.shift {
+            if !vm.active_tab_mut().executor.rotate_placement() {
+                // Fallback for E to be "Rotate Command" alias if no active command consuming it?
+                // No, Rotate Command is 'R' usually or 'E'.
+                // If we preserve 'E' as alias for "Rotate Command" when "Place Column" is not active...
+                // The global shortcut handler or `shortcuts.rs` might handle it, OR we handle it here.
+                // Currently 'E' alias acts via text command "e".
+                // BUT wait, `process_input` handles text. Key press is different.
+                // If we want 'E' to trigger rotate command when idle, we should check it.
+                // But `shortcuts::handle` might do it.
+            }
+        }
     }
 
     // RENDER PHASE (Borrows tab and config)

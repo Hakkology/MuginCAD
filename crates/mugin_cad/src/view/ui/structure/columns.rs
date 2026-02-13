@@ -157,68 +157,18 @@ fn draw_column_preview(ui: &mut egui::Ui, col: &ColumnType) {
 
     // Draw Column Preview
     let rect = response.rect;
-    // Pad a bit
     let draw_rect = rect.shrink(2.0);
 
     let max_dim = col.width.max(col.depth).max(1.0);
-    // Scale to fit draw_rect
+    // Scale to fit draw_rect. Use 80% to leave room for rotation if we had it, but mostly padding.
     let scale_w = draw_rect.width() / max_dim;
     let scale_h = draw_rect.height() / max_dim;
-    let scale = scale_w.min(scale_h);
+    let scale = scale_w.min(scale_h) * 0.9;
 
-    let w = col.width * scale;
-    let h = col.depth * scale;
     let center = draw_rect.center();
-    let col_rect = egui::Rect::from_center_size(center, egui::vec2(w, h));
 
-    painter.rect_filled(col_rect, 0.0, egui::Color32::from_rgb(100, 100, 120));
-    painter.rect_stroke(col_rect, 0.0, egui::Stroke::new(2.0, egui::Color32::WHITE));
-
-    // Rebar visual
-    let bar_r = 2.0;
-    let inset = 4.0;
-    // Cage rect for rebars/ties
-    let cage_rect = col_rect.shrink(inset);
-
-    // Ties visual (if enabled)
-    if col.has_ties {
-        painter.rect_stroke(
-            cage_rect,
-            0.0,
-            egui::Stroke::new(1.0, egui::Color32::YELLOW),
-        );
-    }
-
-    // Draw Longitudinal Bars logic
-    // X Face: top and bottom rows
-    let nx = col.long_bars_x.max(2) as usize;
-    let ny = col.long_bars_y.max(2) as usize;
-
-    let draw_bar = |pos: egui::Pos2| {
-        painter.circle_filled(pos, bar_r, egui::Color32::RED);
-    };
-
-    // X Loop: Top & Bottom edges (along Width). Covers Corners.
-    for i in 0..nx {
-        let t = if nx > 1 {
-            i as f32 / (nx - 1) as f32
-        } else {
-            0.5
-        };
-        let x = cage_rect.min.x + t * cage_rect.width();
-        draw_bar(egui::pos2(x, cage_rect.min.y)); // Top
-        draw_bar(egui::pos2(x, cage_rect.max.y)); // Bottom
-    }
-
-    // Y Loop: Left & Right edges (along Depth). Skips Corners (already drawn by X loop).
-    if ny > 2 {
-        for i in 1..ny - 1 {
-            let t = i as f32 / (ny - 1) as f32;
-            let y = cage_rect.min.y + t * cage_rect.height();
-            draw_bar(egui::pos2(cage_rect.min.x, y)); // Left
-            draw_bar(egui::pos2(cage_rect.max.x, y)); // Right
-        }
-    }
+    // Use shared renderer
+    crate::view::rendering::structure::draw_column(&painter, center, 0.0, scale, col, 1.0);
 }
 
 fn render_details_form(
