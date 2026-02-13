@@ -466,6 +466,35 @@ impl Renderable for BeamData {
                 self.anchor,
             );
 
+            // 2. Draw Label
+            if !self.label.is_empty() {
+                let center_cad = (self.start + self.end) / 2.0;
+                let center_screen = ctx.to_screen(center_cad);
+                let font_id = egui::FontId::proportional(13.0);
+
+                let text_color = if is_selected {
+                    egui::Color32::BLACK
+                } else {
+                    egui::Color32::from_rgb(220, 220, 220)
+                };
+
+                let galley = ctx
+                    .painter
+                    .layout_no_wrap(self.label.clone(), font_id, text_color);
+
+                let text_rect = galley.rect;
+                let text_pos = center_screen - (text_rect.size() / 2.0);
+
+                // Draw small background for legibility if needed
+                ctx.painter.rect_filled(
+                    text_rect.translate(text_pos.to_vec2()).expand(2.0),
+                    2.0,
+                    egui::Color32::from_black_alpha(150),
+                );
+
+                ctx.painter.galley(text_pos, galley, text_color);
+            }
+
             // Selection/Hover highlight
             if is_selected || is_hovered {
                 let color = if is_selected {
@@ -523,6 +552,7 @@ impl Entity {
         selected_ids: &std::collections::HashSet<u64>,
         hovered_id: Option<u64>,
         layer_manager: &crate::model::layer::LayerManager,
+        is_column_pass: bool,
     ) {
         // LAYER VISIBILITY CHECK
         if let Some(layer) = layer_manager.get_layer(self.layer_id) {
@@ -534,19 +564,32 @@ impl Entity {
         let is_self_selected = selected_ids.contains(&self.id);
         let is_self_hovered = hovered_id == Some(self.id);
 
-        match &self.shape {
-            Shape::Line(e) => e.render(ctx, definitions, is_self_selected, is_self_hovered),
-            Shape::Circle(e) => e.render(ctx, definitions, is_self_selected, is_self_hovered),
-            Shape::Rectangle(e) => e.render(ctx, definitions, is_self_selected, is_self_hovered),
-            Shape::Arc(e) => e.render(ctx, definitions, is_self_selected, is_self_hovered),
-            Shape::Text(e) => e.render(ctx, definitions, is_self_selected, is_self_hovered),
-            Shape::Column(e) => e.render(ctx, definitions, is_self_selected, is_self_hovered),
-            Shape::Beam(e) => e.render(ctx, definitions, is_self_selected, is_self_hovered),
-            Shape::None => {}
+        let is_column = matches!(self.shape, Shape::Column(_));
+
+        if is_column == is_column_pass {
+            match &self.shape {
+                Shape::Line(e) => e.render(ctx, definitions, is_self_selected, is_self_hovered),
+                Shape::Circle(e) => e.render(ctx, definitions, is_self_selected, is_self_hovered),
+                Shape::Rectangle(e) => {
+                    e.render(ctx, definitions, is_self_selected, is_self_hovered)
+                }
+                Shape::Arc(e) => e.render(ctx, definitions, is_self_selected, is_self_hovered),
+                Shape::Text(e) => e.render(ctx, definitions, is_self_selected, is_self_hovered),
+                Shape::Column(e) => e.render(ctx, definitions, is_self_selected, is_self_hovered),
+                Shape::Beam(e) => e.render(ctx, definitions, is_self_selected, is_self_hovered),
+                Shape::None => {}
+            }
         }
 
         for child in &self.children {
-            child.render_recursive(ctx, definitions, selected_ids, hovered_id, layer_manager);
+            child.render_recursive(
+                ctx,
+                definitions,
+                selected_ids,
+                hovered_id,
+                layer_manager,
+                is_column_pass,
+            );
         }
     }
 }

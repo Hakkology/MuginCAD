@@ -24,6 +24,7 @@ impl CadViewModel {
                 tab.model.entities.clone(),
                 tab.model.axis_manager.axes.clone(),
                 self.config.clone(),
+                tab.model.definitions.clone(),
             );
 
             if let Ok(json) = serde_json::to_string_pretty(&project_data) {
@@ -66,6 +67,7 @@ impl CadViewModel {
 
                     tab.model.entities = project_data.entities;
                     tab.model.axis_manager.axes = project_data.axes;
+                    tab.model.definitions = project_data.definitions;
                     self.config = project_data.config;
 
                     // Reset transient state
