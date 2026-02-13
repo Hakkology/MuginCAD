@@ -158,6 +158,9 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
         if tab.selection_manager.selected_ids.len() == 1 {
             let id = *tab.selection_manager.selected_ids.iter().next().unwrap();
 
+            // Clone definitions BEFORE mutable borrow of model/entity
+            let definitions = tab.model.definitions.clone();
+
             if let Some(entity) = tab.model.find_by_id_mut(id) {
                 // Entity name (editable)
                 ui.horizontal(|ui| {
@@ -181,7 +184,7 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                     Shape::Rectangle(rect) => inspect_rectangle(ui, rect),
                     Shape::Arc(arc) => inspect_arc(ui, arc),
                     Shape::Text(text) => inspect_text(ui, text),
-                    Shape::Column(col) => inspect_column(ui, col),
+                    Shape::Column(col) => inspect_column(ui, col, &definitions),
                     Shape::None => {}
                 }
 
@@ -309,21 +312,83 @@ fn inspect_text(ui: &mut egui::Ui, text: &mut TextAnnotation) {
     properties::angle_degrees(ui, "Rotation:", &mut text.rotation);
 }
 
-fn inspect_column(ui: &mut egui::Ui, col: &mut ColumnData) {
+fn inspect_column(
+    ui: &mut egui::Ui,
+    col: &mut ColumnData,
+    definitions: &crate::model::structure::definitions::StructureDefinitions,
+) {
     ui.heading("Column Properties");
-    properties::point2(ui, "Center", &mut col.center.x, &mut col.center.y);
     ui.add_space(5.0);
 
-    properties::float_range(ui, "Width:", &mut col.width, 1.0, 1.0..=1000.0);
-    properties::float_range(ui, "Height:", &mut col.height, 1.0, 1.0..=1000.0);
-    properties::angle_degrees(ui, "Rotation:", &mut col.rotation);
+    // --- Identity ---
+    properties::section(ui, "Identity", |ui| {
+        ui.horizontal(|ui| {
+            ui.label("Label:");
+            ui.text_edit_singleline(&mut col.label);
+        });
 
-    ui.add_space(5.0);
-    ui.horizontal(|ui| {
-        ui.label("Label:");
-        ui.text_edit_singleline(&mut col.label);
+        let type_name = definitions
+            .get_column_type(col.column_type_id)
+            .map(|t| t.name.as_str())
+            .unwrap_or("Unknown Type");
+
+        ui.label(format!("Type: {} (ID: {})", type_name, col.column_type_id));
     });
+    ui.add_space(5.0);
 
-    // Future: Material selection via ComboBox
-    ui.label(egui::RichText::new(format!("Type ID: {}", col.column_type_id)).weak());
+    // --- Geometry ---
+    properties::section(ui, "Geometry", |ui| {
+        ui.label(format!(
+            "Center: ({:.2}, {:.2})",
+            col.center.x, col.center.y
+        ));
+        ui.label(format!("Width: {:.2} cm", col.width));
+        ui.label(format!("Height: {:.2} cm", col.height));
+        ui.label(format!("Rotation: {:.2}°", col.rotation.to_degrees()));
+    });
+    ui.add_space(5.0);
+
+    // --- Detailed Type Info ---
+    if let Some(col_type) = definitions.get_column_type(col.column_type_id) {
+        properties::section(ui, "Materials", |ui| {
+            let concrete = definitions
+                .get_material(col_type.concrete_material_id)
+                .map(|m| m.name.as_str())
+                .unwrap_or("?");
+            let long_rebar = definitions
+                .get_material(col_type.long_rebar_material_id)
+                .map(|m| m.name.as_str())
+                .unwrap_or("?");
+            let tie_rebar = definitions
+                .get_material(col_type.tie_material_id)
+                .map(|m| m.name.as_str())
+                .unwrap_or("?");
+
+            ui.label(format!("Concrete: {}", concrete));
+            ui.label(format!("Long. Rebar: {}", long_rebar));
+            ui.label(format!("Tie Rebar: {}", tie_rebar));
+        });
+        ui.add_space(5.0);
+
+        properties::section(ui, "Reinforcement", |ui| {
+            ui.label(egui::RichText::new("Longitudinal:").strong().small());
+            ui.label(format!("  Diameter: Ø{:.0}", col_type.long_bar_diameter));
+            ui.label(format!(
+                "  Arrangement: {}x{}",
+                col_type.long_bars_x, col_type.long_bars_y
+            ));
+
+            ui.add_space(2.0);
+            ui.label(egui::RichText::new("Transverse (Ties):").strong().small());
+            if col_type.has_ties {
+                ui.label(format!("  Diameter: Ø{:.0}", col_type.tie_diameter));
+                ui.label(format!(
+                    "  Spacing: {:.0} / {:.0} cm",
+                    col_type.tie_spacing_supp, col_type.tie_spacing_mid
+                ));
+            } else {
+                ui.label("  None");
+            }
+        });
+    }
 }

@@ -1,4 +1,4 @@
-use crate::commands::{Command, CommandCategory, CommandContext, InputModifiers, PointResult};
+use crate::commands::{Command, CommandCategory, CommandContext, PointResult};
 use crate::model::structure::column::ColumnData;
 use crate::model::structure::column_type::ColumnType;
 use crate::model::{Entity, Vector2};
@@ -102,16 +102,9 @@ impl Command for CmdPlaceColumn {
 
         ctx.model.add_entity(Entity::column(col_data));
 
-        PointResult::Complete
-    }
-
-    fn constrain_point(
-        &self,
-        pos: Vector2,
-        _last_point: Option<Vector2>,
-        _modifiers: InputModifiers,
-    ) -> Vector2 {
-        pos
+        PointResult::NeedMore {
+            prompt: "Specify insertion point (Q: Anchor, E: Rotate):".to_string(),
+        }
     }
 
     fn get_points(&self) -> &[Vector2] {
