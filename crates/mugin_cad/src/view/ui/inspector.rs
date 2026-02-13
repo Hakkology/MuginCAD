@@ -50,210 +50,209 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
         return;
     }
 
-    // ── History Tools ────────────────────────────────────────
-    properties::section(ui, "History", |ui| {
-        ui.horizontal(|ui| {
-            let (can_undo, can_redo, undo_count) = {
-                let tab = vm.active_tab();
-                (
-                    tab.undo_manager.can_undo(),
-                    tab.undo_manager.can_redo(),
-                    tab.undo_manager.undo_count(),
-                )
-            };
+    egui::ScrollArea::vertical()
+        .auto_shrink([false, false]) // Allow stretching
+        .show(ui, |ui| {
+            ui.set_width(ui.available_width()); // Force full width usage
 
-            ui.add_enabled_ui(can_undo, |ui| {
-                if ui
-                    .button("↩ Undo (U)")
-                    .on_hover_text("Undo last action")
-                    .clicked()
-                {
-                    vm.undo();
-                }
-            });
-
-            ui.add_enabled_ui(can_redo, |ui| {
-                if ui
-                    .button("↪ Redo")
-                    .on_hover_text("Redo last undone action")
-                    .clicked()
-                {
-                    vm.redo();
-                }
-            });
-
-            ui.label(
-                egui::RichText::new(format!("({} steps)", undo_count))
-                    .small()
-                    .weak(),
-            );
-        });
-    });
-
-    ui.add_space(10.0);
-
-    // ── Transform Tools ──────────────────────────────────────
-    properties::section(ui, "Transform Tools", |ui| {
-        ui.horizontal(|ui| {
-            let has_selection = !vm.active_tab().selection_manager.selected_ids.is_empty();
-
-            ui.add_enabled_ui(has_selection, |ui| {
-                if ui
-                    .button("⬌ Move (W)")
-                    .on_hover_text("Move selected entity")
-                    .clicked()
-                {
-                    let tab = vm.active_tab_mut();
-                    let ids = tab.selection_manager.selected_ids.clone();
-                    tab.executor.process_input("move", &mut tab.model, &ids);
-                }
-            });
-
-            ui.add_enabled_ui(has_selection, |ui| {
-                if ui
-                    .button("↻ Rotate (E)")
-                    .on_hover_text("Rotate selected entity")
-                    .clicked()
-                {
-                    let tab = vm.active_tab_mut();
-                    let ids = tab.selection_manager.selected_ids.clone();
-                    tab.executor.process_input("rotate", &mut tab.model, &ids);
-                }
-            });
-
-            ui.add_enabled_ui(has_selection, |ui| {
-                if ui
-                    .button("⤢ Scale (R)")
-                    .on_hover_text("Scale selected entity")
-                    .clicked()
-                {
-                    let tab = vm.active_tab_mut();
-                    let ids = tab.selection_manager.selected_ids.clone();
-                    tab.executor.process_input("scale", &mut tab.model, &ids);
-                }
-            });
-        });
-
-        if vm.active_tab().selection_manager.selected_ids.is_empty() {
-            ui.label(
-                egui::RichText::new("Select entities to use transform tools")
-                    .small()
-                    .weak(),
-            );
-        }
-    });
-
-    ui.add_space(10.0);
-    ui.separator();
-    ui.add_space(10.0);
-
-    // ── Entity Inspector ─────────────────────────────────────
-    let mut is_renaming = false;
-    let mut delete_id = None;
-    let mut delete_selection = false;
-
-    {
-        let tab = vm.active_tab_mut();
-
-        if tab.selection_manager.selected_ids.len() == 1 {
-            let id = *tab.selection_manager.selected_ids.iter().next().unwrap();
-
-            // Clone definitions BEFORE mutable borrow of model/entity
-            let definitions = tab.model.definitions.clone();
-
-            if let Some(entity) = tab.model.find_by_id_mut(id) {
-                // Entity name (editable)
+            // ── History Tools ────────────────────────────────────────
+            properties::section(ui, "History", |ui| {
                 ui.horizontal(|ui| {
-                    ui.label("Name:");
-                    let response = ui.text_edit_singleline(&mut entity.name);
-                    if response.has_focus() || response.clicked() {
-                        is_renaming = true;
-                    }
-                });
-                ui.add_space(3.0);
-                ui.label(
-                    egui::RichText::new(entity.type_name())
-                        .size(14.0)
-                        .color(egui::Color32::GRAY),
-                );
-                ui.add_space(5.0);
+                    let (can_undo, can_redo, undo_count) = {
+                        let tab = vm.active_tab();
+                        (
+                            tab.undo_manager.can_undo(),
+                            tab.undo_manager.can_redo(),
+                            tab.undo_manager.undo_count(),
+                        )
+                    };
 
-                match &mut entity.shape {
-                    Shape::Line(line) => inspect_line(ui, line),
-                    Shape::Circle(circle) => inspect_circle(ui, circle),
-                    Shape::Rectangle(rect) => inspect_rectangle(ui, rect),
-                    Shape::Arc(arc) => inspect_arc(ui, arc),
-                    Shape::Text(text) => inspect_text(ui, text),
-                    Shape::Column(col) => inspect_column(ui, col, &definitions),
-                    Shape::None => {}
-                }
-
-                if !entity.children.is_empty() {
-                    properties::section(ui, "Children", |ui| {
-                        ui.label(format!("Children: {}", entity.children.len()));
-                        for (i, child) in entity.children.iter().enumerate() {
-                            ui.label(format!("  {}. {}", i + 1, child.type_name()));
+                    ui.add_enabled_ui(can_undo, |ui| {
+                        if ui
+                            .button("↩ Undo (U)")
+                            .on_hover_text("Undo last action")
+                            .clicked()
+                        {
+                            vm.undo();
                         }
                     });
-                }
 
-                ui.add_space(20.0);
-                if ui
-                    .button(egui::RichText::new("Delete Entity").color(egui::Color32::RED))
-                    .clicked()
-                {
-                    delete_id = Some(id);
+                    ui.add_enabled_ui(can_redo, |ui| {
+                        if ui
+                            .button("↪ Redo")
+                            .on_hover_text("Redo last undone action")
+                            .clicked()
+                        {
+                            vm.redo();
+                        }
+                    });
+
+                    ui.label(
+                        egui::RichText::new(format!("({} steps)", undo_count))
+                            .small()
+                            .weak(),
+                    );
+                });
+            });
+
+            ui.add_space(10.0);
+
+            // ── Transform Tools ──────────────────────────────────────
+            properties::section(ui, "Transform Tools", |ui| {
+                ui.horizontal(|ui| {
+                    let has_selection = !vm.active_tab().selection_manager.selected_ids.is_empty();
+
+                    ui.add_enabled_ui(has_selection, |ui| {
+                        if ui
+                            .button("⬌ Move (W)")
+                            .on_hover_text("Move selected entity")
+                            .clicked()
+                        {
+                            let tab = vm.active_tab_mut();
+                            let ids = tab.selection_manager.selected_ids.clone();
+                            tab.executor.process_input("move", &mut tab.model, &ids);
+                        }
+                    });
+
+                    ui.add_enabled_ui(has_selection, |ui| {
+                        if ui
+                            .button("↻ Rotate (E)")
+                            .on_hover_text("Rotate selected entity")
+                            .clicked()
+                        {
+                            let tab = vm.active_tab_mut();
+                            let ids = tab.selection_manager.selected_ids.clone();
+                            tab.executor.process_input("rotate", &mut tab.model, &ids);
+                        }
+                    });
+                });
+
+                if vm.active_tab().selection_manager.selected_ids.is_empty() {
+                    ui.label(
+                        egui::RichText::new("Select entities to use transform tools")
+                            .small()
+                            .weak(),
+                    );
+                }
+            });
+
+            ui.add_space(10.0);
+            ui.separator();
+            ui.add_space(10.0);
+
+            // ── Entity Inspector ─────────────────────────────────────
+            let mut is_renaming = false;
+            let mut delete_id = None;
+            let mut delete_selection = false;
+
+            {
+                let tab = vm.active_tab_mut();
+
+                if tab.selection_manager.selected_ids.len() == 1 {
+                    let id = *tab.selection_manager.selected_ids.iter().next().unwrap();
+
+                    // Clone definitions BEFORE mutable borrow of model/entity
+                    let definitions = tab.model.definitions.clone();
+
+                    if let Some(entity) = tab.model.find_by_id_mut(id) {
+                        // Entity name (editable)
+                        ui.horizontal(|ui| {
+                            ui.label("Name:");
+                            let response = ui.text_edit_singleline(&mut entity.name);
+                            if response.has_focus() || response.clicked() {
+                                is_renaming = true;
+                            }
+                        });
+                        ui.add_space(3.0);
+                        ui.label(
+                            egui::RichText::new(entity.type_name())
+                                .size(14.0)
+                                .color(egui::Color32::GRAY),
+                        );
+                        ui.add_space(5.0);
+
+                        match &mut entity.shape {
+                            Shape::Line(line) => inspect_line(ui, line),
+                            Shape::Circle(circle) => inspect_circle(ui, circle),
+                            Shape::Rectangle(rect) => inspect_rectangle(ui, rect),
+                            Shape::Arc(arc) => inspect_arc(ui, arc),
+                            Shape::Text(text) => inspect_text(ui, text),
+                            Shape::Column(col) => inspect_column(ui, col, &definitions),
+                            Shape::None => {}
+                        }
+
+                        if !entity.children.is_empty() {
+                            properties::section(ui, "Children", |ui| {
+                                ui.label(format!("Children: {}", entity.children.len()));
+                                for (i, child) in entity.children.iter().enumerate() {
+                                    ui.label(format!("  {}. {}", i + 1, child.type_name()));
+                                }
+                            });
+                        }
+
+                        ui.add_space(20.0);
+                        if ui
+                            .button(egui::RichText::new("Delete Entity").color(egui::Color32::RED))
+                            .clicked()
+                        {
+                            delete_id = Some(id);
+                        }
+                    }
+                } else if !tab.selection_manager.selected_ids.is_empty() {
+                    ui.vertical_centered(|ui| {
+                        ui.add_space(20.0);
+                        ui.label(
+                            egui::RichText::new(format!(
+                                "{} items selected",
+                                tab.selection_manager.selected_ids.len()
+                            ))
+                            .strong(),
+                        );
+                        ui.add_space(10.0);
+                        if ui
+                            .button(
+                                egui::RichText::new("Delete Selected Items")
+                                    .color(egui::Color32::RED),
+                            )
+                            .clicked()
+                        {
+                            delete_selection = true;
+                        }
+                    });
+                } else {
+                    ui.vertical_centered(|ui| {
+                        ui.add_space(50.0);
+                        ui.label(egui::RichText::new("No entity selected").weak());
+                        ui.label(
+                            egui::RichText::new(
+                                "Click objects in the viewport to inspect/select them",
+                            )
+                            .small()
+                            .weak(),
+                        );
+                    });
                 }
             }
-        } else if !tab.selection_manager.selected_ids.is_empty() {
-            ui.vertical_centered(|ui| {
-                ui.add_space(20.0);
-                ui.label(
-                    egui::RichText::new(format!(
-                        "{} items selected",
-                        tab.selection_manager.selected_ids.len()
-                    ))
-                    .strong(),
-                );
-                ui.add_space(10.0);
-                if ui
-                    .button(egui::RichText::new("Delete Selected Items").color(egui::Color32::RED))
-                    .clicked()
-                {
-                    delete_selection = true;
+
+            vm.inspector_renaming = is_renaming;
+
+            // Handle deferred deletion
+            if let Some(id_to_delete) = delete_id {
+                let tab = vm.active_tab_mut();
+                tab.model
+                    .remove_entities_by_ids(&std::collections::HashSet::from([id_to_delete]));
+                tab.selection_manager.selected_ids.remove(&id_to_delete);
+            }
+
+            if delete_selection {
+                let tab = vm.active_tab_mut();
+                let ids = tab.selection_manager.selected_ids.clone();
+                if !ids.is_empty() {
+                    tab.model.remove_entities_by_ids(&ids);
+                    tab.selection_manager.selected_ids.clear();
                 }
-            });
-        } else {
-            ui.vertical_centered(|ui| {
-                ui.add_space(50.0);
-                ui.label(egui::RichText::new("No entity selected").weak());
-                ui.label(
-                    egui::RichText::new("Click objects in the viewport to inspect/select them")
-                        .small()
-                        .weak(),
-                );
-            });
-        }
-    }
-
-    vm.inspector_renaming = is_renaming;
-
-    // Handle deferred deletion
-    if let Some(id_to_delete) = delete_id {
-        let tab = vm.active_tab_mut();
-        tab.model
-            .remove_entities_by_ids(&std::collections::HashSet::from([id_to_delete]));
-        tab.selection_manager.selected_ids.remove(&id_to_delete);
-    }
-
-    if delete_selection {
-        let tab = vm.active_tab_mut();
-        let ids = tab.selection_manager.selected_ids.clone();
-        if !ids.is_empty() {
-            tab.model.remove_entities_by_ids(&ids);
-            tab.selection_manager.selected_ids.clear();
-        }
-    }
+            }
+        });
 }
 
 fn inspect_line(ui: &mut egui::Ui, line: &mut Line) {

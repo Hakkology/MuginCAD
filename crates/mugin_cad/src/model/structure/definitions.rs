@@ -67,10 +67,12 @@ impl StructureDefinitions {
         self.column_types.get(&id)
     }
 
+    #[allow(dead_code)]
     pub fn get_column_type_mut(&mut self, id: u64) -> Option<&mut ColumnType> {
         self.column_types.get_mut(&id)
     }
 
+    #[allow(dead_code)]
     pub fn remove_column_type(&mut self, id: u64) {
         self.column_types.remove(&id);
     }

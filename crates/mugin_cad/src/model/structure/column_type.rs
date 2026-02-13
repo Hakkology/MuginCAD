@@ -1,4 +1,3 @@
-use eframe::egui::Color32;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

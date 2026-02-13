@@ -116,6 +116,7 @@ pub fn color_rgb(ui: &mut egui::Ui, label: &str, color: &mut [u8; 3]) {
 pub fn section(ui: &mut egui::Ui, title: &str, body: impl FnOnce(&mut egui::Ui)) {
     ui.group(|ui| {
         ui.label(egui::RichText::new(title).strong());
+        ui.separator();
         ui.add_space(5.0);
         body(ui);
     });

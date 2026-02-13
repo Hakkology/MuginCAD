@@ -59,7 +59,7 @@ fn render_column_ui(ctx: &egui::Context, ui: &mut egui::Ui, vm: &mut CadViewMode
                 }
 
                 // Use same steel for both defaults initially
-                let mut new_col =
+                let new_col =
                     ColumnType::new(0, "New Column", 30.0, 50.0, def_conc, def_steel, def_steel);
 
                 ui.data_mut(|d| d.insert_temp(egui::Id::new("new_col_state"), new_col));
@@ -158,11 +158,11 @@ fn apply_column_resize(
             if col.column_type_id == type_id {
                 // Update dimensions
                 col.width = new_w;
-                col.height = new_d; // col.height corresponds to depth in Type
+                col.height = new_d;
 
-                // Update Position based on Anchor
-                // Delta size
-                // We need to move the CENTER to keep the ANCHOR fixed.
+                // Rotated delta calculation to keep anchor fixed
+                // Global_Pos = Center + Rotated(Local_Pos)
+                // New_Center = Center_Old + Rot(Local_Old - Local_New)
 
                 let (sin, cos) = col.rotation.sin_cos();
                 let rotate =
@@ -183,17 +183,7 @@ fn apply_column_resize(
                 let (ax_old, ay_old) = get_local_anchor(old_w, old_d, col.anchor);
                 let (ax_new, ay_new) = get_local_anchor(new_w, new_d, col.anchor);
 
-                // The local anchor point coordinates changed because width/height changed.
-                // We want the GLOBAL position of the anchor to be the same.
-                // Global_Pos = Center + Rotated(Local_Pos)
-                // Center_Old + Rot(Local_Old) = Center_New + Rot(Local_New)
-                // Center_New = Center_Old + Rot(Local_Old) - Rot(Local_New)
-                // Center_New = Center_Old + Rot(Local_Old - Local_New)
-
-                let diff_x = ax_old - ax_new;
-                let diff_y = ay_old - ay_new;
-
-                let (dx_rot, dy_rot) = rotate(diff_x, diff_y);
+                let (dx_rot, dy_rot) = rotate(ax_old - ax_new, ay_old - ay_new);
 
                 col.center.x += dx_rot;
                 col.center.y += dy_rot;
