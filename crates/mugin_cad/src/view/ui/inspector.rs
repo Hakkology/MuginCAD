@@ -2,6 +2,7 @@ use crate::model::Shape;
 use crate::model::shapes::{
     annotation::TextAnnotation, arc::Arc, circle::Circle, line::Line, rectangle::Rectangle,
 };
+use crate::model::structure::beam::BeamData;
 use crate::model::structure::column::ColumnData;
 use crate::viewmodel::CadViewModel;
 use eframe::egui;
@@ -239,6 +240,7 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                             Shape::Arc(arc) => inspect_arc(ui, arc),
                             Shape::Text(text) => inspect_text(ui, text),
                             Shape::Column(col) => inspect_column(ui, col, &definitions),
+                            Shape::Beam(beam) => inspect_beam(ui, beam, &definitions),
                             Shape::None => {}
                         }
 
@@ -534,6 +536,94 @@ fn inspect_column(
             } else {
                 ui.label("  None");
             }
+        });
+    }
+}
+
+fn inspect_beam(
+    ui: &mut egui::Ui,
+    beam: &mut BeamData,
+    definitions: &crate::model::structure::definitions::StructureDefinitions,
+) {
+    ui.heading("Beam Properties");
+    ui.add_space(5.0);
+
+    // --- Identity ---
+    properties::section(ui, "Identity", |ui| {
+        properties::text_input(ui, "Label:", &mut beam.label);
+
+        let type_name = definitions
+            .get_beam_type(beam.beam_type_id)
+            .map(|t| t.name.as_str())
+            .unwrap_or("Unknown Type");
+
+        ui.label(format!(
+            "Beam Type: {} (ID: {})",
+            type_name, beam.beam_type_id
+        ));
+    });
+    ui.add_space(5.0);
+
+    // --- Geometry ---
+    properties::section(ui, "Geometry", |ui| {
+        properties::point2(ui, "Start Point", &mut beam.start.x, &mut beam.start.y);
+        ui.add_space(5.0);
+        properties::point2(ui, "End Point", &mut beam.end.x, &mut beam.end.y);
+        ui.add_space(5.0);
+        properties::display_float(ui, "Length:", beam.length(), 2);
+    });
+    ui.add_space(5.0);
+
+    // --- Detailed Reinforcement Info ---
+    if let Some(beam_type) = definitions.get_beam_type(beam.beam_type_id) {
+        properties::section(ui, "Materials", |ui| {
+            let concrete = definitions
+                .get_material(beam_type.concrete_material_id)
+                .map(|m| m.name.as_str())
+                .unwrap_or("?");
+            let steel = definitions
+                .get_material(beam_type.steel_material_id)
+                .map(|m| m.name.as_str())
+                .unwrap_or("?");
+
+            ui.label(format!("Concrete: {}", concrete));
+            ui.label(format!("Steel: {}", steel));
+        });
+        ui.add_space(5.0);
+
+        properties::section(ui, "Longitudinal Rebar", |ui| {
+            ui.label(format!(
+                "Top: {} x Ø{}",
+                beam_type.top_bar_count, beam_type.top_bar_diameter
+            ));
+            ui.label(format!(
+                "Bottom: {} x Ø{}",
+                beam_type.bottom_bar_count, beam_type.bottom_bar_diameter
+            ));
+            if beam_type.side_bar_count > 0 {
+                ui.label(format!(
+                    "Side: {} x Ø{}",
+                    beam_type.side_bar_count * 2,
+                    beam_type.side_bar_diameter
+                ));
+            }
+        });
+        ui.add_space(5.0);
+
+        properties::section(ui, "Ties (Transverse)", |ui| {
+            ui.label("Zones (Support Left / Span / Support Right):");
+            ui.label(format!(
+                "  Zone A: Ø{} / {} cm",
+                beam_type.zone_left.tie_diameter, beam_type.zone_left.tie_spacing
+            ));
+            ui.label(format!(
+                "  Zone B: Ø{} / {} cm",
+                beam_type.zone_mid.tie_diameter, beam_type.zone_mid.tie_spacing
+            ));
+            ui.label(format!(
+                "  Zone C: Ø{} / {} cm",
+                beam_type.zone_right.tie_diameter, beam_type.zone_right.tie_spacing
+            ));
         });
     }
 }

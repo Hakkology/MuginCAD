@@ -17,7 +17,7 @@ pub fn render_quick_access(ui: &mut egui::Ui, vm: &mut CadViewModel) {
 
                 // Beams Section
                 render_section(ui, "Beams", |ui| {
-                    ui.add_enabled(false, egui::Label::new("Coming Soon"));
+                    render_beam_selector(ui, vm);
                 });
 
                 ui.add_space(15.0);
@@ -52,6 +52,14 @@ where
 }
 
 fn render_column_selector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
+    if ui
+        .button("⚙")
+        .on_hover_text("Manage Column Types")
+        .clicked()
+    {
+        vm.column_manager_open = true;
+    }
+
     // 1. Gather data (Immutable borrow of vm/tab)
     let (mut active_id, col_types) = {
         let tab = vm.active_tab();
@@ -111,6 +119,73 @@ fn render_column_selector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
             &tab.selection_manager.selected_ids.clone(),
         ) {
             tab.executor.status_message = "Could not start place_column command".to_string();
+        }
+    }
+}
+
+fn render_beam_selector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
+    if ui.button("⚙").on_hover_text("Manage Beam Types").clicked() {
+        vm.beam_manager_open = true;
+    }
+
+    // 1. Gather data
+    let (mut active_id, beam_types) = {
+        let tab = vm.active_tab();
+        let mut types: Vec<(u64, String)> = tab
+            .model
+            .definitions
+            .beam_types
+            .iter()
+            .map(|(id, c)| (*id, c.name.clone()))
+            .collect();
+        types.sort_by(|a, b| a.1.cmp(&b.1));
+
+        (vm.active_beam_type_id, types)
+    };
+
+    // 2. Logic
+    if active_id.is_none() {
+        if let Some(first) = beam_types.first() {
+            active_id = Some(first.0);
+        }
+    }
+
+    if vm.active_beam_type_id != active_id {
+        vm.active_beam_type_id = active_id;
+    }
+
+    // 3. Display name
+    let current_name = if let Some(id) = active_id {
+        beam_types
+            .iter()
+            .find(|(cid, _)| *cid == id)
+            .map(|(_, name)| name.clone())
+            .unwrap_or_else(|| "Unknown".to_string())
+    } else {
+        "Select Type...".to_string()
+    };
+
+    // 4. Render
+    let combo = egui::ComboBox::from_id_salt("quick_beam_type")
+        .width(150.0)
+        .selected_text(current_name);
+
+    combo.show_ui(ui, |ui| {
+        for (id, name) in beam_types {
+            if ui.selectable_label(active_id == Some(id), name).clicked() {
+                vm.active_beam_type_id = Some(id);
+            }
+        }
+    });
+
+    if ui.button("Place").clicked() {
+        let tab = vm.active_tab_mut();
+        if !tab.executor.start_command(
+            "place_beam",
+            &mut tab.model,
+            &tab.selection_manager.selected_ids.clone(),
+        ) {
+            tab.executor.status_message = "Could not start place_beam command".to_string();
         }
     }
 }

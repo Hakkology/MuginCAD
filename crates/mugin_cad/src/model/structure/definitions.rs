@@ -1,3 +1,4 @@
+use crate::model::structure::beam_type::BeamType;
 use crate::model::structure::column_type::ColumnType;
 use crate::model::structure::material::Material;
 use serde::{Deserialize, Serialize};
@@ -9,6 +10,7 @@ use std::collections::HashMap;
 pub struct StructureDefinitions {
     pub materials: HashMap<u64, Material>,
     pub column_types: HashMap<u64, ColumnType>,
+    pub beam_types: HashMap<u64, BeamType>,
 
     // Counter for generic IDs within definitions
     next_id: u64,
@@ -19,6 +21,7 @@ impl StructureDefinitions {
         Self {
             materials: HashMap::new(),
             column_types: HashMap::new(),
+            beam_types: HashMap::new(),
             next_id: 1,
         }
     }
@@ -75,5 +78,30 @@ impl StructureDefinitions {
     #[allow(dead_code)]
     pub fn remove_column_type(&mut self, id: u64) {
         self.column_types.remove(&id);
+    }
+
+    // --- Beam Types ---
+
+    pub fn add_beam_type(&mut self, mut beam_type: BeamType) -> u64 {
+        if beam_type.id == 0 {
+            beam_type.id = self.next_id();
+        }
+        let id = beam_type.id;
+        self.beam_types.insert(id, beam_type);
+        id
+    }
+
+    pub fn get_beam_type(&self, id: u64) -> Option<&BeamType> {
+        self.beam_types.get(&id)
+    }
+
+    #[allow(dead_code)]
+    pub fn get_beam_type_mut(&mut self, id: u64) -> Option<&mut BeamType> {
+        self.beam_types.get_mut(&id)
+    }
+
+    #[allow(dead_code)]
+    pub fn remove_beam_type(&mut self, id: u64) {
+        self.beam_types.remove(&id);
     }
 }

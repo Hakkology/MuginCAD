@@ -42,6 +42,8 @@ pub struct CommandContext<'a> {
     pub selected_ids: &'a HashSet<u64>,
     pub filled_mode: bool,
     pub modifiers: InputModifiers,
+    pub active_column_type_id: Option<u64>,
+    pub active_beam_type_id: Option<u64>,
 }
 
 /// Category of command - determines behavior and requirements

@@ -48,6 +48,10 @@ pub fn render_top_menu(ctx: &egui::Context, vm: &mut CadViewModel) {
                     vm.column_manager_open = true;
                     ui.close_menu();
                 }
+                if toolbar::menu_action(ui, "Beam Types...") {
+                    vm.beam_manager_open = true;
+                    ui.close_menu();
+                }
             });
 
             // ── Actions Menu ─────────────────────────────────
@@ -79,6 +83,19 @@ pub fn render_top_menu(ctx: &egui::Context, vm: &mut CadViewModel) {
                 if toolbar::menu_action(ui, "Arc") {
                     let ids = tab.selection_manager.selected_ids.clone();
                     tab.executor.start_command("arc", &mut tab.model, &ids);
+                }
+
+                // Structural
+                toolbar::menu_section(ui, "Structural");
+                if toolbar::menu_action(ui, "Place Column") {
+                    let ids = tab.selection_manager.selected_ids.clone();
+                    tab.executor
+                        .start_command("place_column", &mut tab.model, &ids);
+                }
+                if toolbar::menu_action(ui, "Place Beam") {
+                    let ids = tab.selection_manager.selected_ids.clone();
+                    tab.executor
+                        .start_command("place_beam", &mut tab.model, &ids);
                 }
 
                 // Transform

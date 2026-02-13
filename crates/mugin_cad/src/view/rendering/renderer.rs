@@ -1,14 +1,22 @@
 use crate::model::Entity;
-use crate::view::context::DrawContext;
+use crate::model::structure::definitions::StructureDefinitions;
+use crate::view::rendering::context::DrawContext;
 
 pub fn render_entities(
     ctx: &DrawContext,
+    definitions: &StructureDefinitions,
     entities: &[Entity],
     selected_ids: &std::collections::HashSet<u64>,
     hovered_entity_id: Option<u64>,
     layer_manager: &crate::model::layer::LayerManager,
 ) {
     for entity in entities {
-        entity.render_recursive(ctx, selected_ids, hovered_entity_id, layer_manager);
+        entity.render_recursive(
+            ctx,
+            definitions,
+            selected_ids,
+            hovered_entity_id,
+            layer_manager,
+        );
     }
 }

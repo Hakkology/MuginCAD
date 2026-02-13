@@ -12,8 +12,6 @@ pub use ui::terminal;
 pub use ui::toolbar;
 pub use ui::topmenu;
 
-pub use rendering::context;
-
 use crate::viewmodel::CadViewModel;
 use eframe::egui;
 use mugin_widgets::panel;
@@ -43,6 +41,14 @@ impl eframe::App for CadApp {
         self.view_model.inspector_renaming = false;
         self.view_model.hierarchy_renaming = false;
 
+        // Sync active structural types to executor
+        let col_type = self.view_model.active_column_type_id;
+        let beam_type = self.view_model.active_beam_type_id;
+        self.view_model
+            .active_tab_mut()
+            .executor
+            .set_active_types(col_type, beam_type);
+
         // Render Settings Window if open
         if self.view_model.show_settings_window {
             settings::render_settings_window(ctx, &mut self.view_model);
@@ -56,6 +62,11 @@ impl eframe::App for CadApp {
         // Render Column Manager
         if self.view_model.column_manager_open {
             ui::structure::columns::render_column_manager(ctx, &mut self.view_model);
+        }
+
+        // Render Beam Manager
+        if self.view_model.beam_manager_open {
+            ui::structure::beams::render_beam_manager(ctx, &mut self.view_model);
         }
 
         // Render Export Window if open

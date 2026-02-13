@@ -201,7 +201,8 @@ fn shape_icon(shape: &Shape) -> &'static str {
         Shape::Rectangle(_) => "▭",
         Shape::Arc(_) => "◠",
         Shape::Text(_) => "🔤",
-        Shape::Column(_) => "🏛", // Temple/Column icon
+        Shape::Column(_) => "🏛",
+        Shape::Beam(_) => "▬", // Horizontal bar icon for Beam
     }
 }
 

@@ -235,6 +235,14 @@ impl SnapSystem {
                     points.push(SnapPoint::new(p, SnapPointType::Corner));
                 }
             }
+            Shape::Beam(beam) => {
+                // Endpoints
+                points.push(SnapPoint::new(beam.start, SnapPointType::Endpoint));
+                points.push(SnapPoint::new(beam.end, SnapPointType::Endpoint));
+                // Midpoint
+                let mid = (beam.start + beam.end) * 0.5;
+                points.push(SnapPoint::new(mid, SnapPointType::Midpoint));
+            }
             Shape::None => {}
         }
 

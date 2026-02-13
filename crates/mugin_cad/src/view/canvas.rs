@@ -215,6 +215,7 @@ pub fn render_canvas(ui: &mut egui::Ui, vm: &mut CadViewModel) {
     // Entities
     renderer::render_entities(
         &ctx,
+        &tab.model.definitions,
         &tab.model.entities,
         &tab.selection_manager.selected_ids,
         hovered_entity_id,

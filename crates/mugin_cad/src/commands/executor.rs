@@ -74,6 +74,9 @@ impl CommandRegistry {
         registry.register("place_column", || {
             Box::new(crate::commands::create::place_column::CmdPlaceColumn::new())
         });
+        registry.register("place_beam", || {
+            Box::new(crate::commands::create::beam::BeamCommand::new())
+        });
         registry.register("distance", || Box::new(DistanceCommand::new()));
         registry.register("dist", || Box::new(DistanceCommand::new()));
 
@@ -112,6 +115,8 @@ pub struct CommandExecutor {
     pub status_message: String,
     pub filled_mode: bool,
     pub modifiers: InputModifiers,
+    pub active_column_type_id: Option<u64>,
+    pub active_beam_type_id: Option<u64>,
 }
 
 impl CommandExecutor {
@@ -122,7 +127,14 @@ impl CommandExecutor {
             status_message: "Command:".to_string(),
             filled_mode: false,
             modifiers: InputModifiers::default(),
+            active_column_type_id: None,
+            active_beam_type_id: None,
         }
+    }
+
+    pub fn set_active_types(&mut self, column: Option<u64>, beam: Option<u64>) {
+        self.active_column_type_id = column;
+        self.active_beam_type_id = beam;
     }
 
     /// Update keyboard modifiers (called from view)
@@ -154,12 +166,13 @@ impl CommandExecutor {
         }
 
         if let Some(mut cmd) = self.registry.create(name) {
-            // Check if command can execute in current context
             let ctx = CommandContext {
                 model,
                 selected_ids,
                 filled_mode: self.filled_mode,
                 modifiers: self.modifiers,
+                active_column_type_id: self.active_column_type_id,
+                active_beam_type_id: self.active_beam_type_id,
             };
 
             if !cmd.can_execute(&ctx) {
@@ -197,6 +210,8 @@ impl CommandExecutor {
                 selected_ids,
                 filled_mode: self.filled_mode,
                 modifiers: self.modifiers,
+                active_column_type_id: self.active_column_type_id,
+                active_beam_type_id: self.active_beam_type_id,
             };
 
             // Apply constraints based on modifiers
@@ -240,6 +255,8 @@ impl CommandExecutor {
                 selected_ids,
                 filled_mode: self.filled_mode,
                 modifiers: self.modifiers,
+                active_column_type_id: self.active_column_type_id,
+                active_beam_type_id: self.active_beam_type_id,
             };
 
             match cmd.process_input(&clean, &mut ctx) {
@@ -291,12 +308,22 @@ impl CommandExecutor {
 
     pub fn cycle_placement_anchor(&mut self) -> bool {
         if let Some(cmd) = &mut self.active_command {
-            if cmd.name() == "Place Column" {
+            let name = cmd.name();
+            if name == "Place Column" {
                 if let Some(any) = cmd.as_any_mut() {
                     if let Some(col_cmd) =
                         any.downcast_mut::<crate::commands::create::place_column::CmdPlaceColumn>()
                     {
                         col_cmd.cycle_anchor();
+                        return true;
+                    }
+                }
+            } else if name == "Place Beam" {
+                if let Some(any) = cmd.as_any_mut() {
+                    if let Some(beam_cmd) =
+                        any.downcast_mut::<crate::commands::create::beam::BeamCommand>()
+                    {
+                        beam_cmd.cycle_anchor();
                         return true;
                     }
                 }
@@ -307,12 +334,22 @@ impl CommandExecutor {
 
     pub fn rotate_placement(&mut self) -> bool {
         if let Some(cmd) = &mut self.active_command {
-            if cmd.name() == "Place Column" {
+            let name = cmd.name();
+            if name == "Place Column" {
                 if let Some(any) = cmd.as_any_mut() {
                     if let Some(col_cmd) =
                         any.downcast_mut::<crate::commands::create::place_column::CmdPlaceColumn>()
                     {
                         col_cmd.rotate_cw();
+                        return true;
+                    }
+                }
+            } else if name == "Place Beam" {
+                if let Some(any) = cmd.as_any_mut() {
+                    if let Some(beam_cmd) =
+                        any.downcast_mut::<crate::commands::create::beam::BeamCommand>()
+                    {
+                        beam_cmd.rotate_cw();
                         return true;
                     }
                 }

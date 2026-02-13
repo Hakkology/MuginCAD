@@ -2,13 +2,21 @@ use crate::model::Vector2;
 use crate::model::shapes::{
     annotation::TextAnnotation, arc::Arc, circle::Circle, line::Line, rectangle::Rectangle,
 };
-use crate::model::{Entity, Shape};
+use crate::model::{BeamData, Entity, Shape};
 use crate::view::rendering::context::DrawContext;
 use eframe::egui;
 
+use crate::model::structure::definitions::StructureDefinitions;
+
 /// Trait for entities that can be rendered on the canvas
 pub trait Renderable {
-    fn render(&self, ctx: &DrawContext, is_selected: bool, is_hovered: bool);
+    fn render(
+        &self,
+        ctx: &DrawContext,
+        definitions: &StructureDefinitions,
+        is_selected: bool,
+        is_hovered: bool,
+    );
 }
 
 fn get_base_style(is_selected: bool, is_hovered: bool) -> (egui::Color32, f32) {
@@ -22,7 +30,13 @@ fn get_base_style(is_selected: bool, is_hovered: bool) -> (egui::Color32, f32) {
 }
 
 impl Renderable for Line {
-    fn render(&self, ctx: &DrawContext, is_selected: bool, is_hovered: bool) {
+    fn render(
+        &self,
+        ctx: &DrawContext,
+        _definitions: &StructureDefinitions,
+        is_selected: bool,
+        is_hovered: bool,
+    ) {
         let (color, stroke_width) = get_base_style(is_selected, is_hovered);
 
         ctx.painter.line_segment(
@@ -140,7 +154,13 @@ impl Renderable for Line {
 }
 
 impl Renderable for Circle {
-    fn render(&self, ctx: &DrawContext, is_selected: bool, is_hovered: bool) {
+    fn render(
+        &self,
+        ctx: &DrawContext,
+        _definitions: &StructureDefinitions,
+        is_selected: bool,
+        is_hovered: bool,
+    ) {
         let (color, stroke_width) = get_base_style(is_selected, is_hovered);
 
         let screen_radius = self.radius * ctx.zoom;
@@ -160,7 +180,13 @@ impl Renderable for Circle {
 }
 
 impl Renderable for Rectangle {
-    fn render(&self, ctx: &DrawContext, is_selected: bool, is_hovered: bool) {
+    fn render(
+        &self,
+        ctx: &DrawContext,
+        _definitions: &StructureDefinitions,
+        is_selected: bool,
+        is_hovered: bool,
+    ) {
         let (color, stroke_width) = get_base_style(is_selected, is_hovered);
 
         let rect_screen = egui::Rect::from_min_max(
@@ -177,7 +203,13 @@ impl Renderable for Rectangle {
 }
 
 impl Renderable for Arc {
-    fn render(&self, ctx: &DrawContext, is_selected: bool, is_hovered: bool) {
+    fn render(
+        &self,
+        ctx: &DrawContext,
+        _definitions: &StructureDefinitions,
+        is_selected: bool,
+        is_hovered: bool,
+    ) {
         let (color, stroke_width) = get_base_style(is_selected, is_hovered);
 
         let segments = 32;
@@ -217,7 +249,13 @@ impl Renderable for Arc {
 }
 
 impl Renderable for TextAnnotation {
-    fn render(&self, ctx: &DrawContext, is_selected: bool, _is_hovered: bool) {
+    fn render(
+        &self,
+        ctx: &DrawContext,
+        _definitions: &StructureDefinitions,
+        is_selected: bool,
+        _is_hovered: bool,
+    ) {
         let text_color = egui::Color32::from_rgb(
             self.style.color[0],
             self.style.color[1],
@@ -354,7 +392,13 @@ impl Renderable for TextAnnotation {
 use crate::model::structure::column::ColumnData;
 
 impl Renderable for ColumnData {
-    fn render(&self, ctx: &DrawContext, is_selected: bool, is_hovered: bool) {
+    fn render(
+        &self,
+        ctx: &DrawContext,
+        _definitions: &StructureDefinitions,
+        is_selected: bool,
+        is_hovered: bool,
+    ) {
         let (base_color, stroke_width) = get_base_style(is_selected, is_hovered);
 
         // Use a distinct color for columns if not selected/hovered
@@ -400,20 +444,72 @@ impl Renderable for ColumnData {
     }
 }
 
+impl Renderable for BeamData {
+    fn render(
+        &self,
+        ctx: &DrawContext,
+        definitions: &StructureDefinitions,
+        is_selected: bool,
+        is_hovered: bool,
+    ) {
+        let p1 = ctx.to_screen(self.start);
+        let p2 = ctx.to_screen(self.end);
+
+        if let Some(beam_type) = definitions.beam_types.get(&self.beam_type_id) {
+            crate::view::rendering::structure::draw_beam(
+                ctx.painter,
+                p1,
+                p2,
+                ctx.zoom,
+                beam_type,
+                1.0,
+                self.anchor,
+            );
+
+            // Selection/Hover highlight
+            if is_selected || is_hovered {
+                let color = if is_selected {
+                    egui::Color32::GOLD
+                } else {
+                    egui::Color32::from_rgb(0, 200, 255)
+                };
+                let stroke = egui::Stroke::new(2.0, color);
+                ctx.painter.line_segment([p1, p2], stroke);
+            }
+        } else {
+            // Fallback for missing type
+            let color = if is_selected {
+                egui::Color32::GOLD
+            } else {
+                egui::Color32::RED
+            };
+            ctx.painter
+                .line_segment([p1, p2], egui::Stroke::new(2.0, color));
+        }
+    }
+}
+
 impl Renderable for Entity {
-    fn render(&self, ctx: &DrawContext, is_selected: bool, is_hovered: bool) {
+    fn render(
+        &self,
+        ctx: &DrawContext,
+        definitions: &StructureDefinitions,
+        is_selected: bool,
+        is_hovered: bool,
+    ) {
         match &self.shape {
-            Shape::Line(e) => e.render(ctx, is_selected, is_hovered),
-            Shape::Circle(e) => e.render(ctx, is_selected, is_hovered),
-            Shape::Rectangle(e) => e.render(ctx, is_selected, is_hovered),
-            Shape::Arc(e) => e.render(ctx, is_selected, is_hovered),
-            Shape::Text(e) => e.render(ctx, is_selected, is_hovered),
-            Shape::Column(e) => e.render(ctx, is_selected, is_hovered),
+            Shape::Line(e) => e.render(ctx, definitions, is_selected, is_hovered),
+            Shape::Circle(e) => e.render(ctx, definitions, is_selected, is_hovered),
+            Shape::Rectangle(e) => e.render(ctx, definitions, is_selected, is_hovered),
+            Shape::Arc(e) => e.render(ctx, definitions, is_selected, is_hovered),
+            Shape::Text(e) => e.render(ctx, definitions, is_selected, is_hovered),
+            Shape::Column(e) => e.render(ctx, definitions, is_selected, is_hovered),
+            Shape::Beam(e) => e.render(ctx, definitions, is_selected, is_hovered),
             Shape::None => {}
         }
         // Basic render propagates selection (legacy behavior)
         for child in &self.children {
-            child.render(ctx, is_selected, is_hovered);
+            child.render(ctx, definitions, is_selected, is_hovered);
         }
     }
 }
@@ -423,6 +519,7 @@ impl Entity {
     pub fn render_recursive(
         &self,
         ctx: &DrawContext,
+        definitions: &StructureDefinitions,
         selected_ids: &std::collections::HashSet<u64>,
         hovered_id: Option<u64>,
         layer_manager: &crate::model::layer::LayerManager,
@@ -438,17 +535,18 @@ impl Entity {
         let is_self_hovered = hovered_id == Some(self.id);
 
         match &self.shape {
-            Shape::Line(e) => e.render(ctx, is_self_selected, is_self_hovered),
-            Shape::Circle(e) => e.render(ctx, is_self_selected, is_self_hovered),
-            Shape::Rectangle(e) => e.render(ctx, is_self_selected, is_self_hovered),
-            Shape::Arc(e) => e.render(ctx, is_self_selected, is_self_hovered),
-            Shape::Text(e) => e.render(ctx, is_self_selected, is_self_hovered),
-            Shape::Column(e) => e.render(ctx, is_self_selected, is_self_hovered),
+            Shape::Line(e) => e.render(ctx, definitions, is_self_selected, is_self_hovered),
+            Shape::Circle(e) => e.render(ctx, definitions, is_self_selected, is_self_hovered),
+            Shape::Rectangle(e) => e.render(ctx, definitions, is_self_selected, is_self_hovered),
+            Shape::Arc(e) => e.render(ctx, definitions, is_self_selected, is_self_hovered),
+            Shape::Text(e) => e.render(ctx, definitions, is_self_selected, is_self_hovered),
+            Shape::Column(e) => e.render(ctx, definitions, is_self_selected, is_self_hovered),
+            Shape::Beam(e) => e.render(ctx, definitions, is_self_selected, is_self_hovered),
             Shape::None => {}
         }
 
         for child in &self.children {
-            child.render_recursive(ctx, selected_ids, hovered_id, layer_manager);
+            child.render_recursive(ctx, definitions, selected_ids, hovered_id, layer_manager);
         }
     }
 }

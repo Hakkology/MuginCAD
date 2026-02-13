@@ -33,6 +33,7 @@ pub use shapes::arc::Arc;
 pub use shapes::circle::Circle;
 pub use shapes::line::Line;
 pub use shapes::rectangle::Rectangle;
+pub use structure::beam::BeamData;
 pub use structure::column::ColumnData;
 pub use vector::Vector2;
 
@@ -56,6 +57,7 @@ pub enum Shape {
     Arc(Arc),
     Text(TextAnnotation),
     Column(ColumnData),
+    Beam(BeamData),
 }
 
 impl Shape {
@@ -68,6 +70,7 @@ impl Shape {
             Shape::Arc(_) => "Arc",
             Shape::Text(_) => "Text",
             Shape::Column(_) => "Column",
+            Shape::Beam(_) => "Beam",
         }
     }
 }
@@ -82,6 +85,7 @@ impl Geometry for Shape {
             Shape::Arc(s) => s.hit_test(pos, tolerance),
             Shape::Text(s) => s.hit_test(pos, tolerance),
             Shape::Column(s) => s.hit_test(pos, tolerance),
+            Shape::Beam(s) => s.hit_test(pos, tolerance),
         }
     }
 
@@ -94,6 +98,7 @@ impl Geometry for Shape {
             Shape::Arc(s) => s.center(),
             Shape::Text(s) => s.center(),
             Shape::Column(s) => s.center(),
+            Shape::Beam(s) => s.center(),
         }
     }
 
@@ -109,6 +114,7 @@ impl Geometry for Shape {
             Shape::Arc(s) => s.bounding_box(),
             Shape::Text(s) => s.bounding_box(),
             Shape::Column(s) => s.bounding_box(),
+            Shape::Beam(s) => s.bounding_box(),
         }
     }
 
@@ -121,6 +127,7 @@ impl Geometry for Shape {
             Shape::Arc(s) => s.as_polyline(),
             Shape::Text(s) => s.as_polyline(),
             Shape::Column(s) => s.as_polyline(),
+            Shape::Beam(s) => s.as_polyline(),
         }
     }
 
@@ -133,6 +140,7 @@ impl Geometry for Shape {
             Shape::Arc(s) => s.translate(delta),
             Shape::Text(s) => s.translate(delta),
             Shape::Column(s) => s.translate(delta),
+            Shape::Beam(s) => s.translate(delta),
         }
     }
 
@@ -145,6 +153,7 @@ impl Geometry for Shape {
             Shape::Arc(s) => s.rotate(pivot, angle),
             Shape::Text(s) => s.rotate(pivot, angle),
             Shape::Column(s) => s.rotate(pivot, angle),
+            Shape::Beam(s) => s.rotate(pivot, angle),
         }
     }
 
@@ -157,6 +166,7 @@ impl Geometry for Shape {
             Shape::Arc(s) => s.scale(base, factor),
             Shape::Text(s) => s.scale(base, factor),
             Shape::Column(s) => s.scale(base, factor),
+            Shape::Beam(s) => s.scale(base, factor),
         }
     }
 
@@ -169,6 +179,7 @@ impl Geometry for Shape {
             Shape::Arc(s) => s.is_closed(),
             Shape::Text(s) => s.is_closed(),
             Shape::Column(s) => s.is_closed(),
+            Shape::Beam(s) => s.is_closed(),
         }
     }
 
@@ -181,6 +192,7 @@ impl Geometry for Shape {
             Shape::Arc(s) => s.is_filled(),
             Shape::Text(s) => s.is_filled(),
             Shape::Column(s) => s.is_filled(),
+            Shape::Beam(s) => s.is_filled(),
         }
     }
 }
@@ -250,6 +262,10 @@ impl Entity {
 
     pub fn column(data: ColumnData) -> Self {
         Self::new(Shape::Column(data))
+    }
+
+    pub fn beam(data: BeamData) -> Self {
+        Self::new(Shape::Beam(data))
     }
 
     // ── Queries ─────────────────────────────────────────────

@@ -1,5 +1,6 @@
 pub mod arc;
 pub mod axis;
+pub mod beam;
 pub mod circle;
 pub mod line;
 pub mod measure;

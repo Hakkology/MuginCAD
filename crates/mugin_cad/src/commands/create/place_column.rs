@@ -46,6 +46,14 @@ impl Command for CmdPlaceColumn {
 
     fn on_start(&mut self, ctx: &CommandContext) {
         if self.cached_col_type.is_none() {
+            if let Some(id) = ctx.active_column_type_id {
+                if let Some(col) = ctx.model.definitions.column_types.get(&id) {
+                    self.active_column_type_id = Some(id);
+                    self.cached_col_type = Some(col.clone());
+                    return;
+                }
+            }
+
             if let Some((id, col)) = ctx.model.definitions.column_types.iter().next() {
                 self.active_column_type_id = Some(*id);
                 self.cached_col_type = Some(col.clone());
