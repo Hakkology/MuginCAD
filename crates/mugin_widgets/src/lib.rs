@@ -25,6 +25,7 @@
 //! });
 //! ```
 
+pub mod card;
 pub mod hierarchy;
 pub mod panel;
 pub mod properties;
