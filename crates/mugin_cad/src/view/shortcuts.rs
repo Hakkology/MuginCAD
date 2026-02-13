@@ -5,6 +5,15 @@ use eframe::egui;
 ///
 /// Called once per frame from the main update loop.
 pub fn handle(ctx: &egui::Context, vm: &mut CadViewModel) {
+    // If we are renaming or any text edit has focus, skip global shortcuts
+    if vm.tab_renaming_index.is_some()
+        || vm.hierarchy_renaming
+        || vm.inspector_renaming
+        || ctx.memory(|m| m.focused().is_some())
+    {
+        return;
+    }
+
     // Escape — cancel active command
     if ctx.input(|i| i.key_pressed(egui::Key::Escape)) {
         if !vm.command_input.is_empty() {

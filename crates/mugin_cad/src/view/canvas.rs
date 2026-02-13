@@ -218,6 +218,7 @@ pub fn render_canvas(ui: &mut egui::Ui, vm: &mut CadViewModel) {
         &tab.model.entities,
         &tab.selection_manager.selected_ids,
         hovered_entity_id,
+        &tab.model.layer_manager,
     );
 
     // Cursor and Preview

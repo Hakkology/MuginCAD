@@ -11,6 +11,7 @@
 //! - `Vector2`: Basic math primitives.
 
 pub mod axis;
+pub mod layer;
 pub mod math;
 pub mod shapes;
 pub mod structure;
@@ -195,6 +196,7 @@ pub struct Entity {
     pub id: u64,
     pub name: String,
     pub shape: Shape,
+    pub layer_id: u64,
     pub children: Vec<Entity>,
 }
 
@@ -208,6 +210,7 @@ impl Entity {
             id: next_id(),
             name,
             shape,
+            layer_id: 0,
             children: Vec::new(),
         }
     }
@@ -218,6 +221,7 @@ impl Entity {
             id: next_id(),
             name: name.into(),
             shape: Shape::None,
+            layer_id: 0,
             children: Vec::new(),
         }
     }
@@ -363,10 +367,15 @@ impl Entity {
     }
     /// Pick an entity ID at the given position (recursive).
     /// Returns the ID of the deepest child that was hit.
-    pub fn pick(&self, pos: Vector2, tolerance: f32) -> Option<u64> {
+    pub fn pick(
+        &self,
+        pos: Vector2,
+        tolerance: f32,
+        layer_manager: &crate::model::layer::LayerManager,
+    ) -> Option<u64> {
         // Check children first (render order usually means children are on top)
         for child in self.children.iter().rev() {
-            if let Some(id) = child.pick(pos, tolerance) {
+            if let Some(id) = child.pick(pos, tolerance, layer_manager) {
                 return Some(id);
             }
         }
@@ -388,6 +397,7 @@ pub struct CadModel {
     pub entities: Vec<Entity>,
     pub axis_manager: axis::AxisManager,
     pub definitions: StructureDefinitions,
+    pub layer_manager: layer::LayerManager,
     pub export_region: Option<(Vector2, Vector2)>,
 }
 
@@ -397,6 +407,7 @@ impl CadModel {
             entities: Vec::new(),
             axis_manager: axis::AxisManager::new(),
             definitions: StructureDefinitions::new(),
+            layer_manager: layer::LayerManager::new(),
             export_region: None,
         }
     }
@@ -409,7 +420,7 @@ impl CadModel {
     pub fn pick_entity_id(&self, pos: Vector2, tolerance: f32) -> Option<u64> {
         // Iterate reversely (top-most rendered first)
         for entity in self.entities.iter().rev() {
-            if let Some(id) = entity.pick(pos, tolerance) {
+            if let Some(id) = entity.pick(pos, tolerance, &self.layer_manager) {
                 return Some(id);
             }
         }

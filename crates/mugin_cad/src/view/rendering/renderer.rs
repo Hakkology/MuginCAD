@@ -6,8 +6,9 @@ pub fn render_entities(
     entities: &[Entity],
     selected_ids: &std::collections::HashSet<u64>,
     hovered_entity_id: Option<u64>,
+    layer_manager: &crate::model::layer::LayerManager,
 ) {
     for entity in entities {
-        entity.render_recursive(ctx, selected_ids, hovered_entity_id);
+        entity.render_recursive(ctx, selected_ids, hovered_entity_id, layer_manager);
     }
 }

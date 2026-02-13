@@ -425,7 +425,15 @@ impl Entity {
         ctx: &DrawContext,
         selected_ids: &std::collections::HashSet<u64>,
         hovered_id: Option<u64>,
+        layer_manager: &crate::model::layer::LayerManager,
     ) {
+        // LAYER VISIBILITY CHECK
+        if let Some(layer) = layer_manager.get_layer(self.layer_id) {
+            if !layer.is_visible {
+                return;
+            }
+        }
+
         let is_self_selected = selected_ids.contains(&self.id);
         let is_self_hovered = hovered_id == Some(self.id);
 
@@ -440,7 +448,7 @@ impl Entity {
         }
 
         for child in &self.children {
-            child.render_recursive(ctx, selected_ids, hovered_id);
+            child.render_recursive(ctx, selected_ids, hovered_id, layer_manager);
         }
     }
 }

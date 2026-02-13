@@ -28,6 +28,17 @@ use crate::commands::InputModifiers;
 use crate::model::config::AppConfig;
 use crate::model::{Entity, Vector2};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LeftPanelTab {
+    Hierarchy,
+    Layers,
+}
+
+pub struct PendingLayerChange {
+    pub entity_ids: Vec<u64>,
+    pub new_layer_id: u64,
+}
+
 /// Clipboard for copy/cut/paste operations
 #[derive(Default)]
 pub struct Clipboard {
@@ -53,9 +64,11 @@ pub struct CadViewModel {
     pub materials_manager_open: bool,
     pub column_manager_open: bool,
     pub active_column_type_id: Option<u64>,
+    pub layer_change_prompt: Option<PendingLayerChange>,
     #[allow(dead_code)]
     pub clipboard: Clipboard,
     pub export_window: crate::view::ui::export::window::ExportWindow,
+    pub active_left_panel_tab: LeftPanelTab,
 }
 
 impl CadViewModel {
@@ -76,8 +89,10 @@ impl CadViewModel {
             materials_manager_open: false,
             column_manager_open: false,
             active_column_type_id: None,
+            layer_change_prompt: None,
             clipboard: Clipboard::default(),
             export_window: crate::view::ui::export::window::ExportWindow::default(),
+            active_left_panel_tab: LeftPanelTab::Hierarchy,
         }
     }
 
@@ -129,5 +144,31 @@ impl CadViewModel {
     /// Update keyboard modifiers (called from view)
     pub fn set_modifiers(&mut self, modifiers: InputModifiers) {
         self.active_tab_mut().executor.set_modifiers(modifiers);
+    }
+
+    pub fn apply_layer_change(&mut self, recursive: bool) {
+        if let Some(change) = self.layer_change_prompt.take() {
+            let tab = self.active_tab_mut();
+            for id in change.entity_ids {
+                if let Some(e) = tab.model.find_by_id_mut(id) {
+                    if recursive {
+                        Self::set_layer_recursive(e, change.new_layer_id);
+                    } else {
+                        e.layer_id = change.new_layer_id;
+                    }
+                }
+            }
+        }
+    }
+
+    fn set_layer_recursive(entity: &mut Entity, layer_id: u64) {
+        entity.layer_id = layer_id;
+        for child in &mut entity.children {
+            Self::set_layer_recursive(child, layer_id);
+        }
+    }
+
+    pub fn cancel_layer_change(&mut self) {
+        self.layer_change_prompt = None;
     }
 }

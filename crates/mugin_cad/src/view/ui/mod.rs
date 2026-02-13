@@ -1,6 +1,7 @@
 pub mod export;
 pub mod hierarchy;
 pub mod inspector;
+pub mod layer_panel;
 pub mod settings;
 pub mod structure;
 pub mod tab_bar;

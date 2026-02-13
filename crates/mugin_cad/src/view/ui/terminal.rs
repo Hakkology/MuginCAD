@@ -50,7 +50,10 @@ pub fn render_terminal(ui: &mut egui::Ui, vm: &mut CadViewModel) {
 
             // Only request focus if we don't have it and nothing else needs it
             if !text_edit_elsewhere {
-                if !response.has_focus() && !response.lost_focus() {
+                if !response.has_focus()
+                    && !response.lost_focus()
+                    && ui.memory(|m| m.focused().is_none())
+                {
                     // Check if we should auto-focus (e.g. not interacting with other widgets)
                     // For now, we keep it aggressive but respect the flags
                     response.request_focus();

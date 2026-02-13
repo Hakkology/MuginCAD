@@ -169,13 +169,22 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
             let mut delete_id = None;
             let mut delete_selection = false;
 
+            let mut pending_layer_change = None;
+
             {
                 let tab = vm.active_tab_mut();
 
                 if tab.selection_manager.selected_ids.len() == 1 {
                     let id = *tab.selection_manager.selected_ids.iter().next().unwrap();
 
-                    // Clone definitions BEFORE mutable borrow of model/entity
+                    // Get layers and definitions list before mutable borrow of model/entity
+                    let layers = tab
+                        .model
+                        .layer_manager
+                        .get_sorted_layers()
+                        .into_iter()
+                        .map(|l| (l.id, l.name.clone()))
+                        .collect::<Vec<_>>();
                     let definitions = tab.model.definitions.clone();
 
                     if let Some(entity) = tab.model.find_by_id_mut(id) {
@@ -185,6 +194,38 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                             let response = ui.text_edit_singleline(&mut entity.name);
                             if response.has_focus() || response.clicked() {
                                 is_renaming = true;
+                            }
+                        });
+
+                        // Layer Selection
+                        ui.horizontal(|ui| {
+                            ui.label("Layer:");
+                            let mut selected_layer_id = entity.layer_id;
+
+                            let combo_text = layers
+                                .iter()
+                                .find(|(id, _)| *id == selected_layer_id)
+                                .map(|(_, name)| name.as_str())
+                                .unwrap_or("Unknown");
+
+                            egui::ComboBox::from_id_salt("layer_select")
+                                .selected_text(combo_text)
+                                .show_ui(ui, |ui| {
+                                    for (id, name) in &layers {
+                                        ui.selectable_value(&mut selected_layer_id, *id, name);
+                                    }
+                                });
+
+                            if selected_layer_id != entity.layer_id {
+                                if !entity.children.is_empty() {
+                                    pending_layer_change =
+                                        Some(crate::viewmodel::PendingLayerChange {
+                                            entity_ids: vec![entity.id],
+                                            new_layer_id: selected_layer_id,
+                                        });
+                                } else {
+                                    entity.layer_id = selected_layer_id;
+                                }
                             }
                         });
                         ui.add_space(3.0);
@@ -232,6 +273,94 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                             ))
                             .strong(),
                         );
+                        ui.add_space(5.0);
+
+                        // Batch Layer Change
+                        ui.horizontal(|ui| {
+                            ui.label("Layer:");
+
+                            // Check if all have same layer
+                            let first_id =
+                                *tab.selection_manager.selected_ids.iter().next().unwrap();
+                            let first_layer = tab
+                                .model
+                                .find_by_id(first_id)
+                                .map(|e| e.layer_id)
+                                .unwrap_or(0);
+                            let all_same = tab.selection_manager.selected_ids.iter().all(|id| {
+                                tab.model.find_by_id(*id).map(|e| e.layer_id) == Some(first_layer)
+                            });
+
+                            // Get layers list (tab is mutably borrowed via vm.active_tab_mut() earlier)
+                            // Wait, active_tab_mut() is called outside this block.
+                            // I need to be careful with tab borrow here.
+                            let layers = tab
+                                .model
+                                .layer_manager
+                                .get_sorted_layers()
+                                .into_iter()
+                                .map(|l| (l.id, l.name.clone()))
+                                .collect::<Vec<_>>();
+
+                            let mut next_layer_id = first_layer;
+                            let combo_text = if all_same {
+                                layers
+                                    .iter()
+                                    .find(|(id, _)| *id == first_layer)
+                                    .map(|(_, n)| n.as_str())
+                                    .unwrap_or("Unknown")
+                            } else {
+                                "Mixed"
+                            };
+
+                            let mut changed = false;
+                            egui::ComboBox::from_id_salt("layer_select_multi")
+                                .selected_text(combo_text)
+                                .show_ui(ui, |ui| {
+                                    for (id, name) in &layers {
+                                        if ui
+                                            .selectable_value(&mut next_layer_id, *id, name)
+                                            .clicked()
+                                        {
+                                            changed = true;
+                                        }
+                                    }
+                                });
+
+                            if changed {
+                                let ids = tab
+                                    .selection_manager
+                                    .selected_ids
+                                    .iter()
+                                    .cloned()
+                                    .collect::<Vec<_>>();
+
+                                // Check if any have children
+                                let mut any_has_children = false;
+                                for id in &ids {
+                                    if let Some(e) = tab.model.find_by_id(*id) {
+                                        if !e.children.is_empty() {
+                                            any_has_children = true;
+                                            break;
+                                        }
+                                    }
+                                }
+
+                                if any_has_children {
+                                    pending_layer_change =
+                                        Some(crate::viewmodel::PendingLayerChange {
+                                            entity_ids: ids,
+                                            new_layer_id: next_layer_id,
+                                        });
+                                } else {
+                                    for id in ids {
+                                        if let Some(e) = tab.model.find_by_id_mut(id) {
+                                            e.layer_id = next_layer_id;
+                                        }
+                                    }
+                                }
+                            }
+                        });
                         ui.add_space(10.0);
                         if ui
                             .button(
@@ -275,6 +404,9 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                     tab.model.remove_entities_by_ids(&ids);
                     tab.selection_manager.selected_ids.clear();
                 }
+            }
+            if let Some(change) = pending_layer_change {
+                vm.layer_change_prompt = Some(change);
             }
         });
 }
