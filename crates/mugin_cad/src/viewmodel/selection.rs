@@ -6,6 +6,7 @@ pub struct SelectionManager {
     pub selected_ids: HashSet<u64>,
     pub selection_rect_start: Option<Vector2>,
     pub selection_rect_current: Option<Vector2>,
+    pub last_interacted_id: Option<u64>,
 }
 
 impl SelectionManager {
@@ -14,6 +15,7 @@ impl SelectionManager {
             selected_ids: HashSet::new(),
             selection_rect_start: None,
             selection_rect_current: None,
+            last_interacted_id: None,
         }
     }
 
@@ -45,11 +47,13 @@ impl SelectionManager {
                     self.selected_ids.remove(&id);
                 } else {
                     self.selected_ids.insert(id);
+                    self.last_interacted_id = Some(id);
                 }
             } else {
                 // Single selection
                 self.selected_ids.clear();
                 self.selected_ids.insert(id);
+                self.last_interacted_id = Some(id);
             }
             format!("Selected {} items", self.selected_ids.len())
         } else {

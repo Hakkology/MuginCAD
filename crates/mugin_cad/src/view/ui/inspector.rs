@@ -125,6 +125,30 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                             tab.executor.process_input("rotate", &mut tab.model, &ids);
                         }
                     });
+
+                    // Scale Tool: Check if any selected item is a Column. If so, disable resizing.
+                    let can_scale = {
+                        let tab = vm.active_tab();
+                        tab.selection_manager.selected_ids.iter().all(|id| {
+                            if let Some(entity) = tab.model.find_by_id(*id) {
+                                !matches!(entity.shape, crate::model::Shape::Column(_))
+                            } else {
+                                true
+                            }
+                        })
+                    };
+
+                    ui.add_enabled_ui(has_selection && can_scale, |ui| {
+                        if ui
+                            .button("⤢ Scale (R)")
+                            .on_hover_text("Scale selected entity (Not available for Columns)")
+                            .clicked()
+                        {
+                            let tab = vm.active_tab_mut();
+                            let ids = tab.selection_manager.selected_ids.clone();
+                            tab.executor.process_input("scale", &mut tab.model, &ids);
+                        }
+                    });
                 });
 
                 if vm.active_tab().selection_manager.selected_ids.is_empty() {

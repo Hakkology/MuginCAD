@@ -137,6 +137,22 @@ impl CommandExecutor {
         model: &mut CadModel,
         selected_ids: &HashSet<u64>,
     ) -> bool {
+        // SPECIAL CASE: Block Scale command for Columns
+        if name == "scale" || name == "r" {
+            let has_column = selected_ids.iter().any(|id| {
+                if let Some(entity) = model.find_by_id(*id) {
+                    matches!(entity.shape, crate::model::Shape::Column(_))
+                } else {
+                    false
+                }
+            });
+
+            if has_column {
+                self.status_message = "Cannot scale Columns. Edit properties instead.".to_string();
+                return false;
+            }
+        }
+
         if let Some(mut cmd) = self.registry.create(name) {
             // Check if command can execute in current context
             let ctx = CommandContext {

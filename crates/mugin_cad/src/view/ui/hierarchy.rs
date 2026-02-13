@@ -71,15 +71,51 @@ pub fn render_hierarchy(ui: &mut egui::Ui, vm: &mut CadViewModel) {
     if let Some(clicked_id) = response.clicked_id {
         let tab = &mut vm.tabs[vm.active_tab_index];
         let modifiers = ui.input(|i| i.modifiers);
-        if modifiers.shift || modifiers.ctrl || modifiers.command {
+
+        if modifiers.shift {
+            let last_id = tab.selection_manager.last_interacted_id;
+            if let Some(start_id) = last_id {
+                // We need to find the range between start_id and clicked_id in the *visible* list.
+                // Since we don't have easy access to the flattened visible list here without re-traversing,
+                // we will traverse `nodes` and collect visible IDs in order.
+                // Note: This ignores collapsed children, which is correct for a tree view selection.
+
+                let visible_ids = flatten_visible_nodes(&nodes, ui);
+
+                if let (Some(start_idx), Some(end_idx)) = (
+                    visible_ids.iter().position(|&id| id == start_id),
+                    visible_ids.iter().position(|&id| id == clicked_id),
+                ) {
+                    let (min, max) = (start_idx.min(end_idx), start_idx.max(end_idx));
+
+                    if !modifiers.ctrl && !modifiers.command {
+                        tab.selection_manager.selected_ids.clear();
+                    }
+
+                    for i in min..=max {
+                        tab.selection_manager.selected_ids.insert(visible_ids[i]);
+                    }
+
+                    // Do not update last_interacted_id on shift-click generally, to allow extending range from same anchor?
+                    // Actually, let's keep anchor same.
+                }
+            } else {
+                // No previous interaction, treat as single select
+                tab.selection_manager.selected_ids.clear();
+                tab.selection_manager.selected_ids.insert(clicked_id);
+                tab.selection_manager.last_interacted_id = Some(clicked_id);
+            }
+        } else if modifiers.ctrl || modifiers.command {
             if tab.selection_manager.selected_ids.contains(&clicked_id) {
                 tab.selection_manager.selected_ids.remove(&clicked_id);
             } else {
                 tab.selection_manager.selected_ids.insert(clicked_id);
+                tab.selection_manager.last_interacted_id = Some(clicked_id);
             }
         } else {
             tab.selection_manager.selected_ids.clear();
             tab.selection_manager.selected_ids.insert(clicked_id);
+            tab.selection_manager.last_interacted_id = Some(clicked_id);
         }
     }
 
@@ -197,4 +233,26 @@ fn find_entity_mut(entities: &mut [Entity], id: u64) -> Option<&mut Entity> {
         }
     }
     None
+}
+
+/// Helper to flatten visible nodes for range selection.
+/// Respects the collapsed state from `egui` memory.
+fn flatten_visible_nodes(nodes: &[TreeNode], ui: &egui::Ui) -> Vec<u64> {
+    let mut visible = Vec::new();
+    for node in nodes {
+        visible.push(node.id);
+
+        let col_id = ui.make_persistent_id(format!("col_{}", node.id));
+        let is_open = egui::collapsing_header::CollapsingState::load_with_default_open(
+            ui.ctx(),
+            col_id,
+            true,
+        )
+        .is_open();
+
+        if is_open && !node.children.is_empty() {
+            visible.extend(flatten_visible_nodes(&node.children, ui));
+        }
+    }
+    visible
 }
