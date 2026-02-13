@@ -50,7 +50,8 @@ pub struct CadViewModel {
     pub tab_renaming_index: Option<usize>,
     pub hierarchy_renaming: bool,
     pub inspector_renaming: bool,
-    pub structure_manager_open: bool,
+    pub materials_manager_open: bool,
+    pub column_manager_open: bool,
     #[allow(dead_code)]
     pub clipboard: Clipboard,
     pub export_window: crate::view::ui::export::window::ExportWindow,
@@ -71,7 +72,8 @@ impl CadViewModel {
             tab_renaming_index: None,
             hierarchy_renaming: false,
             inspector_renaming: false,
-            structure_manager_open: false,
+            materials_manager_open: false,
+            column_manager_open: false,
             clipboard: Clipboard::default(),
             export_window: crate::view::ui::export::window::ExportWindow::default(),
         }

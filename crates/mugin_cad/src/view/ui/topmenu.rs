@@ -40,8 +40,13 @@ pub fn render_top_menu(ctx: &egui::Context, vm: &mut CadViewModel) {
             // ── Structure Menu ───────────────────────────────
             ui.menu_button("Structure", |ui| {
                 ui.set_min_width(120.0);
-                if toolbar::menu_action(ui, "Structure Manager") {
-                    vm.structure_manager_open = true;
+                if toolbar::menu_action(ui, "Materials...") {
+                    vm.materials_manager_open = true;
+                    ui.close_menu();
+                }
+                if toolbar::menu_action(ui, "Column Types...") {
+                    vm.column_manager_open = true;
+                    ui.close_menu();
                 }
             });
 

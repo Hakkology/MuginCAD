@@ -45,7 +45,8 @@ pub fn render_terminal(ui: &mut egui::Ui, vm: &mut CadViewModel) {
             let text_edit_elsewhere = vm.tab_renaming_index.is_some()
                 || vm.hierarchy_renaming
                 || vm.inspector_renaming
-                || vm.structure_manager_open;
+                || vm.materials_manager_open
+                || vm.column_manager_open;
 
             // Only request focus if we don't have it and nothing else needs it
             if !text_edit_elsewhere {

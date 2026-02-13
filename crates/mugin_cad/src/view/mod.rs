@@ -44,9 +44,14 @@ impl eframe::App for CadApp {
             settings::render_settings_window(ctx, &mut self.view_model);
         }
 
-        // Render Structure Manager if open
-        if self.view_model.structure_manager_open {
-            ui::structure::manager::render_structure_manager(ctx, &mut self.view_model);
+        // Render Materials Manager
+        if self.view_model.materials_manager_open {
+            ui::structure::materials::render_materials_manager(ctx, &mut self.view_model);
+        }
+
+        // Render Column Manager
+        if self.view_model.column_manager_open {
+            ui::structure::columns::render_column_manager(ctx, &mut self.view_model);
         }
 
         // Render Export Window if open

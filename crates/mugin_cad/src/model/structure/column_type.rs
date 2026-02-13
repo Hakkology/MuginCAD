@@ -15,19 +15,21 @@ pub struct ColumnType {
     // --- Materials ---
     /// Reference to Concrete Material (e.g., C25)
     pub concrete_material_id: u64,
-    /// Reference to Steel Material for Rebar (e.g., S420)
-    pub rebar_material_id: u64,
+    /// Reference to Steel Material for Longitudinal Rebar (e.g., S420)
+    pub long_rebar_material_id: u64,
+    /// Reference to Steel Material for Ties (e.g., S420)
+    pub tie_material_id: u64,
 
     // --- Longitudinal Reinforcement (Boyuna Donatı) ---
     pub long_bar_diameter: f32, // mm (e.g., 14.0)
     pub long_bars_x: u32,       // Count along width face (e.g., 3 means 3 bars on top/bottom)
     pub long_bars_y: u32, // Count along depth face (e.g., 2 means 2 bars on left/right between corners)
 
-    // --- Transverse Reinforcement (Etriye) ---
-    pub stirrup_diameter: f32,     // mm (e.g., 8.0)
-    pub stirrup_spacing_supp: f32, // cm (Sklaştırma bölgesi)
-    pub stirrup_spacing_mid: f32,  // cm (Orta bölge)
-    pub has_ties: bool,            // Çiroz var mı?
+    // --- Transverse Reinforcement (Ties / Etriye) ---
+    pub tie_diameter: f32,     // mm (e.g., 8.0)
+    pub tie_spacing_supp: f32, // cm (Squashing / Sıklaştırma bölgesi)
+    pub tie_spacing_mid: f32,  // cm (Middle / Orta bölge)
+    pub has_ties: bool,        // Ties enabled?
 
     /// Optional override color
     pub color_override: Option<(u8, u8, u8, u8)>,
@@ -40,7 +42,8 @@ impl ColumnType {
         width: f32,
         depth: f32,
         concrete_material_id: u64,
-        rebar_material_id: u64,
+        long_rebar_material_id: u64,
+        tie_material_id: u64,
     ) -> Self {
         Self {
             id,
@@ -48,13 +51,14 @@ impl ColumnType {
             width,
             depth,
             concrete_material_id,
-            rebar_material_id,
+            long_rebar_material_id,
+            tie_material_id,
             long_bar_diameter: 14.0,
             long_bars_x: 3,
             long_bars_y: 3,
-            stirrup_diameter: 8.0,
-            stirrup_spacing_supp: 10.0,
-            stirrup_spacing_mid: 20.0,
+            tie_diameter: 8.0,
+            tie_spacing_supp: 10.0,
+            tie_spacing_mid: 20.0,
             has_ties: true,
             color_override: None,
         }
