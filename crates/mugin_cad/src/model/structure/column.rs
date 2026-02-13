@@ -2,6 +2,16 @@ use crate::model::Vector2;
 use crate::model::shapes::Geometry;
 use serde::{Deserialize, Serialize};
 
+/// Anchor point for the column instance.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ColumnAnchor {
+    Center,
+    TopLeft,
+    TopRight,
+    BottomRight,
+    BottomLeft,
+}
+
 /// Data defining a structural column.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ColumnData {
@@ -17,6 +27,13 @@ pub struct ColumnData {
     pub column_type_id: u64,
     /// Text label displayed on the column (e.g., "S1").
     pub label: String,
+    /// The geometric anchor used for placement and resizing.
+    #[serde(default = "default_anchor")]
+    pub anchor: ColumnAnchor,
+}
+
+fn default_anchor() -> ColumnAnchor {
+    ColumnAnchor::Center
 }
 
 impl ColumnData {
@@ -26,6 +43,7 @@ impl ColumnData {
         height: f32,
         column_type_id: u64,
         label: String,
+        anchor: ColumnAnchor,
     ) -> Self {
         Self {
             center,
@@ -34,6 +52,7 @@ impl ColumnData {
             rotation: 0.0,
             column_type_id,
             label,
+            anchor,
         }
     }
 

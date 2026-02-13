@@ -108,8 +108,22 @@ impl Command for CmdPlaceColumn {
 
         let final_center = pos - rotated_anchor;
 
-        let mut col_data =
-            ColumnData::new(final_center, width, depth, type_id, col_type.name.clone());
+        let anchor_enum = match self.current_anchor_index {
+            1 => crate::model::structure::column::ColumnAnchor::TopLeft,
+            2 => crate::model::structure::column::ColumnAnchor::TopRight,
+            3 => crate::model::structure::column::ColumnAnchor::BottomRight,
+            4 => crate::model::structure::column::ColumnAnchor::BottomLeft,
+            _ => crate::model::structure::column::ColumnAnchor::Center,
+        };
+
+        let mut col_data = ColumnData::new(
+            final_center,
+            width,
+            depth,
+            type_id,
+            col_type.name.clone(),
+            anchor_enum,
+        );
         col_data.rotation = self.rotation;
 
         ctx.model.add_entity(Entity::column(col_data));

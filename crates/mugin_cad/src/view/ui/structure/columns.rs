@@ -16,106 +16,188 @@ pub fn render_column_manager(ctx: &egui::Context, vm: &mut CadViewModel) {
 }
 
 fn render_column_ui(ctx: &egui::Context, ui: &mut egui::Ui, vm: &mut CadViewModel) {
-    let tab = vm.active_tab_mut();
-    let definitions = &mut tab.model.definitions;
+    let mut resize_events = Vec::new();
 
-    // Collect material options once for the frame
-    let mut concrete_options = Vec::new();
-    let mut steel_options = Vec::new();
-    for (mid, m) in &definitions.materials {
-        match m.properties {
-            MaterialProperties::Concrete { .. } => concrete_options.push((*mid, m.name.clone())),
-            MaterialProperties::Steel { .. } => steel_options.push((*mid, m.name.clone())),
-            _ => {}
-        }
-    }
-    // Sort for consistent order
-    concrete_options.sort_by(|a, b| a.1.cmp(&b.1));
-    steel_options.sort_by(|a, b| a.1.cmp(&b.1));
+    {
+        let tab = vm.active_tab_mut();
+        let definitions = &mut tab.model.definitions;
 
-    // Popup State Handling
-    let create_popup_id = egui::Id::new("show_create_col_popup");
-    let mut show_create = ui.data(|d| d.get_temp::<bool>(create_popup_id).unwrap_or(false));
-
-    ui.horizontal(|ui| {
-        if ui.button("➕ New Column").clicked() {
-            show_create = true;
-            ui.data_mut(|d| d.insert_temp(create_popup_id, true));
-
-            // Default defaults
-            let mut def_conc = 0;
-            let mut def_steel = 0;
-
-            if let Some(first) = concrete_options.first() {
-                def_conc = first.0;
-            }
-            if let Some(first) = steel_options.first() {
-                def_steel = first.0;
-            }
-
-            // Use same steel for both defaults initially
-            let mut new_col =
-                ColumnType::new(0, "New Column", 30.0, 50.0, def_conc, def_steel, def_steel);
-
-            ui.data_mut(|d| d.insert_temp(egui::Id::new("new_col_state"), new_col));
-        }
-    });
-    ui.separator();
-
-    // Main Content: Card List
-    // We iterate over keys to avoid borrowing issues
-    let mut col_ids: Vec<u64> = definitions.column_types.keys().cloned().collect();
-    col_ids.sort();
-
-    egui::ScrollArea::vertical().show(ui, |ui| {
-        for id in col_ids {
-            if let Some(col) = definitions.column_types.get_mut(&id) {
-                render_column_card(ui, col, &concrete_options, &steel_options);
-                ui.add_space(8.0);
+        // Collect material options once for the frame
+        let mut concrete_options = Vec::new();
+        let mut steel_options = Vec::new();
+        for (mid, m) in &definitions.materials {
+            match m.properties {
+                MaterialProperties::Concrete { .. } => {
+                    concrete_options.push((*mid, m.name.clone()))
+                }
+                MaterialProperties::Steel { .. } => steel_options.push((*mid, m.name.clone())),
+                _ => {}
             }
         }
-    });
+        // Sort for consistent order
+        concrete_options.sort_by(|a, b| a.1.cmp(&b.1));
+        steel_options.sort_by(|a, b| a.1.cmp(&b.1));
 
-    // Handle Create Popup
-    let mut should_close = false;
-    let mut final_col = None;
+        // Popup State Handling
+        let create_popup_id = egui::Id::new("show_create_col_popup");
+        let mut show_create = ui.data(|d| d.get_temp::<bool>(create_popup_id).unwrap_or(false));
 
-    let closed = window::modal("Create New Column", ctx, &mut show_create, |ui| {
-        let new_col_id = egui::Id::new("new_col_state");
-        let mut new_col = ui
-            .data(|d| d.get_temp::<ColumnType>(new_col_id))
-            .unwrap_or_else(|| ColumnType::new(0, "Err", 30.0, 30.0, 0, 0, 0));
-
-        ui.set_min_width(820.0); // Fits inside 850 window
-        ui.heading("Define New Column");
-        ui.separator();
-
-        render_details_form(ui, &mut new_col, &concrete_options, &steel_options, true);
-
-        ui.data_mut(|d| d.insert_temp(new_col_id, new_col.clone()));
-
-        ui.separator();
         ui.horizontal(|ui| {
-            if ui.button("Create").clicked() {
-                final_col = Some(new_col);
-                return true;
-            }
-            if ui.button("Cancel").clicked() {
-                return true;
-            }
-            false
-        })
-        .inner
-    });
+            if ui.button("➕ New Column").clicked() {
+                show_create = true;
+                ui.data_mut(|d| d.insert_temp(create_popup_id, true));
 
-    if closed {
-        should_close = true;
+                // Default defaults
+                let mut def_conc = 0;
+                let mut def_steel = 0;
+
+                if let Some(first) = concrete_options.first() {
+                    def_conc = first.0;
+                }
+                if let Some(first) = steel_options.first() {
+                    def_steel = first.0;
+                }
+
+                // Use same steel for both defaults initially
+                let mut new_col =
+                    ColumnType::new(0, "New Column", 30.0, 50.0, def_conc, def_steel, def_steel);
+
+                ui.data_mut(|d| d.insert_temp(egui::Id::new("new_col_state"), new_col));
+            }
+        });
+        ui.separator();
+
+        // Main Content: Card List
+        let mut col_ids: Vec<u64> = definitions.column_types.keys().cloned().collect();
+        col_ids.sort();
+
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            for id in col_ids {
+                if let Some(col) = definitions.column_types.get_mut(&id) {
+                    let old_w = col.width;
+                    let old_d = col.depth;
+
+                    render_column_card(ui, col, &concrete_options, &steel_options);
+
+                    if (col.width - old_w).abs() > 0.001 || (col.depth - old_d).abs() > 0.001 {
+                        resize_events.push((id, old_w, old_d, col.width, col.depth));
+                    }
+
+                    ui.add_space(8.0);
+                }
+            }
+        });
+
+        // Handle Create Popup
+        let mut should_close = false;
+        let mut final_col = None;
+
+        let closed = window::modal("Create New Column", ctx, &mut show_create, |ui| {
+            let new_col_id = egui::Id::new("new_col_state");
+            let mut new_col = ui
+                .data(|d| d.get_temp::<ColumnType>(new_col_id))
+                .unwrap_or_else(|| ColumnType::new(0, "Err", 30.0, 30.0, 0, 0, 0));
+
+            ui.set_min_width(820.0); // Fits inside 850 window
+            ui.heading("Define New Column");
+            ui.separator();
+
+            render_details_form(ui, &mut new_col, &concrete_options, &steel_options, true);
+
+            ui.data_mut(|d| d.insert_temp(new_col_id, new_col.clone()));
+
+            ui.separator();
+            ui.horizontal(|ui| {
+                if ui.button("Create").clicked() {
+                    final_col = Some(new_col);
+                    return true;
+                }
+                if ui.button("Cancel").clicked() {
+                    return true;
+                }
+                false
+            })
+            .inner
+        });
+
+        if closed {
+            should_close = true;
+        }
+
+        if should_close {
+            ui.data_mut(|d| d.insert_temp(create_popup_id, false));
+            if let Some(col) = final_col {
+                definitions.add_column_type(col);
+            }
+        }
+    } // End of borrow scope for tab/definitions
+
+    // Process Resizes
+    if !resize_events.is_empty() {
+        let tab = vm.active_tab_mut();
+        for (id, old_w, old_d, new_w, new_d) in resize_events {
+            apply_column_resize(&mut tab.model, id, old_w, old_d, new_w, new_d);
+        }
     }
+}
 
-    if should_close {
-        ui.data_mut(|d| d.insert_temp(create_popup_id, false));
-        if let Some(col) = final_col {
-            definitions.add_column_type(col);
+fn apply_column_resize(
+    model: &mut crate::model::CadModel,
+    type_id: u64,
+    old_w: f32,
+    old_d: f32,
+    new_w: f32,
+    new_d: f32,
+) {
+    // Iterate over all entities, find columns with this type, and update them
+    use crate::model::Shape;
+    use crate::model::structure::column::ColumnAnchor;
+
+    for entity in model.entities.iter_mut() {
+        if let Shape::Column(col) = &mut entity.shape {
+            if col.column_type_id == type_id {
+                // Update dimensions
+                col.width = new_w;
+                col.height = new_d; // col.height corresponds to depth in Type
+
+                // Update Position based on Anchor
+                // Delta size
+                // We need to move the CENTER to keep the ANCHOR fixed.
+
+                let (sin, cos) = col.rotation.sin_cos();
+                let rotate =
+                    |x: f32, y: f32| -> (f32, f32) { (x * cos - y * sin, x * sin + y * cos) };
+
+                let get_local_anchor = |w: f32, h: f32, anchor: ColumnAnchor| -> (f32, f32) {
+                    let hw = w / 2.0;
+                    let hh = h / 2.0;
+                    match anchor {
+                        ColumnAnchor::Center => (0.0, 0.0),
+                        ColumnAnchor::TopLeft => (-hw, -hh),
+                        ColumnAnchor::TopRight => (hw, -hh),
+                        ColumnAnchor::BottomRight => (hw, hh),
+                        ColumnAnchor::BottomLeft => (-hw, hh),
+                    }
+                };
+
+                let (ax_old, ay_old) = get_local_anchor(old_w, old_d, col.anchor);
+                let (ax_new, ay_new) = get_local_anchor(new_w, new_d, col.anchor);
+
+                // The local anchor point coordinates changed because width/height changed.
+                // We want the GLOBAL position of the anchor to be the same.
+                // Global_Pos = Center + Rotated(Local_Pos)
+                // Center_Old + Rot(Local_Old) = Center_New + Rot(Local_New)
+                // Center_New = Center_Old + Rot(Local_Old) - Rot(Local_New)
+                // Center_New = Center_Old + Rot(Local_Old - Local_New)
+
+                let diff_x = ax_old - ax_new;
+                let diff_y = ay_old - ay_new;
+
+                let (dx_rot, dy_rot) = rotate(diff_x, diff_y);
+
+                col.center.x += dx_rot;
+                col.center.y += dy_rot;
+            }
         }
     }
 }
@@ -197,18 +279,30 @@ fn render_details_form(
                 ui,
                 |ui| {
                     ui.label(egui::RichText::new("Geometry:").strong());
-                    ui.add(
-                        egui::DragValue::new(&mut col.width)
-                            .speed(1.0)
-                            .suffix("cm")
-                            .prefix("Width: "),
-                    );
-                    ui.add(
-                        egui::DragValue::new(&mut col.depth)
-                            .speed(1.0)
-                            .suffix("cm")
-                            .prefix("Depth: "),
-                    );
+
+                    if ui
+                        .add(
+                            egui::DragValue::new(&mut col.width)
+                                .speed(1.0)
+                                .suffix("cm")
+                                .prefix("Width: "),
+                        )
+                        .changed()
+                    {
+                        // We rely on the parent checking for changes by comparing values before/after
+                    }
+
+                    if ui
+                        .add(
+                            egui::DragValue::new(&mut col.depth)
+                                .speed(1.0)
+                                .suffix("cm")
+                                .prefix("Depth: "),
+                        )
+                        .changed()
+                    {
+                        // We rely on the parent checking for changes by comparing values before/after
+                    }
                 },
                 |ui| {
                     let cur_conc = concrete_options
