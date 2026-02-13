@@ -131,6 +131,18 @@ pub fn collapsible_section(ui: &mut egui::Ui, title: &str, body: impl FnOnce(&mu
     });
 }
 
+// ─── Text Input ─────────────────────────────────────────────────────────
+
+/// Renders a labeled text input field.
+/// Returns the `egui::Response` to allow for focus tracking.
+pub fn text_input(ui: &mut egui::Ui, label: &str, value: &mut String) -> egui::Response {
+    ui.horizontal(|ui| {
+        ui.label(label);
+        ui.text_edit_singleline(value)
+    })
+    .inner
+}
+
 // ─── Checkbox ────────────────────────────────────────────────────────────
 
 /// Renders a labeled checkbox.

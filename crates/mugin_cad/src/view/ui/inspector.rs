@@ -126,7 +126,6 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                         }
                     });
 
-                    // Scale Tool: Check if any selected item is a Column. If so, disable resizing.
                     let can_scale = {
                         let tab = vm.active_tab();
                         tab.selection_manager.selected_ids.iter().all(|id| {
@@ -188,14 +187,11 @@ pub fn render_inspector(ui: &mut egui::Ui, vm: &mut CadViewModel) {
                     let definitions = tab.model.definitions.clone();
 
                     if let Some(entity) = tab.model.find_by_id_mut(id) {
-                        // Entity name (editable)
-                        ui.horizontal(|ui| {
-                            ui.label("Name:");
-                            let response = ui.text_edit_singleline(&mut entity.name);
-                            if response.has_focus() || response.clicked() {
-                                is_renaming = true;
-                            }
-                        });
+                        // Entity name
+                        let response = properties::text_input(ui, "Name:", &mut entity.name);
+                        if response.has_focus() || response.clicked() {
+                            is_renaming = true;
+                        }
 
                         // Layer Selection
                         ui.horizontal(|ui| {
@@ -458,10 +454,7 @@ fn inspect_text(ui: &mut egui::Ui, text: &mut TextAnnotation) {
     properties::point2(ui, "Position", &mut text.position.x, &mut text.position.y);
     ui.add_space(5.0);
 
-    ui.horizontal(|ui| {
-        ui.label("Text:");
-        ui.text_edit_singleline(&mut text.text);
-    });
+    properties::text_input(ui, "Text:", &mut text.text);
 
     properties::float_range(ui, "Font Size:", &mut text.style.font_size, 0.5, 6.0..=72.0);
     properties::angle_degrees(ui, "Rotation:", &mut text.rotation);
@@ -477,10 +470,7 @@ fn inspect_column(
 
     // --- Identity ---
     properties::section(ui, "Identity", |ui| {
-        ui.horizontal(|ui| {
-            ui.label("Label:");
-            ui.text_edit_singleline(&mut col.label);
-        });
+        properties::text_input(ui, "Label:", &mut col.label);
 
         let type_name = definitions
             .get_column_type(col.column_type_id)

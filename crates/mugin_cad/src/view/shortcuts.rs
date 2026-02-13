@@ -14,7 +14,7 @@ pub fn handle(ctx: &egui::Context, vm: &mut CadViewModel) {
         return;
     }
 
-    // Escape — cancel active command
+    // Escape — cancel active command, clear selection, or clear input
     if ctx.input(|i| i.key_pressed(egui::Key::Escape)) {
         if !vm.command_input.is_empty() {
             vm.command_input.clear();

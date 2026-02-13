@@ -66,20 +66,10 @@ impl LayerManager {
         self.layers.get(&id)
     }
 
-    pub fn get_layer_mut(&mut self, id: u64) -> Option<&mut Layer> {
-        self.layers.get_mut(&id)
-    }
-
     pub fn set_active_layer(&mut self, id: u64) {
         if self.layers.contains_key(&id) {
             self.active_layer_id = id;
         }
-    }
-
-    pub fn active_layer(&self) -> &Layer {
-        self.layers
-            .get(&self.active_layer_id)
-            .expect("Active layer should always exist")
     }
 
     /// Get sorted list of layers (by ID for now, or alphabetical)
