@@ -21,7 +21,6 @@ pub use manipulate::copy;
 pub use manipulate::r#move;
 pub use manipulate::offset;
 pub use manipulate::rotate;
-pub use manipulate::scale;
 pub use manipulate::trim;
 
 pub use utility::distance;

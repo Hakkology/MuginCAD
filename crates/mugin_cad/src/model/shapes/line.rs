@@ -99,10 +99,6 @@ impl Geometry for Line {
         self.hit_test_label(pos, tolerance)
     }
 
-    fn center(&self) -> Vector2 {
-        self.midpoint()
-    }
-
     fn bounding_box(&self) -> (Vector2, Vector2) {
         (
             Vector2::new(self.start.x.min(self.end.x), self.start.y.min(self.end.y)),
@@ -112,37 +108,6 @@ impl Geometry for Line {
 
     fn as_polyline(&self) -> Vec<Vector2> {
         vec![self.start, self.end]
-    }
-
-    fn translate(&mut self, delta: Vector2) {
-        self.start = self.start + delta;
-        self.end = self.end + delta;
-    }
-
-    fn rotate(&mut self, pivot: Vector2, angle: f32) {
-        let cos_a = angle.cos();
-        let sin_a = angle.sin();
-        let rotate_point = |p: Vector2| -> Vector2 {
-            let dx = p.x - pivot.x;
-            let dy = p.y - pivot.y;
-            Vector2::new(
-                pivot.x + dx * cos_a - dy * sin_a,
-                pivot.y + dx * sin_a + dy * cos_a,
-            )
-        };
-        self.start = rotate_point(self.start);
-        self.end = rotate_point(self.end);
-    }
-
-    fn scale(&mut self, base: Vector2, factor: f32) {
-        let scale_point = |p: Vector2| -> Vector2 {
-            Vector2::new(
-                base.x + (p.x - base.x) * factor,
-                base.y + (p.y - base.y) * factor,
-            )
-        };
-        self.start = scale_point(self.start);
-        self.end = scale_point(self.end);
     }
 
     fn is_closed(&self) -> bool {

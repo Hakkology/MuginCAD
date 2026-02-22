@@ -127,10 +127,6 @@ impl Geometry for Arc {
         self.angle_in_range(angle)
     }
 
-    fn center(&self) -> Vector2 {
-        self.center
-    }
-
     fn bounding_box(&self) -> (Vector2, Vector2) {
         // Conservative bbox (entire circle bbox)
         // Calculating exact arc bbox is complex, this is safe enough for now.
@@ -157,30 +153,6 @@ impl Geometry for Arc {
                 )
             })
             .collect()
-    }
-
-    fn translate(&mut self, delta: Vector2) {
-        self.center = self.center + delta;
-    }
-
-    fn rotate(&mut self, pivot: Vector2, angle: f32) {
-        let cos_a = angle.cos();
-        let sin_a = angle.sin();
-        let dx = self.center.x - pivot.x;
-        let dy = self.center.y - pivot.y;
-        self.center = Vector2::new(
-            pivot.x + dx * cos_a - dy * sin_a,
-            pivot.y + dx * sin_a + dy * cos_a,
-        );
-        self.start_angle += angle;
-        self.end_angle += angle;
-    }
-
-    fn scale(&mut self, base: Vector2, factor: f32) {
-        let dx = self.center.x - base.x;
-        let dy = self.center.y - base.y;
-        self.center = Vector2::new(base.x + dx * factor, base.y + dy * factor);
-        self.radius *= factor;
     }
 
     fn is_closed(&self) -> bool {

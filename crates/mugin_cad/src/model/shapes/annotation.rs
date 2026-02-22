@@ -157,10 +157,6 @@ impl Geometry for TextAnnotation {
         self.hit_test_impl(pos, tolerance)
     }
 
-    fn center(&self) -> Vector2 {
-        self.position
-    }
-
     fn bounding_box(&self) -> (Vector2, Vector2) {
         // Approximate bbox
         (self.position, self.position)
@@ -168,46 +164,6 @@ impl Geometry for TextAnnotation {
 
     fn as_polyline(&self) -> Vec<Vector2> {
         vec![self.position]
-    }
-
-    fn translate(&mut self, delta: Vector2) {
-        self.position = self.position + delta;
-        for pt in &mut self.anchor_points {
-            *pt = *pt + delta;
-        }
-    }
-
-    fn rotate(&mut self, pivot: Vector2, angle: f32) {
-        let cos_a = angle.cos();
-        let sin_a = angle.sin();
-        let rotate_point = |p: Vector2| -> Vector2 {
-            let dx = p.x - pivot.x;
-            let dy = p.y - pivot.y;
-            Vector2::new(
-                pivot.x + dx * cos_a - dy * sin_a,
-                pivot.y + dx * sin_a + dy * cos_a,
-            )
-        };
-
-        self.position = rotate_point(self.position);
-        for pt in &mut self.anchor_points {
-            *pt = rotate_point(*pt);
-        }
-    }
-
-    fn scale(&mut self, base: Vector2, factor: f32) {
-        let scale_point = |p: Vector2| -> Vector2 {
-            Vector2::new(
-                base.x + (p.x - base.x) * factor,
-                base.y + (p.y - base.y) * factor,
-            )
-        };
-
-        self.position = scale_point(self.position);
-        for pt in &mut self.anchor_points {
-            *pt = scale_point(*pt);
-        }
-        self.style.font_size *= factor;
     }
 
     fn is_closed(&self) -> bool {

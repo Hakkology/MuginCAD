@@ -110,10 +110,6 @@ impl Geometry for ColumnData {
         on_edge_x || on_edge_y
     }
 
-    fn center(&self) -> Vector2 {
-        self.center
-    }
-
     fn bounding_box(&self) -> (Vector2, Vector2) {
         let corners = self.get_corners();
         let mut min = Vector2::new(f32::MAX, f32::MAX);
@@ -131,37 +127,6 @@ impl Geometry for ColumnData {
     fn as_polyline(&self) -> Vec<Vector2> {
         let corners = self.get_corners();
         vec![corners[0], corners[1], corners[2], corners[3], corners[0]]
-    }
-
-    fn translate(&mut self, delta: Vector2) {
-        self.center = self.center + delta;
-    }
-
-    fn rotate(&mut self, pivot: Vector2, angle: f32) {
-        // Rotate center around pivot
-        let cos_a = angle.cos();
-        let sin_a = angle.sin();
-        let dx = self.center.x - pivot.x;
-        let dy = self.center.y - pivot.y;
-
-        self.center = Vector2::new(
-            pivot.x + dx * cos_a - dy * sin_a,
-            pivot.y + dx * sin_a + dy * cos_a,
-        );
-
-        // Add rotation
-        self.rotation += angle;
-    }
-
-    fn scale(&mut self, base: Vector2, factor: f32) {
-        // Scale position
-        let dx = self.center.x - base.x;
-        let dy = self.center.y - base.y;
-        self.center = Vector2::new(base.x + dx * factor, base.y + dy * factor);
-
-        // Scale dimensions
-        self.width *= factor;
-        self.height *= factor;
     }
 
     fn is_closed(&self) -> bool {

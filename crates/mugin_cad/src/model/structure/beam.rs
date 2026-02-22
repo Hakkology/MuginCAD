@@ -50,30 +50,6 @@ impl BeamData {
     pub fn length(&self) -> f32 {
         (self.end - self.start).length()
     }
-
-    pub fn angle(&self) -> f32 {
-        let diff = self.end - self.start;
-        diff.y.atan2(diff.x)
-    }
-
-    pub fn get_corners(&self, width: f32) -> [Vector2; 4] {
-        let dir = (self.end - self.start).normalized();
-        let perp = Vector2::new(-dir.y, dir.x);
-
-        let offset = match self.anchor {
-            BeamAnchor::Center => 0.0,
-            BeamAnchor::Top => width / 2.0,
-            BeamAnchor::Bottom => -width / 2.0,
-        };
-
-        let half_w = width / 2.0;
-        let p1 = self.start + perp * (offset + half_w);
-        let p2 = self.end + perp * (offset + half_w);
-        let p3 = self.end + perp * (offset - half_w);
-        let p4 = self.start + perp * (offset - half_w);
-
-        [p1, p2, p3, p4]
-    }
 }
 
 impl Geometry for BeamData {
@@ -92,10 +68,6 @@ impl Geometry for BeamData {
         (pos - projection).length() < tolerance + 15.0 // Buffer for beam thickness
     }
 
-    fn center(&self) -> Vector2 {
-        (self.start + self.end) * 0.5
-    }
-
     fn bounding_box(&self) -> (Vector2, Vector2) {
         let min_x = self.start.x.min(self.end.x) - 20.0;
         let min_y = self.start.y.min(self.end.y) - 20.0;
@@ -106,31 +78,6 @@ impl Geometry for BeamData {
 
     fn as_polyline(&self) -> Vec<Vector2> {
         vec![self.start, self.end]
-    }
-
-    fn translate(&mut self, delta: Vector2) {
-        self.start = self.start + delta;
-        self.end = self.end + delta;
-    }
-
-    fn rotate(&mut self, pivot: Vector2, angle: f32) {
-        let rot = |p: Vector2| {
-            let cos_a = angle.cos();
-            let sin_a = angle.sin();
-            let dx = p.x - pivot.x;
-            let dy = p.y - pivot.y;
-            Vector2::new(
-                pivot.x + dx * cos_a - dy * sin_a,
-                pivot.y + dx * sin_a + dy * cos_a,
-            )
-        };
-        self.start = rot(self.start);
-        self.end = rot(self.end);
-    }
-
-    fn scale(&mut self, base: Vector2, factor: f32) {
-        self.start = base + (self.start - base) * factor;
-        self.end = base + (self.end - base) * factor;
     }
 
     fn is_closed(&self) -> bool {

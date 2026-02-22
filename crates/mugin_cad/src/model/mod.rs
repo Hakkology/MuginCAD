@@ -90,19 +90,6 @@ impl Geometry for Shape {
         }
     }
 
-    fn center(&self) -> Vector2 {
-        match self {
-            Shape::None => Vector2::new(0.0, 0.0), // Placeholder, Entity handles this
-            Shape::Line(s) => s.center(),
-            Shape::Circle(s) => s.center(),
-            Shape::Rectangle(s) => s.center(),
-            Shape::Arc(s) => s.center(),
-            Shape::Text(s) => s.center(),
-            Shape::Column(s) => s.center(),
-            Shape::Beam(s) => s.center(),
-        }
-    }
-
     fn bounding_box(&self) -> (Vector2, Vector2) {
         match self {
             Shape::None => (
@@ -129,45 +116,6 @@ impl Geometry for Shape {
             Shape::Text(s) => s.as_polyline(),
             Shape::Column(s) => s.as_polyline(),
             Shape::Beam(s) => s.as_polyline(),
-        }
-    }
-
-    fn translate(&mut self, delta: Vector2) {
-        match self {
-            Shape::None => {}
-            Shape::Line(s) => s.translate(delta),
-            Shape::Circle(s) => s.translate(delta),
-            Shape::Rectangle(s) => s.translate(delta),
-            Shape::Arc(s) => s.translate(delta),
-            Shape::Text(s) => s.translate(delta),
-            Shape::Column(s) => s.translate(delta),
-            Shape::Beam(s) => s.translate(delta),
-        }
-    }
-
-    fn rotate(&mut self, pivot: Vector2, angle: f32) {
-        match self {
-            Shape::None => {}
-            Shape::Line(s) => s.rotate(pivot, angle),
-            Shape::Circle(s) => s.rotate(pivot, angle),
-            Shape::Rectangle(s) => s.rotate(pivot, angle),
-            Shape::Arc(s) => s.rotate(pivot, angle),
-            Shape::Text(s) => s.rotate(pivot, angle),
-            Shape::Column(s) => s.rotate(pivot, angle),
-            Shape::Beam(s) => s.rotate(pivot, angle),
-        }
-    }
-
-    fn scale(&mut self, base: Vector2, factor: f32) {
-        match self {
-            Shape::None => {}
-            Shape::Line(s) => s.scale(base, factor),
-            Shape::Circle(s) => s.scale(base, factor),
-            Shape::Rectangle(s) => s.scale(base, factor),
-            Shape::Arc(s) => s.scale(base, factor),
-            Shape::Text(s) => s.scale(base, factor),
-            Shape::Column(s) => s.scale(base, factor),
-            Shape::Beam(s) => s.scale(base, factor),
         }
     }
 
@@ -304,14 +252,6 @@ impl Entity {
         self.children.iter().any(|c| c.hit_test(pos, tolerance))
     }
 
-    pub fn center(&self) -> Vector2 {
-        if matches!(self.shape, Shape::None) {
-            let (min, max) = self.bounding_box();
-            return Vector2::new((min.x + max.x) / 2.0, (min.y + max.y) / 2.0);
-        }
-        self.shape.center()
-    }
-
     // ── Transforms ──────────────────────────────────────────
 
     pub fn translate(&mut self, delta: Vector2) {
@@ -328,16 +268,6 @@ impl Entity {
         let rot_at_pivot = t1 * r * t2;
 
         self.local_transform = rot_at_pivot * self.local_transform;
-        self.set_dirty();
-    }
-
-    pub fn scale(&mut self, base: Vector2, factor: f32) {
-        let t1 = Affine2::from_translation(base.into());
-        let s = Affine2::from_scale(glam::vec2(factor, factor));
-        let t2 = Affine2::from_translation((-Vector2::from(base)).into());
-        let scale_at_base = t1 * s * t2;
-
-        self.local_transform = scale_at_base * self.local_transform;
         self.set_dirty();
     }
 

@@ -31,10 +31,6 @@ pub fn render_toolbar(ctx: &egui::Context, vm: &mut CadViewModel) {
                     let ids = tab.selection_manager.selected_ids.clone();
                     tab.executor.start_command("rotate", &mut tab.model, &ids);
                 }
-                if toolbar::tool_button(ui, "S", "Scale (R)", has_sel) {
-                    let ids = tab.selection_manager.selected_ids.clone();
-                    tab.executor.start_command("scale", &mut tab.model, &ids);
-                }
 
                 ui.add_space(4.0);
 

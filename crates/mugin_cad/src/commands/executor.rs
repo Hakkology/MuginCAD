@@ -8,7 +8,6 @@ use crate::commands::r#move::MoveCommand;
 use crate::commands::offset::OffsetCommand;
 use crate::commands::rectangle::RectangleCommand;
 use crate::commands::rotate::RotateCommand;
-use crate::commands::scale::ScaleCommand;
 use crate::commands::text::TextCommand;
 use crate::commands::trim::TrimCommand;
 use crate::commands::{Command, CommandContext, InputModifiers, InputResult, PointResult};
@@ -47,9 +46,6 @@ impl CommandRegistry {
 
         registry.register("rotate", || Box::new(RotateCommand::new()));
         registry.register("e", || Box::new(RotateCommand::new()));
-
-        registry.register("scale", || Box::new(ScaleCommand::new()));
-        registry.register("r", || Box::new(ScaleCommand::new()));
 
         // Register copy/cut commands
         registry.register("copy", || Box::new(CopyCommand::new()));
@@ -149,22 +145,6 @@ impl CommandExecutor {
         model: &mut CadModel,
         selected_ids: &HashSet<u64>,
     ) -> bool {
-        // SPECIAL CASE: Block Scale command for Columns
-        if name == "scale" || name == "r" {
-            let has_column = selected_ids.iter().any(|id| {
-                if let Some(entity) = model.find_by_id(*id) {
-                    matches!(entity.shape, crate::model::Shape::Column(_))
-                } else {
-                    false
-                }
-            });
-
-            if has_column {
-                self.status_message = "Cannot scale Columns. Edit properties instead.".to_string();
-                return false;
-            }
-        }
-
         if let Some(mut cmd) = self.registry.create(name) {
             let ctx = CommandContext {
                 model,
