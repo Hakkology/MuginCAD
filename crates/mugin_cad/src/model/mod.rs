@@ -24,6 +24,7 @@ pub use system::project;
 pub use tools::snap;
 pub use tools::undo;
 
+use glam::Affine2;
 use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -210,6 +211,13 @@ pub struct Entity {
     pub shape: Shape,
     pub layer_id: u64,
     pub children: Vec<Entity>,
+
+    /// Local transform relative to parent.
+    pub local_transform: Affine2,
+    /// Computed world transform.
+    pub world_transform: Affine2,
+    /// Whether the world transform needs recomputation.
+    pub is_dirty: bool,
 }
 
 impl Entity {
@@ -224,6 +232,9 @@ impl Entity {
             shape,
             layer_id: 0,
             children: Vec::new(),
+            local_transform: Affine2::IDENTITY,
+            world_transform: Affine2::IDENTITY,
+            is_dirty: true,
         }
     }
 
@@ -235,6 +246,9 @@ impl Entity {
             shape: Shape::None,
             layer_id: 0,
             children: Vec::new(),
+            local_transform: Affine2::IDENTITY,
+            world_transform: Affine2::IDENTITY,
+            is_dirty: true,
         }
     }
 
@@ -275,8 +289,15 @@ impl Entity {
     }
 
     pub fn hit_test(&self, pos: Vector2, tolerance: f32) -> bool {
+        // Convert world pos to local pos
+        let local_pos: Vector2 = self
+            .world_transform
+            .inverse()
+            .transform_point2(pos.into())
+            .into();
+
         // Check own shape
-        if self.shape.hit_test(pos, tolerance) {
+        if self.shape.hit_test(local_pos, tolerance) {
             return true;
         }
         // Check children
@@ -294,50 +315,80 @@ impl Entity {
     // ── Transforms ──────────────────────────────────────────
 
     pub fn translate(&mut self, delta: Vector2) {
-        self.shape.translate(delta);
-        for child in &mut self.children {
-            child.translate(delta);
-        }
+        let translation = Affine2::from_translation(delta.into());
+        self.local_transform = translation * self.local_transform;
+        self.set_dirty();
     }
 
     pub fn rotate(&mut self, pivot: Vector2, angle: f32) {
-        self.shape.rotate(pivot, angle);
-        for child in &mut self.children {
-            child.rotate(pivot, angle);
-        }
+        // To rotate around a pivot in local space: T(pivot) * R(angle) * T(-pivot)
+        let t1 = Affine2::from_translation(pivot.into());
+        let r = Affine2::from_angle(angle);
+        let t2 = Affine2::from_translation((-Vector2::from(pivot)).into());
+        let rot_at_pivot = t1 * r * t2;
+
+        self.local_transform = rot_at_pivot * self.local_transform;
+        self.set_dirty();
     }
 
     pub fn scale(&mut self, base: Vector2, factor: f32) {
-        self.shape.scale(base, factor);
-        for child in &mut self.children {
-            child.scale(base, factor);
-        }
+        let t1 = Affine2::from_translation(base.into());
+        let s = Affine2::from_scale(glam::vec2(factor, factor));
+        let t2 = Affine2::from_translation((-Vector2::from(base)).into());
+        let scale_at_base = t1 * s * t2;
+
+        self.local_transform = scale_at_base * self.local_transform;
+        self.set_dirty();
     }
 
     // ── Geometry helpers ────────────────────────────────────
 
     /// Returns the axis-aligned bounding box as `(min, max)`.
     pub fn bounding_box(&self) -> (Vector2, Vector2) {
-        let (mut min_b, mut max_b) = self.shape.bounding_box();
+        let (local_min, local_max) = self.shape.bounding_box();
+
+        let mut world_min = Vector2::new(f32::MAX, f32::MAX);
+        let mut world_max = Vector2::new(f32::MIN, f32::MIN);
+
+        // If shape is None, it won't affect the box expansion if we use MAX/MIN
+        if !matches!(self.shape, Shape::None) {
+            let corners = [
+                Vector2::new(local_min.x, local_min.y),
+                Vector2::new(local_max.x, local_min.y),
+                Vector2::new(local_min.x, local_max.y),
+                Vector2::new(local_max.x, local_max.y),
+            ];
+
+            for corner in corners {
+                let transformed: Vector2 =
+                    self.world_transform.transform_point2(corner.into()).into();
+                world_min.x = world_min.x.min(transformed.x);
+                world_min.y = world_min.y.min(transformed.y);
+                world_max.x = world_max.x.max(transformed.x);
+                world_max.y = world_max.y.max(transformed.y);
+            }
+        }
 
         for child in &self.children {
             let (c_min, c_max) = child.bounding_box();
-            min_b.x = min_b.x.min(c_min.x);
-            min_b.y = min_b.y.min(c_min.y);
-            max_b.x = max_b.x.max(c_max.x);
-            max_b.y = max_b.y.max(c_max.y);
+            world_min.x = world_min.x.min(c_min.x);
+            world_min.y = world_min.y.min(c_min.y);
+            world_max.x = world_max.x.max(c_max.x);
+            world_max.y = world_max.y.max(c_max.y);
         }
 
-        // Handle case where pure container has no children (reset to safe empty box or keep max/min inverted)
-        // If min_b > max_b (meaning initialized to MAX/MIN and never updated), we return that.
-        // It's up to caller to handle "infinite inverted box" or "default box".
-        // The old implementation returned (MAX, MIN) effectively.
-        (min_b, max_b)
+        (world_min, world_max)
     }
 
-    /// Convert the entity to a polyline (list of points).
+    /// Convert the entity to a polyline (list of points) in world space.
     pub fn as_polyline(&self) -> Vec<Vector2> {
-        let mut pts = self.shape.as_polyline();
+        let mut pts: Vec<Vector2> = self
+            .shape
+            .as_polyline()
+            .into_iter()
+            .map(|p| self.world_transform.transform_point2(p.into()).into())
+            .collect();
+
         for child in &self.children {
             pts.extend(child.as_polyline());
         }
@@ -381,6 +432,26 @@ impl Entity {
         }
         None
     }
+    /// Mark this entity and all its descendants as dirty.
+    pub fn set_dirty(&mut self) {
+        self.is_dirty = true;
+        for child in &mut self.children {
+            child.set_dirty();
+        }
+    }
+
+    /// Recursively update world transforms.
+    pub fn update_transforms(&mut self, parent_world: Affine2) {
+        if self.is_dirty {
+            self.world_transform = parent_world * self.local_transform;
+            self.is_dirty = false;
+        }
+
+        for child in &mut self.children {
+            child.update_transforms(self.world_transform);
+        }
+    }
+
     /// Pick an entity ID at the given position (recursive).
     /// Returns the ID of the deepest child that was hit.
     pub fn pick(
@@ -430,6 +501,13 @@ impl CadModel {
 
     pub fn add_entity(&mut self, entity: Entity) {
         self.entities.push(entity);
+    }
+
+    /// Update all transforms in the hierarchy.
+    pub fn update_hierarchy(&mut self) {
+        for entity in &mut self.entities {
+            entity.update_transforms(Affine2::IDENTITY);
+        }
     }
 
     /// Find the top-most entity ID under the cursor (recursive).

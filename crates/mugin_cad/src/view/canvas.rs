@@ -76,6 +76,7 @@ pub fn render_canvas(ui: &mut egui::Ui, vm: &mut CadViewModel) {
         zoom: viewport_zoom,
         offset: viewport_offset,
         screen_center,
+        transform: glam::Affine2::IDENTITY,
     };
 
     // Handle Input logic (Calls methods on VM)
@@ -140,6 +141,9 @@ pub fn render_canvas(ui: &mut egui::Ui, vm: &mut CadViewModel) {
 
     // Grid & Axes
     crate::view::rendering::grid::render_grid_and_axes(&ctx, vm, rect);
+
+    // Update hierarchy transforms before rendering entities
+    vm.active_tab_mut().model.update_hierarchy();
 
     // We can now borrow tab for rendering
     let tab = vm.active_tab();

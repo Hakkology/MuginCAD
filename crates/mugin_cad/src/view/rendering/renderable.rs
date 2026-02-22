@@ -567,16 +567,36 @@ impl Entity {
         let is_column = matches!(self.shape, Shape::Column(_));
 
         if is_column == is_column_pass {
+            let local_ctx = DrawContext {
+                painter: ctx.painter,
+                zoom: ctx.zoom,
+                offset: ctx.offset,
+                screen_center: ctx.screen_center,
+                transform: self.world_transform,
+            };
+
             match &self.shape {
-                Shape::Line(e) => e.render(ctx, definitions, is_self_selected, is_self_hovered),
-                Shape::Circle(e) => e.render(ctx, definitions, is_self_selected, is_self_hovered),
-                Shape::Rectangle(e) => {
-                    e.render(ctx, definitions, is_self_selected, is_self_hovered)
+                Shape::Line(e) => {
+                    e.render(&local_ctx, definitions, is_self_selected, is_self_hovered)
                 }
-                Shape::Arc(e) => e.render(ctx, definitions, is_self_selected, is_self_hovered),
-                Shape::Text(e) => e.render(ctx, definitions, is_self_selected, is_self_hovered),
-                Shape::Column(e) => e.render(ctx, definitions, is_self_selected, is_self_hovered),
-                Shape::Beam(e) => e.render(ctx, definitions, is_self_selected, is_self_hovered),
+                Shape::Circle(e) => {
+                    e.render(&local_ctx, definitions, is_self_selected, is_self_hovered)
+                }
+                Shape::Rectangle(e) => {
+                    e.render(&local_ctx, definitions, is_self_selected, is_self_hovered)
+                }
+                Shape::Arc(e) => {
+                    e.render(&local_ctx, definitions, is_self_selected, is_self_hovered)
+                }
+                Shape::Text(e) => {
+                    e.render(&local_ctx, definitions, is_self_selected, is_self_hovered)
+                }
+                Shape::Column(e) => {
+                    e.render(&local_ctx, definitions, is_self_selected, is_self_hovered)
+                }
+                Shape::Beam(e) => {
+                    e.render(&local_ctx, definitions, is_self_selected, is_self_hovered)
+                }
                 Shape::None => {}
             }
         }

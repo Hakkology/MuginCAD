@@ -1,4 +1,5 @@
 use crate::model::Vector2;
+use glam::Affine2;
 // use crate::view::viewport::Viewport;
 use eframe::egui;
 
@@ -9,6 +10,7 @@ pub struct DrawContext<'a> {
     pub zoom: f32,
     pub offset: Vector2,
     pub screen_center: Vector2,
+    pub transform: Affine2,
 }
 
 impl<'a> DrawContext<'a> {
@@ -16,9 +18,12 @@ impl<'a> DrawContext<'a> {
         let zoom = self.zoom;
         let offset = self.offset;
 
+        // Apply entity transform first (convert local to world)
+        let world_pos: Vector2 = self.transform.transform_point2(pos.into()).into();
+
         egui::pos2(
-            self.screen_center.x + pos.x * zoom + offset.x,
-            self.screen_center.y - pos.y * zoom + offset.y,
+            self.screen_center.x + world_pos.x * zoom + offset.x,
+            self.screen_center.y - world_pos.y * zoom + offset.y,
         )
     }
 

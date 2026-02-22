@@ -1,5 +1,18 @@
+use glam::Vec2;
 use serde::{Deserialize, Serialize};
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, Div, Mul, Neg, Sub};
+
+impl From<Vec2> for Vector2 {
+    fn from(v: Vec2) -> Self {
+        Self::new(v.x, v.y)
+    }
+}
+
+impl From<Vector2> for Vec2 {
+    fn from(v: Vector2) -> Self {
+        Self::new(v.x, v.y)
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, Default)]
 pub struct Vector2 {
@@ -81,5 +94,12 @@ impl Div<f32> for Vector2 {
     type Output = Self;
     fn div(self, rhs: f32) -> Self {
         Self::new(self.x / rhs, self.y / rhs)
+    }
+}
+
+impl Neg for Vector2 {
+    type Output = Self;
+    fn neg(self) -> Self {
+        Self::new(-self.x, -self.y)
     }
 }
