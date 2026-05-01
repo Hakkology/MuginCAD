@@ -1,5 +1,10 @@
 # MuginCAD
 
+<p align="center">
+  <img src="assets/logo.png" alt="MuginCAD Logo" width="200">
+</p>
+
+
 A lightweight, high-performance 2D CAD application built with **Rust** and **egui**. MuginCAD focuses on providing a precise and fluid drafting experience for engineering and architectural workflows.
 
 ![Rust](https://img.shields.io/badge/Rust-2024-orange)
